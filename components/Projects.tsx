@@ -9,22 +9,22 @@ const featuredProjects = [
   {
     number: "01",
     label: "Featured Project",
-    title: "Placely",
+    title: "astro-agent",
     description:
-      "UI and mockups for an application/web service that eases the process of relocating to a new place or finding somewhere to stay during a trip that will last long enough for a hotel to prove too expensive.",
-    stack: ["React.js", "Firebase", "Figma", "Places API"],
-    github: "https://github.com/aminuolawale",
+      "An automated astrophotography session planning and scheduling agent. Integrates NASA JPL ephemeris data and Google Calendar to compute optimal imaging windows for deep-sky targets from Zurich, and schedules them as macOS LaunchAgent jobs.",
+    stack: ["Python", "Docker", "Google Calendar API", "NASA JPL"],
+    github: "https://github.com/aminuolawale/astro-agent",
     live: null as string | null,
     accent: "from-[#fc9e4f]/10 to-[#edd382]/5",
   },
   {
     number: "02",
     label: "Featured Project",
-    title: "Homebliss",
+    title: "Muffassa",
     description:
-      "UI and mockups for a home dispute resolution service that connects homeowners, tenants, and mediators on a single platform.",
-    stack: ["Gatsby", "Figma", "React.js", "Places API"],
-    github: "https://github.com/aminuolawale",
+      "An Android app for spaced-repetition recall — \"remember anything\". Built in Kotlin with a Python backend service (muffassa-be), it surfaces items at the scientifically optimal moment so nothing important slips from memory.",
+    stack: ["Kotlin", "Android", "Python"],
+    github: "https://github.com/aminuolawale/Muffassa",
     live: null as string | null,
     accent: "from-[#edd382]/10 to-[#fc9e4f]/5",
   },
@@ -32,34 +32,52 @@ const featuredProjects = [
 
 const otherProjects = [
   {
-    title: "Project Alpha",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["Python", "FastAPI", "PostgreSQL"],
+    title: "laroye",
+    description:
+      "AI-powered project behind laroye.ai. Python-based with a focus on natural language interfaces.",
+    stack: ["Python", "AI/ML"],
+    github: "https://github.com/aminuolawale/laroye",
+    live: "https://laroye.ai",
   },
   {
-    title: "Project Beta",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["React", "TypeScript", "Redux"],
+    title: "birthdays",
+    description:
+      "Full-stack social app for tracking and celebrating birthdays. GraphQL API powered by Django with an Apollo + React frontend.",
+    stack: ["React", "Django", "GraphQL", "Apollo"],
+    github: "https://github.com/aminuolawale/birthdays",
+    live: null as string | null,
   },
   {
-    title: "Project Gamma",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["Go", "Docker", "Redis"],
+    title: "bank",
+    description:
+      "A Go microservice implementing core banking operations — accounts, transfers, and balance management — with a clean REST API.",
+    stack: ["Go", "Microservices", "REST"],
+    github: "https://github.com/aminuolawale/bank",
+    live: null as string | null,
   },
   {
-    title: "Project Delta",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["Node.js", "MongoDB", "Express"],
+    title: "algorithms-visualizer",
+    description:
+      "Interactive Python tool for visualising classic algorithms and data structures step-by-step.",
+    stack: ["Python"],
+    github: "https://github.com/aminuolawale/algorithms-visualizer",
+    live: null as string | null,
   },
   {
-    title: "Project Epsilon",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["React Native", "Firebase", "Expo"],
+    title: "sentyment",
+    description:
+      "Sentiment analysis and NLP pipeline in Python — processes text corpora and surfaces sentiment signals.",
+    stack: ["Python", "NLP"],
+    github: "https://github.com/aminuolawale/sentyment",
+    live: null as string | null,
   },
   {
-    title: "Project Zeta",
-    description: "A project description will go here soon. Come back to check.",
-    stack: ["Next.js", "Tailwind", "Vercel"],
+    title: "Polynomial",
+    description:
+      "A Python module for algebraic polynomial manipulation — arithmetic, composition, differentiation, and root-finding.",
+    stack: ["Python"],
+    github: "https://github.com/aminuolawale/Polynomial",
+    live: null as string | null,
   },
 ];
 
@@ -86,7 +104,6 @@ function FolderIcon() {
 export default function Projects() {
   return (
     <section id="projects" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
-      {/* Section heading */}
       <SectionHeading number="03" title="Projects" />
 
       {/* Featured projects */}
@@ -100,7 +117,7 @@ export default function Projects() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            {/* Image (order flips for odd) */}
+            {/* Decorative image */}
             <div
               className={`relative h-[240px] sm:h-[280px] bg-gradient-to-br ${project.accent} border border-[#f2f3ae]/10 overflow-hidden group ${
                 i % 2 === 1 ? "lg:order-2" : ""
@@ -175,7 +192,14 @@ export default function Projects() {
           <h3 className="font-mono text-[#fc9e4f] text-xl mb-2">
             Other Noteworthy Projects
           </h3>
-          <p className="font-mono text-xs text-[#edd382]/35">View the archive</p>
+          <a
+            href="https://github.com/aminuolawale?tab=repositories"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-xs text-[#edd382]/35 hover:text-[#fc9e4f] transition-colors"
+          >
+            View the full archive
+          </a>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -191,8 +215,26 @@ export default function Projects() {
               <div className="flex items-start justify-between mb-6">
                 <FolderIcon />
                 <div className="flex gap-3 text-[#f2f3ae]/30 group-hover:text-[#f2f3ae]/60 transition-colors">
-                  <GitHubIcon size={18} />
-                  <ExternalLink size={18} />
+                  <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <GitHubIcon size={18} />
+                  </a>
+                  {project.live && (
+                    <a
+                      href={project.live}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Live site"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink size={18} />
+                    </a>
+                  )}
                 </div>
               </div>
               <h4 className="text-[#f2f3ae] font-semibold text-base mb-3 group-hover:text-[#fc9e4f] transition-colors">

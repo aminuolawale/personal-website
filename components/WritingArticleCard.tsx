@@ -6,13 +6,14 @@ import type { Article } from "@/lib/schema";
 
 interface WritingArticleCardProps {
   article: Article;
+  basePath?: string;
 }
 
-export default function WritingArticleCard({ article }: WritingArticleCardProps) {
+export default function WritingArticleCard({ article, basePath = "/writing" }: WritingArticleCardProps) {
   const tags = splitTags(article.tags);
 
   return (
-    <Link href={`/writing/${article.slug}`} className="group block">
+    <Link href={`${basePath}/${article.slug}`} className="group block">
       <article className="bg-[#f2f3ae]/[0.025] border border-[#f2f3ae]/10 p-6 flex flex-col sm:flex-row sm:items-start gap-5 hover:bg-[#f2f3ae]/[0.045] hover:border-[#fc9e4f]/25 transition-all duration-300">
         <div className="shrink-0 sm:w-28">
           <p className="font-mono text-xs text-[#edd382]/35">{article.date}</p>

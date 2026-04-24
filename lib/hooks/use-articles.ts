@@ -9,7 +9,7 @@ interface UseArticlesResult {
 }
 
 export function useArticles(
-  type: "writing" | "astrophotography"
+  type: "writing" | "astrophotography" | "swe"
 ): UseArticlesResult {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);

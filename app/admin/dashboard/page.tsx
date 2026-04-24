@@ -9,17 +9,19 @@ import type { Article } from "@/lib/schema";
 const TYPE_LABEL: Record<string, string> = {
   writing: "Writing",
   astrophotography: "Astro",
+  swe: "SWE",
 };
 
 const TYPE_COLOR: Record<string, string> = {
   writing: "text-[#fc9e4f] bg-[#fc9e4f]/10 border-[#fc9e4f]/25",
   astrophotography: "text-[#edd382] bg-[#edd382]/10 border-[#edd382]/25",
+  swe: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
 };
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>([]);
-  const [filter, setFilter] = useState<"all" | "writing" | "astrophotography">("all");
+  const [filter, setFilter] = useState<"all" | "writing" | "astrophotography" | "swe">("all");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -76,7 +78,7 @@ export default function AdminDashboard() {
         {/* Actions row */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-2">
-            {(["all", "writing", "astrophotography"] as const).map((f) => (
+            {(["all", "writing", "astrophotography", "swe"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

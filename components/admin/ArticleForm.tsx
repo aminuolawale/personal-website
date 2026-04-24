@@ -23,8 +23,8 @@ export default function ArticleForm({ article }: ArticleFormProps) {
   const router = useRouter();
   const isNew = !article;
 
-  const [type, setType] = useState<"writing" | "astrophotography">(
-    (article?.type as "writing" | "astrophotography") ?? "writing"
+  const [type, setType] = useState<"writing" | "astrophotography" | "swe">(
+    (article?.type as "writing" | "astrophotography" | "swe") ?? "writing"
   );
   const [title, setTitle] = useState(article?.title ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
@@ -127,7 +127,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
           <div>
             <label className={LABEL}>Article type</label>
             <div className="flex gap-2">
-              {(["writing", "astrophotography"] as const).map((t) => (
+              {(["writing", "astrophotography", "swe"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"

@@ -1,25 +1,82 @@
 "use client";
 
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import PageShell from "@/components/PageShell";
 import PageHeader from "@/components/PageHeader";
-import About from "@/components/About";
-import Experience from "@/components/Experience";
-import Projects from "@/components/Projects";
-import Contact from "@/components/Contact";
+import TabBar from "@/components/TabBar";
+import ArticlesTab from "@/components/swe/ArticlesTab";
+import ProjectsTab from "@/components/swe/ProjectsTab";
+import AboutMeTab from "@/components/swe/AboutMeTab";
+import { useArticles } from "@/lib/hooks/use-articles";
+import type { Article } from "@/lib/schema";
 
-export default function SWEPage() {
+/**
+ * To add a new tab:
+ *  1. Create a component in components/swe/
+ *  2. Add one entry to SWE_TABS below.
+ */
+interface SweTabConfig {
+  id: string;
+  label: string;
+  renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;
+}
+
+const SWE_TABS: SweTabConfig[] = [
+  {
+    id: "articles",
+    label: "Articles",
+    renderContent: (articles, isLoading) => (
+      <ArticlesTab articles={articles} isLoading={isLoading} />
+    ),
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    renderContent: () => <ProjectsTab />,
+  },
+  {
+    id: "about",
+    label: "About Me",
+    renderContent: () => <AboutMeTab />,
+  },
+];
+
+export default function SwePage() {
+  const [activeTabId, setActiveTabId] = useState(SWE_TABS[0].id);
+  const { articles, isLoading } = useArticles("swe");
+
+  const activeTab = SWE_TABS.find((tab) => tab.id === activeTabId)!;
+
   return (
     <PageShell>
       <main>
         <PageHeader
           eyebrow="01. Engineering"
           title="Software Engineering"
-          description="Building software since 2022 — web applications, APIs, microservices, and the tools that tie them together."
-        />
-        <About />
-        <Experience />
-        <Projects />
-        <Contact />
+          description="Building software since 2019 — web applications, APIs, microservices, and the tools that tie them together."
+        >
+          <TabBar
+            tabs={SWE_TABS}
+            activeId={activeTabId}
+            onChange={setActiveTabId}
+            layoutId="swe-tab-indicator"
+          />
+        </PageHeader>
+
+        <section className="py-16 px-6 sm:px-16 max-w-6xl mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTabId}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab.renderContent(articles, isLoading)}
+            </motion.div>
+          </AnimatePresence>
+        </section>
       </main>
     </PageShell>
   );

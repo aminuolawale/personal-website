@@ -1,0 +1,83 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import PageShell from "@/components/PageShell";
+import TagBadge from "@/components/TagBadge";
+import { WRITING_TAG_COLORS } from "@/lib/tag-colors";
+import { splitTags } from "@/lib/utils";
+import type { Article } from "@/lib/schema";
+
+export default function SweArticlePage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [article, setArticle] = useState<Article | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/articles/by-slug/${slug}?type=swe`)
+      .then((response) => {
+        if (!response.ok) { setIsNotFound(true); return null; }
+        return response.json();
+      })
+      .then((data) => { if (data) setArticle(data); })
+      .finally(() => setIsLoading(false));
+  }, [slug]);
+
+  const tags = article ? splitTags(article.tags) : [];
+
+  return (
+    <PageShell>
+      <main className="pt-32 pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
+        <Link
+          href="/swe"
+          className="inline-flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors mb-12"
+        >
+          <ArrowLeft size={13} />
+          All SWE Articles
+        </Link>
+
+        {isLoading && (
+          <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
+        )}
+
+        {isNotFound && !isLoading && (
+          <p className="font-mono text-sm text-[#edd382]/50">Article not found.</p>
+        )}
+
+        {article && (
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <header className="mb-12 pb-8 border-b border-[#f2f3ae]/10">
+              <h1 className="text-[#f2f3ae] text-3xl sm:text-4xl font-bold leading-tight mb-6">
+                {article.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
+                <span className="font-mono text-xs text-[#edd382]/40">{article.date}</span>
+                {article.readTime && (
+                  <span className="font-mono text-xs text-[#edd382]/30">{article.readTime}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <TagBadge key={tag} tag={tag} colorMap={WRITING_TAG_COLORS} />
+                ))}
+              </div>
+            </header>
+
+            <div
+              className="article-content"
+              dangerouslySetInnerHTML={{ __html: article.content }}
+            />
+          </motion.article>
+        )}
+      </main>
+    </PageShell>
+  );
+}
