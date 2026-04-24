@@ -11,7 +11,12 @@ const navItems = [
   { label: "Contact", href: "#contact" },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  viewMode: "immersive" | "minimal" | "cosmos";
+  setViewMode: (mode: "immersive" | "minimal" | "cosmos") => void;
+}
+
+export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -20,6 +25,12 @@ export default function Navbar() {
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  const toggleItems = [
+    { id: "immersive", label: "Immersive" },
+    { id: "minimal", label: "Minimal" },
+    { id: "cosmos", label: "Cosmos" },
+  ] as const;
 
   return (
     <motion.header
@@ -35,13 +46,34 @@ export default function Navbar() {
       <nav className="max-w-6xl mx-auto px-6 sm:px-16 py-5 flex items-center justify-between">
         <a
           href="#"
-          className="font-mono text-[#fc9e4f] text-xl font-bold hover:opacity-75 transition-opacity"
+          className={`font-mono text-[#fc9e4f] text-xl font-bold hover:opacity-75 transition-all duration-500 ${
+            viewMode === "cosmos" ? "opacity-0 pointer-events-none -translate-x-4" : "opacity-100"
+          }`}
         >
           AO.
         </a>
 
+        {/* Center Toggle (Desktop) */}
+        <div className="hidden md:flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 mx-4 shadow-sm">
+          {toggleItems.map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setViewMode(mode.id)}
+              className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
+                viewMode === mode.id
+                  ? "bg-[#fc9e4f] text-[#020122] shadow-[0_0_8px_rgba(252,158,79,0.5)]"
+                  : "text-[#edd382] hover:text-[#fc9e4f] hover:bg-[#fc9e4f]/5"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
         {/* Desktop nav */}
-        <ul className="hidden sm:flex items-center gap-1">
+        <ul className={`hidden sm:flex items-center gap-1 transition-all duration-500 ${
+          viewMode === "cosmos" ? "opacity-0 pointer-events-none translate-x-4" : "opacity-100"
+        }`}>
           {navItems.map((item, i) => (
             <li key={item.label}>
               <a
@@ -68,17 +100,38 @@ export default function Navbar() {
 
         {/* Mobile toggle */}
         <button
-          className="sm:hidden text-[#fc9e4f] p-1"
+          className={`sm:hidden text-[#fc9e4f] p-1 transition-all duration-500 ${
+            viewMode === "cosmos" ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
           onClick={() => setMobileOpen((v) => !v)}
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
+
+        {/* Mobile Center Toggle (if mobileOpen is false and viewMode is cosmos, we need to see it) */}
+        {viewMode === "cosmos" && (
+          <div className="sm:hidden absolute left-1/2 -translate-x-1/2 flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 shadow-sm">
+            {toggleItems.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => setViewMode(mode.id)}
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
+                  viewMode === mode.id
+                    ? "bg-[#fc9e4f] text-[#020122]"
+                    : "text-[#edd382]"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Mobile drawer */}
       <AnimatePresence>
-        {mobileOpen && (
+        {mobileOpen && viewMode !== "cosmos" && (
           <motion.div
             className="sm:hidden border-t border-[#f2f3ae]/10 bg-[#020122]/95 backdrop-blur-md overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
@@ -86,6 +139,24 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
+            <div className="px-6 pt-6 pb-2">
+              <div className="bg-[#020122]/40 border border-[#fc9e4f]/20 rounded-full flex p-1 justify-center">
+                {toggleItems.map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setViewMode(mode.id)}
+                    className={`flex-1 px-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
+                      viewMode === mode.id
+                        ? "bg-[#fc9e4f] text-[#020122]"
+                        : "text-[#edd382] hover:text-[#fc9e4f]"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <ul className="px-6 py-5 flex flex-col gap-4">
               {navItems.map((item, i) => (
                 <li key={item.label}>
