@@ -202,12 +202,18 @@ export default function CelestialBackground({
       }
     };
 
+    const isTouchOnly = window.matchMedia("(hover: none)").matches;
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("mousemove", onMouseMove, { passive: true });
-    
+    if (!isTouchOnly) {
+      window.addEventListener("mousemove", onMouseMove, { passive: true });
+    }
+
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("mousemove", onMouseMove);
+      if (!isTouchOnly) {
+        window.removeEventListener("mousemove", onMouseMove);
+      }
       cancelAnimationFrame(rafId);
     };
   }, [showObjects]);
