@@ -43,7 +43,7 @@ export default function About() {
         >
           <p className="text-[#edd382] leading-relaxed text-[1.05rem]">
             Hi, I&apos;m Aminu Olawale — a Software Engineer based in{" "}
-            <span className="text-[#fc9e4f]">Lagos, Nigeria</span>. I enjoy
+            <span className="text-[#fc9e4f]">Zurich, Switzerland</span>. I enjoy
             building things that live on the internet, from high-throughput APIs
             to polished user interfaces.
           </p>

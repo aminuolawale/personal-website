@@ -91,33 +91,33 @@ export default function Hero() {
         </motion.h1>
 
         <motion.h2
-          className="text-[clamp(32px,6vw,68px)] font-bold text-[#edd382]/35 leading-[1.05] mb-8"
+          className="text-[clamp(22px,4vw,46px)] font-bold text-[#edd382]/35 leading-[1.1] mb-8"
           {...fadeUp(0.4)}
         >
-          I build software.
+          Software Engineer · Astrophotographer · Writer.
         </motion.h2>
 
         <motion.p
           className="max-w-[520px] text-[#edd382]/75 text-lg leading-relaxed mb-12"
           {...fadeUp(0.5)}
         >
-          Software Engineer based in{" "}
-          <span className="text-[#fc9e4f]">Lagos, Nigeria</span>. I develop and
-          maintain web and mobile apps, APIs, and microservices.
+          Based in{" "}
+          <span className="text-[#fc9e4f]">Zurich, Switzerland</span>. Building
+          software since 2022. I also capture deep-sky objects and write.
         </motion.p>
 
         <motion.div className="flex flex-wrap gap-4" {...fadeUp(0.6)}>
           <a
-            href="#contact"
+            href="#work"
             className="font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-8 py-4 hover:bg-[#fc9e4f]/10 hover:shadow-[0_0_24px_rgba(252,158,79,0.18)] transition-all duration-300"
           >
-            Get In Touch
+            Explore My Work
           </a>
           <a
-            href="#projects"
+            href="mailto:aminuolawalekan@gmail.com"
             className="font-mono text-sm text-[#edd382]/70 hover:text-[#fc9e4f] transition-colors py-4 flex items-center gap-2"
           >
-            See My Work <ExternalLink size={14} />
+            Get In Touch <ExternalLink size={14} />
           </a>
         </motion.div>
       </div>

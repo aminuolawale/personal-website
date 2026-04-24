@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 const navItems = [
-  { label: "About", href: "#about" },
-  { label: "Experience", href: "#experience" },
-  { label: "Projects", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+  { label: "SWE", href: "/swe" },
+  { label: "Astrophotography", href: "/astrophotography" },
+  { label: "Writing", href: "/writing" },
 ];
 
 interface NavbarProps {
@@ -16,21 +17,22 @@ interface NavbarProps {
   setViewMode: (mode: "immersive" | "minimal" | "cosmos") => void;
 }
 
+const toggleItems = [
+  { id: "immersive", label: "Immersive" },
+  { id: "minimal", label: "Minimal" },
+  { id: "cosmos", label: "Cosmos" },
+] as const;
+
 export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
-
-  const toggleItems = [
-    { id: "immersive", label: "Immersive" },
-    { id: "minimal", label: "Minimal" },
-    { id: "cosmos", label: "Cosmos" },
-  ] as const;
 
   return (
     <motion.header
@@ -44,14 +46,14 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <nav className="max-w-6xl mx-auto px-6 sm:px-16 py-5 flex items-center justify-between">
-        <a
-          href="#"
+        <Link
+          href="/"
           className={`font-mono text-[#fc9e4f] text-xl font-bold hover:opacity-75 transition-all duration-500 ${
             viewMode === "cosmos" ? "opacity-0 pointer-events-none -translate-x-4" : "opacity-100"
           }`}
         >
           AO.
-        </a>
+        </Link>
 
         {/* Center Toggle (Desktop) */}
         <div className="hidden md:flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 mx-4 shadow-sm">
@@ -71,34 +73,33 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
         </div>
 
         {/* Desktop nav */}
-        <ul className={`hidden sm:flex items-center gap-1 transition-all duration-500 ${
-          viewMode === "cosmos" ? "opacity-0 pointer-events-none translate-x-4" : "opacity-100"
-        }`}>
-          {navItems.map((item, i) => (
-            <li key={item.label}>
-              <a
-                href={item.href}
-                className="relative px-4 py-2 font-mono text-sm text-[#f2f3ae] hover:text-[#fc9e4f] transition-colors group inline-block"
-              >
-                <span className="text-[#fc9e4f]/60 text-xs mr-1">
-                  0{i + 1}.
-                </span>
-                {item.label}
-                <span className="absolute bottom-1 left-4 right-4 h-px bg-[#fc9e4f] scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left" />
-              </a>
-            </li>
-          ))}
-          <li className="ml-3">
-            <a
-              href="#"
-              className="font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-5 py-2 hover:bg-[#fc9e4f]/10 transition-all duration-200"
-            >
-              Resume
-            </a>
-          </li>
+        <ul
+          className={`hidden sm:flex items-center gap-1 transition-all duration-500 ${
+            viewMode === "cosmos" ? "opacity-0 pointer-events-none translate-x-4" : "opacity-100"
+          }`}
+        >
+          {navItems.map((item, i) => {
+            const isActive = pathname === item.href;
+            return (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className="relative px-4 py-2 font-mono text-sm text-[#f2f3ae] hover:text-[#fc9e4f] transition-colors group inline-block"
+                >
+                  <span className="text-[#fc9e4f]/60 text-xs mr-1">0{i + 1}.</span>
+                  {item.label}
+                  <span
+                    className={`absolute bottom-1 left-4 right-4 h-px bg-[#fc9e4f] transition-transform duration-200 origin-left ${
+                      isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                  />
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
-        {/* Mobile toggle */}
+        {/* Mobile menu button */}
         <button
           className={`sm:hidden text-[#fc9e4f] p-1 transition-all duration-500 ${
             viewMode === "cosmos" ? "opacity-0 pointer-events-none" : "opacity-100"
@@ -109,7 +110,6 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
-        {/* Mobile Center Toggle (if mobileOpen is false and viewMode is cosmos, we need to see it) */}
         {viewMode === "cosmos" && (
           <div className="sm:hidden absolute left-1/2 -translate-x-1/2 flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 shadow-sm">
             {toggleItems.map((mode) => (
@@ -117,9 +117,7 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
                 key={mode.id}
                 onClick={() => setViewMode(mode.id)}
                 className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
-                  viewMode === mode.id
-                    ? "bg-[#fc9e4f] text-[#020122]"
-                    : "text-[#edd382]"
+                  viewMode === mode.id ? "bg-[#fc9e4f] text-[#020122]" : "text-[#edd382]"
                 }`}
               >
                 {mode.label}
@@ -160,27 +158,18 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
             <ul className="px-6 py-5 flex flex-col gap-4">
               {navItems.map((item, i) => (
                 <li key={item.label}>
-                  <a
+                  <Link
                     href={item.href}
-                    className="font-mono text-sm text-[#f2f3ae] hover:text-[#fc9e4f] transition-colors block"
+                    className={`font-mono text-sm transition-colors block ${
+                      pathname === item.href ? "text-[#fc9e4f]" : "text-[#f2f3ae] hover:text-[#fc9e4f]"
+                    }`}
                     onClick={() => setMobileOpen(false)}
                   >
-                    <span className="text-[#fc9e4f]/60 text-xs mr-2">
-                      0{i + 1}.
-                    </span>
+                    <span className="text-[#fc9e4f]/60 text-xs mr-2">0{i + 1}.</span>
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
-              <li className="pt-1">
-                <a
-                  href="#"
-                  className="font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-5 py-2 inline-block hover:bg-[#fc9e4f]/10 transition-all"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Resume
-                </a>
-              </li>
             </ul>
           </motion.div>
         )}

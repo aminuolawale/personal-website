@@ -15,9 +15,9 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aminu Olawale — Software Engineer",
+  title: "Aminu Olawale — Software Engineer · Astrophotographer · Writer",
   description:
-    "Software Engineer based in Lagos, Nigeria. I develop and maintain web and mobile apps, APIs, and microservices.",
+    "Software Engineer based in Zurich, Switzerland. Building software since 2022. I also capture deep-sky objects and write.",
 };
 
 export default function RootLayout({

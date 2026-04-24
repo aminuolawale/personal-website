@@ -5,7 +5,7 @@ export default function Footer() {
         Designed &amp; built by{" "}
         <span className="text-[#f2f3ae]/40">Aminu Olawale</span>
       </p>
-      <p className="font-mono text-xs text-[#edd382]/15 mt-1">©2024</p>
+      <p className="font-mono text-xs text-[#edd382]/15 mt-1">©2025</p>
     </footer>
   );
 }
