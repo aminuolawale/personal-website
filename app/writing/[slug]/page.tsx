@@ -6,37 +6,28 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import PageShell from "@/components/PageShell";
+import TagBadge from "@/components/TagBadge";
+import { WRITING_TAG_COLORS } from "@/lib/tag-colors";
+import { splitTags } from "@/lib/utils";
 import type { Article } from "@/lib/schema";
-
-const TAG_COLORS: Record<string, string> = {
-  essay: "text-[#fc9e4f] bg-[#fc9e4f]/10 border-[#fc9e4f]/25",
-  personal: "text-[#edd382] bg-[#edd382]/10 border-[#edd382]/25",
-  guide: "text-[#f2f3ae]/70 bg-[#f2f3ae]/5 border-[#f2f3ae]/15",
-  astronomy: "text-[#fc9e4f] bg-[#fc9e4f]/10 border-[#fc9e4f]/25",
-  software: "text-[#edd382] bg-[#edd382]/10 border-[#edd382]/25",
-  astrophotography: "text-[#f2f3ae]/70 bg-[#f2f3ae]/5 border-[#f2f3ae]/15",
-  career: "text-[#f2f3ae]/70 bg-[#f2f3ae]/5 border-[#f2f3ae]/15",
-  craft: "text-[#edd382] bg-[#edd382]/10 border-[#edd382]/25",
-  life: "text-[#fc9e4f] bg-[#fc9e4f]/10 border-[#fc9e4f]/25",
-};
 
 export default function WritingArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
 
   useEffect(() => {
     fetch(`/api/articles/by-slug/${slug}?type=writing`)
-      .then((r) => {
-        if (!r.ok) { setNotFound(true); return null; }
-        return r.json();
+      .then((response) => {
+        if (!response.ok) { setIsNotFound(true); return null; }
+        return response.json();
       })
       .then((data) => { if (data) setArticle(data); })
-      .finally(() => setLoading(false));
+      .finally(() => setIsLoading(false));
   }, [slug]);
 
-  const tags = article?.tags ? article.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
+  const tags = article ? splitTags(article.tags) : [];
 
   return (
     <PageShell>
@@ -49,11 +40,11 @@ export default function WritingArticlePage() {
           All Writing
         </Link>
 
-        {loading && (
+        {isLoading && (
           <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
         )}
 
-        {notFound && !loading && (
+        {isNotFound && !isLoading && (
           <p className="font-mono text-sm text-[#edd382]/50">Article not found.</p>
         )}
 
@@ -63,7 +54,6 @@ export default function WritingArticlePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Header */}
             <header className="mb-12 pb-8 border-b border-[#f2f3ae]/10">
               <h1 className="text-[#f2f3ae] text-3xl sm:text-4xl font-bold leading-tight mb-6">
                 {article.title}
@@ -76,19 +66,11 @@ export default function WritingArticlePage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 border ${
-                      TAG_COLORS[tag] ?? "text-[#f2f3ae]/50 border-[#f2f3ae]/15 bg-transparent"
-                    }`}
-                  >
-                    {tag}
-                  </span>
+                  <TagBadge key={tag} tag={tag} colorMap={WRITING_TAG_COLORS} />
                 ))}
               </div>
             </header>
 
-            {/* Content */}
             <div
               className="article-content"
               dangerouslySetInnerHTML={{ __html: article.content }}

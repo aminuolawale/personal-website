@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { CelestialData, CELESTIAL_CATALOG } from "./celestial/catalog";
-import { P, mulberry32 } from "./celestial/utils";
+import { colorPalette, mulberry32 } from "./celestial/utils";
 import { drawGalaxy } from "./celestial/galaxy";
 import { drawPlanet } from "./celestial/planet";
 import { drawNebula } from "./celestial/nebula";
@@ -246,10 +246,10 @@ export default function CelestialBackground({
           className="fixed top-0 left-0 z-50 p-4 rounded-xl backdrop-blur-md border transition-opacity duration-200"
           style={{
             backgroundColor: "rgba(2, 1, 34, 0.8)",
-            borderColor: P.orange,
-            color: P.cream,
+            borderColor: colorPalette.orange,
+            color: colorPalette.cream,
             width: "300px",
-            boxShadow: `0 0 20px ${P.oa(0.3)}`,
+            boxShadow: `0 0 20px ${colorPalette.orangeAlpha(0.3)}`,
             willChange: "transform",
             pointerEvents: "none",
             zIndex: 100
@@ -260,8 +260,8 @@ export default function CelestialBackground({
             alt={hoveredData.name} 
             className="w-full h-32 object-cover rounded-lg mb-3 border border-gray-700" 
           />
-          <h3 className="text-lg font-bold mb-1" style={{ color: P.gold }}>{hoveredData.name}</h3>
-          <p className="text-xs uppercase tracking-widest mb-2" style={{ color: P.orange }}>{hoveredData.type}</p>
+          <h3 className="text-lg font-bold mb-1" style={{ color: colorPalette.gold }}>{hoveredData.name}</h3>
+          <p className="text-xs uppercase tracking-widest mb-2" style={{ color: colorPalette.orange }}>{hoveredData.type}</p>
           <p className="text-sm leading-relaxed">{hoveredData.summary}</p>
         </div>
       )}

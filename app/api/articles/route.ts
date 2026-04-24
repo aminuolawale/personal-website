@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { slugify } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -53,12 +54,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function slugify(title: string) {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80)
-    .replace(/-$/, "");
-}

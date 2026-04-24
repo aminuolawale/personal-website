@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawRocket(
   ctx: CanvasRenderingContext2D,
@@ -17,8 +17,8 @@ export function drawRocket(
   ctx.fillStyle = "#020122";
   ctx.globalAlpha = 0.85;
 
-  glow(ctx, 10, P.orange, () => {
-    ctx.strokeStyle = P.orange;
+  glow(ctx, 10, colorPalette.orange, () => {
+    ctx.strokeStyle = colorPalette.orange;
     ctx.lineWidth = lw * 0.6;
     ctx.beginPath();
     ctx.rect(-w * 0.6, -h * 0.3, w * 1.2, h * 0.8);
@@ -28,8 +28,8 @@ export function drawRocket(
 
   const bw = w * 0.35;
   const bh = h * 0.65;
-  glow(ctx, 8, P.cream, () => {
-    ctx.strokeStyle = P.cream;
+  glow(ctx, 8, colorPalette.cream, () => {
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.5;
     for (const sign of [-1, 1]) {
       const bx = sign * w * 0.85;
@@ -45,8 +45,8 @@ export function drawRocket(
     }
   });
 
-  glow(ctx, 8, P.cream, () => {
-    ctx.strokeStyle = P.cream;
+  glow(ctx, 8, colorPalette.cream, () => {
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.5;
     ctx.beginPath();
     ctx.moveTo(-w * 0.6, -h * 0.3);
@@ -64,8 +64,8 @@ export function drawRocket(
   });
 
   ctx.globalAlpha = 1.0;
-  glow(ctx, 15, P.orange, () => {
-    ctx.strokeStyle = P.gold;
+  glow(ctx, 15, colorPalette.orange, () => {
+    ctx.strokeStyle = colorPalette.gold;
     ctx.lineWidth = lw * 0.8;
     ctx.beginPath();
     ctx.moveTo(-w * 0.3, h * 0.5);
@@ -83,7 +83,7 @@ export function drawRocket(
   });
 
   ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = P.gold;
+  ctx.strokeStyle = colorPalette.gold;
   ctx.lineWidth = lw * 0.3;
   ctx.beginPath();
   ctx.moveTo(-w * 0.6, 0);
@@ -114,8 +114,8 @@ export function drawStarship(
   ctx.globalAlpha = 0.85;
 
   const tx = -w * 2.5; 
-  glow(ctx, 3, P.gold, () => {
-    ctx.strokeStyle = P.gold;
+  glow(ctx, 3, colorPalette.gold, () => {
+    ctx.strokeStyle = colorPalette.gold;
     ctx.lineWidth = lw * 0.2;
     ctx.beginPath();
     ctx.moveTo(tx - tw * 0.5, h * 0.5);
@@ -153,8 +153,8 @@ export function drawStarship(
   const shipH = h * 0.45;
   const baseY = h * 0.5;
   
-  glow(ctx, 4, P.cream, () => {
-    ctx.strokeStyle = P.cream;
+  glow(ctx, 4, colorPalette.cream, () => {
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.25;
     ctx.beginPath();
     ctx.rect(-w * 0.5, baseY - shH, w, shH);
@@ -173,8 +173,8 @@ export function drawStarship(
     ctx.stroke();
   });
 
-  glow(ctx, 4, P.cream, () => {
-    ctx.strokeStyle = P.cream;
+  glow(ctx, 4, colorPalette.cream, () => {
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.25;
     ctx.beginPath();
     ctx.moveTo(-w * 0.5, baseY - shH);
@@ -219,9 +219,9 @@ export function drawStarship(
     ctx.stroke();
   });
 
-  glow(ctx, 10, P.cream, () => {
+  glow(ctx, 10, colorPalette.cream, () => {
     ctx.globalAlpha = 0.4;
-    ctx.strokeStyle = P.cream;
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.15;
     for(let i=0; i<8; i++) {
       ctx.beginPath();

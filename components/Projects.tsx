@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { GitHubIcon } from "./icons";
+import SectionHeading from "@/components/SectionHeading";
 
 const featuredProjects = [
   {
@@ -86,18 +87,7 @@ export default function Projects() {
   return (
     <section id="projects" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       {/* Section heading */}
-      <motion.div
-        className="flex items-center gap-6 mb-16"
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2 className="font-mono text-[#fc9e4f] text-2xl whitespace-nowrap">
-          <span className="text-base mr-2 opacity-70">03.</span>Projects
-        </h2>
-        <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
-      </motion.div>
+      <SectionHeading number="03" title="Projects" />
 
       {/* Featured projects */}
       <div className="space-y-24 mb-28">

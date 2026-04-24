@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawStarField(
   ctx: CanvasRenderingContext2D,
@@ -15,12 +15,12 @@ export function drawStarField(
     if (b > 0.96) {
       const r = 1.2 + rand() * 0.8;
       const spikeLen = 5 + rand() * 6;
-      glow(ctx, 7, P.cream, () => {
-        ctx.fillStyle = P.cream;
+      glow(ctx, 7, colorPalette.cream, () => {
+        ctx.fillStyle = colorPalette.cream;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.strokeStyle = P.ca(0.6);
+        ctx.strokeStyle = colorPalette.creamAlpha(0.6);
         ctx.lineWidth = 0.7;
         for (let d = 0; d < 4; d++) {
           const dx = Math.cos((d * Math.PI) / 2);
@@ -32,12 +32,12 @@ export function drawStarField(
         }
       });
     } else if (b > 0.82) {
-      ctx.fillStyle = P.ca(0.55 + rand() * 0.3);
+      ctx.fillStyle = colorPalette.creamAlpha(0.55 + rand() * 0.3);
       ctx.beginPath();
       ctx.arc(x, y, 0.9, 0, 2 * Math.PI);
       ctx.fill();
     } else {
-      ctx.fillStyle = P.ga(0.18 + rand() * 0.2);
+      ctx.fillStyle = colorPalette.goldAlpha(0.18 + rand() * 0.2);
       ctx.fillRect(x, y, 1, 1);
     }
   }

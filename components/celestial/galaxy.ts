@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawGalaxy(
   ctx: CanvasRenderingContext2D,
@@ -10,8 +10,8 @@ export function drawGalaxy(
   rand: () => number
 ) {
   const tilt = traits.tilt || 1.0;
-  const coreColor = traits.core || P.cream;
-  const armColor = traits.arm || P.orange;
+  const coreColor = traits.core || colorPalette.cream;
+  const armColor = traits.arm || colorPalette.orange;
   const dustLane = traits.dustLane || false;
 
   const turns = 1.6;

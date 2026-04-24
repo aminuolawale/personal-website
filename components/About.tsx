@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
+import SectionHeading from "@/components/SectionHeading";
 
 const skills = [
   "Python",
@@ -19,18 +20,7 @@ export default function About() {
   return (
     <section id="about" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       {/* Section heading */}
-      <motion.div
-        className="flex items-center gap-6 mb-16"
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2 className="font-mono text-[#fc9e4f] text-2xl whitespace-nowrap">
-          <span className="text-base mr-2 opacity-70">01.</span>About Me
-        </h2>
-        <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
-      </motion.div>
+      <SectionHeading number="01" title="About Me" />
 
       <div className="grid lg:grid-cols-[1fr_auto] gap-16 items-start">
         {/* Text + skills */}

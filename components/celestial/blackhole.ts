@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawBlackHole(
   ctx: CanvasRenderingContext2D,
@@ -8,7 +8,7 @@ export function drawBlackHole(
   lw: number,
   traits: any
 ) {
-  const color = traits.color || P.orange;
+  const color = traits.color || colorPalette.orange;
   const jets = traits.jets !== false;
   const asymmetry = traits.asymmetry !== false;
 
@@ -45,9 +45,9 @@ export function drawBlackHole(
     }
   });
 
-  glow(ctx, 8, P.cream, () => {
+  glow(ctx, 8, colorPalette.cream, () => {
     ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = P.cream;
+    ctx.strokeStyle = colorPalette.cream;
     ctx.lineWidth = lw * 0.5;
     ctx.beginPath();
     ctx.arc(0, 0, r * 0.75, 0, 2 * Math.PI);
@@ -55,9 +55,9 @@ export function drawBlackHole(
   });
 
   if (jets) {
-    glow(ctx, 6, P.cream, () => {
+    glow(ctx, 6, colorPalette.cream, () => {
       ctx.globalAlpha = 0.35;
-      ctx.strokeStyle = P.ca(1);
+      ctx.strokeStyle = colorPalette.creamAlpha(1);
       ctx.lineWidth = lw * 0.7;
       [[0, -r - 4, 0, -r - r * 1.8], [0, r + 4, 0, r + r * 1.8]].forEach(([x1, y1, x2, y2]) => {
         ctx.beginPath();

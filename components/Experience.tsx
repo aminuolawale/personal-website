@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
+import SectionHeading from "@/components/SectionHeading";
 
 const experiences = [
   {
@@ -46,18 +47,7 @@ export default function Experience() {
   return (
     <section id="experience" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       {/* Section heading */}
-      <motion.div
-        className="flex items-center gap-6 mb-16"
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2 className="font-mono text-[#fc9e4f] text-2xl whitespace-nowrap">
-          <span className="text-base mr-2 opacity-70">02.</span>Work Experience
-        </h2>
-        <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
-      </motion.div>
+      <SectionHeading number="02" title="Work Experience" />
 
       <motion.div
         className="flex flex-col sm:flex-row gap-6 max-w-3xl"

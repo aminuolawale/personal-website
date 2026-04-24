@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawPlanet(
   ctx: CanvasRenderingContext2D,
@@ -8,7 +8,7 @@ export function drawPlanet(
   lw: number,
   traits: any
 ) {
-  const color = traits.color || P.orange;
+  const color = traits.color || colorPalette.orange;
   const hasRing = traits.hasRing || false;
   const bands = traits.bands || false;
 
@@ -47,7 +47,7 @@ export function drawPlanet(
 
   ctx.save();
   ctx.globalAlpha = 0.12;
-  ctx.strokeStyle = P.cream;
+  ctx.strokeStyle = colorPalette.cream;
   ctx.lineWidth = lw * 0.8;
   ctx.beginPath();
   ctx.arc(0, 0, r * 0.85, Math.PI * 1.1, Math.PI * 1.75);
@@ -60,7 +60,7 @@ export function drawPlanet(
 
     ctx.save();
     ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = P.gold;
+    ctx.strokeStyle = colorPalette.gold;
     ctx.lineWidth = lw * 0.8;
     ctx.beginPath();
     ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI); 
@@ -84,9 +84,9 @@ export function drawPlanet(
       ctx.stroke();
     });
 
-    glow(ctx, 8, P.gold, () => {
+    glow(ctx, 8, colorPalette.gold, () => {
       ctx.globalAlpha = 0.6;
-      ctx.strokeStyle = P.gold;
+      ctx.strokeStyle = colorPalette.gold;
       ctx.lineWidth = lw * 0.8;
       ctx.beginPath();
       ctx.ellipse(0, 0, rx, ry, 0, Math.PI, 2 * Math.PI); 

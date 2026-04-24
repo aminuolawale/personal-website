@@ -6,21 +6,12 @@ import Link from "next/link";
 import { ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { Article } from "@/lib/schema";
+import { slugify } from "@/lib/utils";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
 
 interface ArticleFormProps {
   article?: Article;
-}
-
-function slugify(title: string) {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80)
-    .replace(/-$/, "");
 }
 
 const INPUT =

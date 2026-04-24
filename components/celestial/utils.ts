@@ -8,15 +8,15 @@ export function mulberry32(seed: number) {
   };
 }
 
-export const P = {
+export const colorPalette = {
   orange: "#fc9e4f",
   gold: "#edd382",
   cream: "#f2f3ae",
   red: "#f4442e",
-  oa: (a: number) => `rgba(252,158,79,${a.toFixed(3)})`,
-  ga: (a: number) => `rgba(237,211,130,${a.toFixed(3)})`,
-  ca: (a: number) => `rgba(242,243,174,${a.toFixed(3)})`,
-  ra: (a: number) => `rgba(244,68,46,${a.toFixed(3)})`,
+  orangeAlpha: (a: number) => `rgba(252,158,79,${a.toFixed(3)})`,
+  goldAlpha: (a: number) => `rgba(237,211,130,${a.toFixed(3)})`,
+  creamAlpha: (a: number) => `rgba(242,243,174,${a.toFixed(3)})`,
+  redAlpha: (a: number) => `rgba(244,68,46,${a.toFixed(3)})`,
 };
 
 export function glow(

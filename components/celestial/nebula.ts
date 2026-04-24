@@ -1,4 +1,4 @@
-import { P, glow } from "./utils";
+import { colorPalette, glow } from "./utils";
 
 export function drawNebula(
   ctx: CanvasRenderingContext2D,
@@ -10,9 +10,9 @@ export function drawNebula(
   traits: any
 ) {
   const shape = traits.shape || 'cloud';
-  const c1 = traits.color1 || P.orange;
-  const c2 = traits.color2 || P.gold;
-  const palette = [c1, c2, P.cream];
+  const c1 = traits.color1 || colorPalette.orange;
+  const c2 = traits.color2 || colorPalette.gold;
+  const palette = [c1, c2, colorPalette.cream];
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -30,7 +30,7 @@ export function drawNebula(
       ctx.ellipse(0, 0, r * 0.8, r * 0.5, 0.3, 0, Math.PI * 2);
       ctx.stroke();
     });
-    ctx.fillStyle = P.cream;
+    ctx.fillStyle = colorPalette.cream;
     ctx.beginPath();
     ctx.arc(0, 0, lw, 0, Math.PI * 2);
     ctx.fill();
