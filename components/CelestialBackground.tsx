@@ -159,7 +159,7 @@ export default function CelestialBackground() {
     };
 
     let currentHover: CelestialData | null = null;
-    const onMouseMove = (e: ReactMouseEvent | globalThis.MouseEvent) => {
+    const onMouseMove = (e: MouseEvent) => {
       const sy = window.scrollY;
       const offsetTop = 0; // we set top to 0px
       const mx = (e as any).clientX;
