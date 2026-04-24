@@ -38,7 +38,13 @@ const LAYERS: LayerCfg[] = [
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────
-export default function CelestialBackground() {
+export default function CelestialBackground({ 
+  showObjects = true,
+  forceBright = false
+}: { 
+  showObjects?: boolean;
+  forceBright?: boolean;
+}) {
   const refs = useRef<(HTMLCanvasElement | null)[]>([null, null, null]);
   const hitboxesRef = useRef<Hitbox[]>([]);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -75,74 +81,79 @@ export default function CelestialBackground() {
       const ctx = canvas.getContext("2d")!;
       ctx.scale(dpr, dpr);
 
+      // Clear the canvas in case of a redraw
+      ctx.clearRect(0, 0, VW, H);
+
       const rand = mulberry32(layer.seed);
 
       drawStarField(ctx, VW, H, layer.stars, rand);
 
-      // The visible canvas height for a given layer is from 0 to VH + maxScroll * layer.speed
-      // To ensure objects are distributed everywhere (top to bottom) but keep the very top of the hero clear,
-      // we distribute cy from VH * 0.2 to VH * 0.9 + maxScroll * layer.speed
-      const min_cy = VH * 0.2;
-      const max_cy = VH * 0.9 + maxScroll * layer.speed;
-      const cy_range = max_cy - min_cy;
-      const binSize = cy_range / layer.objects;
+      if (showObjects) {
+        // The visible canvas height for a given layer is from 0 to VH + maxScroll * layer.speed
+        // To ensure objects are distributed everywhere (top to bottom) but keep the very top of the hero clear,
+        // we distribute cy from VH * 0.2 to VH * 0.9 + maxScroll * layer.speed
+        const min_cy = VH * 0.2;
+        const max_cy = VH * 0.9 + maxScroll * layer.speed;
+        const cy_range = max_cy - min_cy;
+        const binSize = cy_range / layer.objects;
 
-      for (let i = 0; i < layer.objects; i++) {
-        // Place object in its vertical bin
-        const cy = min_cy + i * binSize + (rand() * 0.6 + 0.2) * binSize;
-        
-        // Horizontal distribution: alternate left and right halves of the screen
-        const isRight = i % 2 === 0;
-        const cx = isRight
-          ? (VW / 2) + rand() * (VW / 2 - 100)
-          : 50 + rand() * (VW / 2 - 100); 
-        
-        const data = shuffledCatalog.pop() || allObjects[0];
-        const s = layer.scale;
+        for (let i = 0; i < layer.objects; i++) {
+          // Place object in its vertical bin
+          const cy = min_cy + i * binSize + (rand() * 0.6 + 0.2) * binSize;
+          
+          // Horizontal distribution: alternate left and right halves of the screen
+          const isRight = i % 2 === 0;
+          const cx = isRight
+            ? (VW / 2) + rand() * (VW / 2 - 100)
+            : 50 + rand() * (VW / 2 - 100); 
+          
+          const data = shuffledCatalog.pop() || allObjects[0];
+          const s = layer.scale;
 
-        let radius = 0;
+          let radius = 0;
 
-        switch (data.category) {
-          case "galaxy":
-            radius = (50 + rand() * 45) * s;
-            drawGalaxy(ctx, cx, cy, radius, layer.lw, data.traits, rand);
-            break;
-          case "nebula":
-            radius = (50 + rand() * 45) * s;
-            drawNebula(ctx, cx, cy, radius, layer.lw, rand, data.traits);
-            break;
-          case "planet":
-            radius = (22 + rand() * 22) * s;
-            drawPlanet(ctx, cx, cy, radius, layer.lw, data.traits);
-            break;
-          case "comet":
-            radius = (55 + rand() * 45) * s;
-            drawComet(ctx, cx, cy, rand() * Math.PI * 2, radius, layer.lw, data.traits);
-            radius = radius * 0.4; 
-            break;
-          case "blackhole":
-            radius = (18 + rand() * 20) * s;
-            drawBlackHole(ctx, cx, cy, radius, layer.lw, data.traits);
-            break;
+          switch (data.category) {
+            case "galaxy":
+              radius = (50 + rand() * 45) * s;
+              drawGalaxy(ctx, cx, cy, radius, layer.lw, data.traits, rand);
+              break;
+            case "nebula":
+              radius = (50 + rand() * 45) * s;
+              drawNebula(ctx, cx, cy, radius, layer.lw, rand, data.traits);
+              break;
+            case "planet":
+              radius = (22 + rand() * 22) * s;
+              drawPlanet(ctx, cx, cy, radius, layer.lw, data.traits);
+              break;
+            case "comet":
+              radius = (55 + rand() * 45) * s;
+              drawComet(ctx, cx, cy, rand() * Math.PI * 2, radius, layer.lw, data.traits);
+              radius = radius * 0.4; 
+              break;
+            case "blackhole":
+              radius = (18 + rand() * 20) * s;
+              drawBlackHole(ctx, cx, cy, radius, layer.lw, data.traits);
+              break;
+          }
+
+          hitboxesRef.current.push({
+            x: cx,
+            y: cy,
+            r: radius * 1.5,
+            layerSpeed: layer.speed,
+            data
+          });
         }
 
-        hitboxesRef.current.push({
-          x: cx,
-          y: cy,
-          r: radius * 1.5,
-          layerSpeed: layer.speed,
-          data
-        });
-      }
+        if (layer.blur === 0) {
+          const rocketCy = VH * 0.85 + maxScroll * layer.speed;
+          drawRocket(ctx, VW * 0.75, rocketCy, layer.scale * 1.5, layer.lw);
+        }
 
-      if (layer.blur === 0) {
-        const rocketCy = VH * 0.85 + maxScroll * layer.speed;
-        drawRocket(ctx, VW * 0.75, rocketCy, layer.scale * 1.5, layer.lw);
-      }
-
-      if (layer.blur === 1.8) {
-        const shipCy = VH * 0.98 + maxScroll * layer.speed;
-        drawStarship(ctx, VW * 0.25, shipCy, layer.scale * 2.0, layer.lw);
+        if (layer.blur === 1.8) {
+          const shipCy = VH * 0.98 + maxScroll * layer.speed;
+          drawStarship(ctx, VW * 0.25, shipCy, layer.scale * 2.0, layer.lw);
+        }
       }
     });
 
@@ -157,6 +168,9 @@ export default function CelestialBackground() {
         });
       });
     };
+
+    // Trigger initial scroll position
+    onScroll();
 
     let currentHover: CelestialData | null = null;
     const onMouseMove = (e: MouseEvent) => {
@@ -196,7 +210,7 @@ export default function CelestialBackground() {
       window.removeEventListener("mousemove", onMouseMove);
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [showObjects]);
 
   return (
     <>
@@ -204,7 +218,7 @@ export default function CelestialBackground() {
         className="fixed inset-0 pointer-events-none overflow-hidden transition-opacity duration-700 ease-in-out"
         style={{ 
           zIndex: -1,
-          opacity: hoveredData ? 1 : 0.4
+          opacity: forceBright ? 1 : (hoveredData ? 1 : 0.4)
         }}
       >
         {LAYERS.map((layer, li) => (
