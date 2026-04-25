@@ -18,11 +18,10 @@ const skills = [
 
 export default function About() {
   return (
-    <section id="about" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
-      {/* Section heading */}
+    <section id="about" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       <SectionHeading number="01" title="About Me" />
 
-      <div className="grid lg:grid-cols-[1fr_auto] gap-16 items-start">
+      <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-16 items-start">
         {/* Text + skills */}
         <motion.div
           className="space-y-6"
@@ -31,13 +30,13 @@ export default function About() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <p className="text-[#edd382] leading-relaxed text-[1.05rem]">
+          <p className="text-[#edd382] leading-relaxed text-base sm:text-[1.05rem]">
             Hi, I&apos;m Aminu Olawale — a Software Engineer based in{" "}
             <span className="text-[#fc9e4f]">Zurich, Switzerland</span>. I enjoy
             building things that live on the internet, from high-throughput APIs
             to polished user interfaces.
           </p>
-          <p className="text-[#edd382]/70 leading-relaxed text-[1.05rem]">
+          <p className="text-[#edd382]/70 leading-relaxed text-base sm:text-[1.05rem]">
             Here&apos;s a snapshot of technologies I&apos;ve been working with:
           </p>
 
@@ -65,13 +64,12 @@ export default function About() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <div className="relative w-[270px] h-[270px] sm:w-[300px] sm:h-[300px] group">
+          <div className="relative w-[220px] h-[220px] sm:w-[270px] sm:h-[270px] lg:w-[300px] lg:h-[300px] group">
             {/* Main photo box */}
             <div className="relative w-full h-full bg-gradient-to-br from-[#fc9e4f]/12 via-[#020122] to-[#edd382]/8 border border-[#fc9e4f]/35 flex items-center justify-center overflow-hidden z-[1]">
-              <span className="font-mono text-[#fc9e4f]/20 text-8xl font-bold group-hover:text-[#fc9e4f]/35 transition-colors duration-500 select-none">
+              <span className="font-mono text-[#fc9e4f]/20 text-7xl sm:text-8xl font-bold group-hover:text-[#fc9e4f]/35 transition-colors duration-500 select-none">
                 AO
               </span>
-              {/* Subtle inner glow on hover */}
               <div className="absolute inset-0 bg-[#fc9e4f]/0 group-hover:bg-[#fc9e4f]/[0.04] transition-colors duration-500" />
             </div>
             {/* Offset decorative border */}

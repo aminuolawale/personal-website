@@ -18,7 +18,7 @@ interface TiptapEditorProps {
 }
 
 const BTN =
-  "p-1.5 rounded text-[#edd382]/60 hover:text-[#fc9e4f] hover:bg-[#fc9e4f]/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
+  "p-2 rounded text-[#edd382]/60 hover:text-[#fc9e4f] hover:bg-[#fc9e4f]/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
 const BTN_ACTIVE = "text-[#fc9e4f] bg-[#fc9e4f]/15";
 
 export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
@@ -55,7 +55,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
   return (
     <div className="border border-[#f2f3ae]/15 rounded-sm flex flex-col bg-[#020122]">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b border-[#f2f3ae]/10 bg-[#f2f3ae]/[0.02]">
+      <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-[#f2f3ae]/10 bg-[#f2f3ae]/[0.02]">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}

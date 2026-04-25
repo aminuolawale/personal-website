@@ -31,7 +31,7 @@ export default function SweArticlePage() {
 
   return (
     <PageShell>
-      <main className="pt-32 pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
+      <main className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
         <Link
           href="/swe"
           className="inline-flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors mb-12"

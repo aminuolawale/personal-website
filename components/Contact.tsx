@@ -34,33 +34,33 @@ const links = [
 
 export default function Contact() {
   return (
-    <section id="contact" className="py-36 px-6 sm:px-16 max-w-6xl mx-auto text-center">
+    <section id="contact" className="py-20 sm:py-36 px-6 sm:px-16 max-w-6xl mx-auto text-center">
       <motion.div
         initial={{ opacity: 0, y: 32 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="space-y-6"
+        className="space-y-5 sm:space-y-6"
       >
         <p className="font-mono text-[#fc9e4f] text-sm">04. What&apos;s Next?</p>
-        <h2 className="text-[#f2f3ae] text-4xl sm:text-5xl font-bold">
+        <h2 className="text-[#f2f3ae] text-3xl sm:text-4xl lg:text-5xl font-bold">
           Get In Touch
         </h2>
-        <p className="text-[#edd382]/60 max-w-md mx-auto text-base leading-relaxed">
+        <p className="text-[#edd382]/60 max-w-md mx-auto text-sm sm:text-base leading-relaxed">
           Feel free to reach out through any of these channels. I&apos;ll make
           sure to get back to you.
         </p>
 
-        <div className="pt-4">
+        <div className="pt-2 sm:pt-4">
           <a
             href="mailto:aminuolawalekan@gmail.com"
-            className="inline-block font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-10 py-4 hover:bg-[#fc9e4f]/10 hover:shadow-[0_0_28px_rgba(252,158,79,0.18)] transition-all duration-300"
+            className="inline-block font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-8 sm:px-10 py-3 sm:py-4 hover:bg-[#fc9e4f]/10 hover:shadow-[0_0_28px_rgba(252,158,79,0.18)] transition-all duration-300"
           >
             Say Hello
           </a>
         </div>
 
-        <div className="flex items-center justify-center flex-wrap gap-8 pt-8">
+        <div className="flex items-center justify-center flex-wrap gap-6 sm:gap-8 pt-6 sm:pt-8">
           {links.map(({ icon: Icon, href, label }) => (
             <a
               key={label}
@@ -68,12 +68,12 @@ export default function Contact() {
               target={href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
               aria-label={label}
-              className="flex items-center gap-2.5 text-[#edd382]/40 hover:text-[#fc9e4f] transition-all duration-200 group"
+              className="flex items-center gap-2 text-[#edd382]/40 hover:text-[#fc9e4f] transition-all duration-200 group"
             >
               <span className="group-hover:scale-110 transition-transform duration-200">
                 <Icon size={20} />
               </span>
-              <span className="font-mono text-xs hidden sm:inline">{label}</span>
+              <span className="font-mono text-xs">{label}</span>
             </a>
           ))}
         </div>

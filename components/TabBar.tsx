@@ -22,12 +22,12 @@ export default function TabBar({
   layoutId,
 }: TabBarProps) {
   return (
-    <div className="flex border-b border-[#f2f3ae]/10">
+    <div className="flex border-b border-[#f2f3ae]/10 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
-          className={`relative font-mono text-sm px-5 py-3 transition-colors duration-200 ${
+          className={`relative shrink-0 font-mono text-sm px-5 py-3 transition-colors duration-200 ${
             activeId === tab.id
               ? "text-[#fc9e4f]"
               : "text-[#edd382]/40 hover:text-[#edd382]/70"

@@ -35,7 +35,7 @@ export default function Home() {
         <Hero />
 
         {/* Portal cards */}
-        <section id="work" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
+        <section id="work" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
           <motion.div
             className="flex items-center gap-6 mb-16"
             initial={{ opacity: 0, x: -20 }}

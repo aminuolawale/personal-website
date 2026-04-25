@@ -5,13 +5,13 @@ const CALENDAR_EMBED_URL =
 
 export default function CalendarTab() {
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full">
       <iframe
         src={CALENDAR_EMBED_URL}
         title="Astrophotography session calendar"
-        width="800"
+        width="100%"
         height="600"
-        className="max-w-full"
+        className="min-h-[400px] sm:min-h-[600px] w-full"
         style={{ border: 0, colorScheme: "normal" }}
         frameBorder={0}
         scrolling="no"

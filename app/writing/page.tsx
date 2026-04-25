@@ -18,7 +18,7 @@ export default function WritingPage() {
           description="On technology, the cosmos, and the occasional personal dispatch from life in Zurich."
         />
 
-        <section className="py-20 px-6 sm:px-16 max-w-6xl mx-auto">
+        <section className="py-10 sm:py-20 px-6 sm:px-16 max-w-6xl mx-auto">
           {isLoading ? (
             <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
           ) : articles.length === 0 ? (

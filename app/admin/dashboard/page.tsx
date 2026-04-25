@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
       {/* Header */}
       <div className="border-b border-[#f2f3ae]/10 bg-[#020122]">
-        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="font-mono text-[#fc9e4f] text-lg font-bold hover:opacity-75 transition-opacity">
               AO.
@@ -74,10 +74,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Actions row */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {(["all", "writing", "astrophotography", "swe"] as const).map((f) => (
               <button
                 key={f}

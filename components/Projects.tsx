@@ -103,11 +103,11 @@ function FolderIcon() {
 
 export default function Projects() {
   return (
-    <section id="projects" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
+    <section id="projects" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       <SectionHeading number="03" title="Projects" />
 
       {/* Featured projects */}
-      <div className="space-y-24 mb-28">
+      <div className="space-y-16 sm:space-y-24 mb-16 sm:mb-28">
         {featuredProjects.map((project, i) => (
           <motion.div
             key={project.title}
@@ -183,7 +183,7 @@ export default function Projects() {
       {/* Other noteworthy projects */}
       <div>
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-8 sm:mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

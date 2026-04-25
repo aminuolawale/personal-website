@@ -58,7 +58,7 @@ export default function AstrophotographyPage() {
           />
         </PageHeader>
 
-        <section className="py-16 px-6 sm:px-16 max-w-6xl mx-auto">
+        <section className="py-10 sm:py-16 px-6 sm:px-16 max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTabId}

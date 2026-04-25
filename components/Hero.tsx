@@ -75,7 +75,7 @@ export default function Hero() {
       </div>
 
       {/* Main content */}
-      <div className="pt-24 pb-16">
+      <div className="pt-20 sm:pt-24 pb-12 sm:pb-16">
         <motion.p
           className="font-mono text-[#fc9e4f] text-sm mb-5"
           {...fadeUp(0.2)}
@@ -98,7 +98,7 @@ export default function Hero() {
         </motion.h2>
 
         <motion.p
-          className="max-w-[520px] text-[#edd382]/75 text-lg leading-relaxed mb-12"
+          className="max-w-[520px] text-[#edd382]/75 text-base sm:text-lg leading-relaxed mb-8 sm:mb-12"
           {...fadeUp(0.5)}
         >
           Based in{" "}

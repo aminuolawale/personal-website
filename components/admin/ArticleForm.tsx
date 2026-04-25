@@ -78,7 +78,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-[#f2f3ae]/10 bg-[#020122]/95 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
           <Link
             href="/admin/dashboard"
             className="flex items-center gap-2 font-mono text-xs text-[#edd382]/50 hover:text-[#fc9e4f] transition-colors"
@@ -115,7 +115,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
       </div>
 
       {/* Form */}
-      <form id="article-form" onSubmit={handleSubmit} className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+      <form id="article-form" onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
         {error && (
           <p className="font-mono text-xs text-red-400 border border-red-400/30 bg-red-400/5 px-4 py-2">
             {error}

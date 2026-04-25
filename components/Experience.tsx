@@ -58,7 +58,7 @@ export default function Experience() {
   const current = experiences.find((e) => e.id === active)!;
 
   return (
-    <section id="experience" className="py-28 px-6 sm:px-16 max-w-6xl mx-auto">
+    <section id="experience" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       <SectionHeading number="02" title="Work Experience" />
 
       <motion.div
@@ -69,12 +69,12 @@ export default function Experience() {
         transition={{ duration: 0.6 }}
       >
         {/* Tab list */}
-        <div className="flex sm:flex-col overflow-x-auto sm:overflow-visible border-b sm:border-b-0 sm:border-l-2 border-[#f2f3ae]/15 shrink-0">
+        <div className="flex sm:flex-col overflow-x-auto sm:overflow-visible border-b sm:border-b-0 sm:border-l-2 border-[#f2f3ae]/15 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {experiences.map((exp) => (
             <button
               key={exp.id}
               onClick={() => setActive(exp.id)}
-              className={`font-mono text-sm px-5 py-3 text-left whitespace-nowrap transition-all duration-200 border-b-2 sm:border-b-0 sm:border-l-2 -mb-[2px] sm:mb-0 sm:-ml-[2px] ${
+              className={`shrink-0 font-mono text-sm px-5 py-3 text-left whitespace-nowrap transition-all duration-200 border-b-2 sm:border-b-0 sm:border-l-2 -mb-[2px] sm:mb-0 sm:-ml-[2px] ${
                 active === exp.id
                   ? "text-[#fc9e4f] bg-[#fc9e4f]/5 border-[#fc9e4f]"
                   : "text-[#f2f3ae]/45 hover:text-[#f2f3ae]/80 hover:bg-[#f2f3ae]/[0.03] border-transparent"
@@ -97,7 +97,7 @@ export default function Experience() {
               className="space-y-4"
             >
               <div>
-                <h3 className="text-[#f2f3ae] text-xl font-semibold">
+                <h3 className="text-[#f2f3ae] text-lg sm:text-xl font-semibold">
                   {current.role}{" "}
                   <span className="text-[#fc9e4f]">@ {current.company}</span>
                 </h3>
