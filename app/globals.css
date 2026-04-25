@@ -32,140 +32,169 @@ body {
   color: #f2f3ae;
 }
 
-/* ── Tiptap editor ───────────────────────────────────────── */
-.tiptap-editor {
-  color: #edd382;
-  line-height: 1.75;
-  font-size: 1rem;
-}
+/* ── Tiptap editor + article prose ─────────────────────────
+   Wrapped in @layer base so Tailwind v4's PostCSS plugin
+   includes class-based selectors in the compiled output.    */
+@layer base {
 
-.tiptap-editor p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: rgba(237, 211, 130, 0.2);
-  pointer-events: none;
-  float: left;
-  height: 0;
-}
+  /* ── Tiptap editor area ──────────────────────────────── */
+  .tiptap-editor {
+    color: #edd382;
+    line-height: 1.75;
+    font-size: 1rem;
+  }
 
-/* ── Article prose (reading view) ──────────────────────────── */
-.article-content {
-  color: rgba(237, 211, 130, 0.85);
-  line-height: 1.8;
-  font-size: 1.05rem;
-}
+  .tiptap-editor p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: rgba(237, 211, 130, 0.2);
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
 
-.tiptap-editor h1,
-.tiptap-editor h2,
-.tiptap-editor h3,
-.tiptap-editor h4,
-.article-content h1,
-.article-content h2,
-.article-content h3,
-.article-content h4 {
-  color: #f2f3ae;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
-}
+  /* ── Article prose (reading view) ───────────────────── */
+  .article-content {
+    color: rgba(237, 211, 130, 0.85);
+    line-height: 1.8;
+    font-size: 1.05rem;
+  }
 
-.tiptap-editor h1,
-.article-content h1 { font-size: 1.875rem; }
-.tiptap-editor h2,
-.article-content h2 { font-size: 1.5rem; }
-.tiptap-editor h3,
-.article-content h3 { font-size: 1.25rem; }
+  /* Headings */
+  .tiptap-editor h1,
+  .tiptap-editor h2,
+  .tiptap-editor h3,
+  .tiptap-editor h4,
+  .article-content h1,
+  .article-content h2,
+  .article-content h3,
+  .article-content h4 {
+    color: #f2f3ae;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
 
-.tiptap-editor p,
-.article-content p {
-  margin-bottom: 1.25rem;
-}
+  .tiptap-editor h1,
+  .article-content h1 { font-size: 1.875rem; }
+  .tiptap-editor h2,
+  .article-content h2 { font-size: 1.5rem; }
+  .tiptap-editor h3,
+  .article-content h3 { font-size: 1.25rem; }
 
-.tiptap-editor a,
-.article-content a {
-  color: #fc9e4f;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: rgba(252, 158, 79, 0.4);
-  transition: text-decoration-color 0.15s;
-}
+  /* Paragraphs */
+  .tiptap-editor p,
+  .article-content p {
+    margin-bottom: 1.25rem;
+  }
 
-.tiptap-editor a:hover,
-.article-content a:hover {
-  text-decoration-color: #fc9e4f;
-}
+  /* Links */
+  .tiptap-editor a,
+  .article-content a {
+    color: #fc9e4f;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(252, 158, 79, 0.4);
+    transition: text-decoration-color 0.15s;
+  }
 
-.tiptap-editor strong,
-.article-content strong { color: #f2f3ae; font-weight: 600; }
+  .tiptap-editor a:hover,
+  .article-content a:hover {
+    text-decoration-color: #fc9e4f;
+  }
 
-.tiptap-editor em,
-.article-content em { color: rgba(237, 211, 130, 0.9); }
+  /* Bold / italic / strike */
+  .tiptap-editor strong,
+  .article-content strong { color: #f2f3ae; font-weight: 600; }
 
-.tiptap-editor code,
-.article-content code {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.85em;
-  background: rgba(252, 158, 79, 0.08);
-  border: 1px solid rgba(252, 158, 79, 0.18);
-  color: #fc9e4f;
-  padding: 0.1em 0.35em;
-  border-radius: 3px;
-}
+  .tiptap-editor em,
+  .article-content em { color: rgba(237, 211, 130, 0.9); }
 
-.tiptap-editor pre,
-.article-content pre {
-  background: rgba(242, 243, 174, 0.04);
-  border: 1px solid rgba(242, 243, 174, 0.1);
-  border-radius: 4px;
-  padding: 1.25rem;
-  overflow-x: auto;
-  margin-bottom: 1.5rem;
-}
+  .tiptap-editor s,
+  .article-content s { color: rgba(237, 211, 130, 0.4); }
 
-.tiptap-editor pre code,
-.article-content pre code {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.875rem;
-  color: #f2f3ae;
-}
+  /* Inline code */
+  .tiptap-editor code,
+  .article-content code {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85em;
+    background: rgba(252, 158, 79, 0.08);
+    border: 1px solid rgba(252, 158, 79, 0.18);
+    color: #fc9e4f;
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
 
-.tiptap-editor blockquote,
-.article-content blockquote {
-  border-left: 3px solid rgba(252, 158, 79, 0.5);
-  padding-left: 1.25rem;
-  margin: 1.5rem 0;
-  color: rgba(237, 211, 130, 0.6);
-  font-style: italic;
-}
+  /* Code blocks */
+  .tiptap-editor pre,
+  .article-content pre {
+    background: rgba(242, 243, 174, 0.04);
+    border: 1px solid rgba(242, 243, 174, 0.1);
+    border-radius: 4px;
+    padding: 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+  }
 
-.tiptap-editor ul,
-.tiptap-editor ol,
-.article-content ul,
-.article-content ol {
-  padding-left: 1.5rem;
-  margin-bottom: 1.25rem;
-}
+  .tiptap-editor pre code,
+  .article-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+    color: #f2f3ae;
+  }
 
-.tiptap-editor ul { list-style: disc; }
-.tiptap-editor ol { list-style: decimal; }
-.article-content ul { list-style: disc; }
-.article-content ol { list-style: decimal; }
+  /* Blockquote */
+  .tiptap-editor blockquote,
+  .article-content blockquote {
+    border-left: 3px solid rgba(252, 158, 79, 0.5);
+    padding-left: 1.25rem;
+    margin: 1.5rem 0;
+    color: rgba(237, 211, 130, 0.6);
+    font-style: italic;
+  }
 
-.tiptap-editor li,
-.article-content li {
-  margin-bottom: 0.4rem;
-}
+  /* Lists */
+  .tiptap-editor ul,
+  .tiptap-editor ol,
+  .article-content ul,
+  .article-content ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
 
-.tiptap-editor hr,
-.article-content hr {
-  border: none;
-  border-top: 1px solid rgba(242, 243, 174, 0.1);
-  margin: 2.5rem 0;
-}
+  .tiptap-editor ul,
+  .article-content ul { list-style-type: disc; }
 
-.tiptap-editor s,
-.article-content s {
-  color: rgba(237, 211, 130, 0.4);
+  .tiptap-editor ol,
+  .article-content ol { list-style-type: decimal; }
+
+  .tiptap-editor li,
+  .article-content li {
+    display: list-item;
+    margin-bottom: 0.4rem;
+  }
+
+  /* Tiptap wraps li content in <p>; suppress its margin inside lists */
+  .tiptap-editor li p,
+  .article-content li p {
+    margin-bottom: 0;
+  }
+
+  /* Nested lists */
+  .tiptap-editor ul ul,
+  .article-content ul ul { list-style-type: circle; }
+
+  .tiptap-editor ul ul ul,
+  .article-content ul ul ul { list-style-type: square; }
+
+  /* Horizontal rule */
+  .tiptap-editor hr,
+  .article-content hr {
+    border: none;
+    border-top: 1px solid rgba(242, 243, 174, 0.1);
+    margin: 2.5rem 0;
+  }
+
 }
