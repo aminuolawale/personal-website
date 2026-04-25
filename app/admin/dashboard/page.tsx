@@ -63,6 +63,12 @@ export default function AdminDashboard() {
               AO.
             </Link>
             <span className="font-mono text-xs text-[#edd382]/30 uppercase tracking-widest">CMS</span>
+            <Link
+              href="/admin/dashboard/projects"
+              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
+            >
+              Projects
+            </Link>
           </div>
           <button
             onClick={handleLogout}
