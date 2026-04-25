@@ -27,8 +27,8 @@ interface Hitbox {
 }
 
 const LAYERS: LayerCfg[] = [
-  { speed: 0.05, blur: 4.5, scale: 0.5,  lw: 0.7, objects: 0, stars: 220, seed: 1337 },
-  { speed: 0.15, blur: 1.8, scale: 0.72, lw: 1.0, objects: 0, stars: 70,  seed: 2674 },
+  { speed: 0.05, blur: 4.5, scale: 0.5,  lw: 0.7, objects: 0, stars: 100, seed: 1337 },
+  { speed: 0.15, blur: 1.8, scale: 0.72, lw: 1.0, objects: 0, stars: 50,  seed: 2674 },
   { speed: 0.27, blur: 0,   scale: 1.0,  lw: 1.3, objects: 1, stars: 22,  seed: 4001 },
 ];
 
@@ -133,13 +133,15 @@ export default function CelestialBackground({
       const canvas = refs.current[3];
       if (!canvas) return;
 
-      // Always draw with objects — visibility is controlled via CSS opacity.
-      drawLayer(
-        canvas, MOBILE_CFG,
-        VW, VH, VH, 0,
-        dpr, true,
-        shuffledCatalog, allObjects, hitboxesRef.current,
-      );
+      // Defer so React finishes hydrating before the canvas blocks the thread
+      setTimeout(() => {
+        drawLayer(
+          canvas, MOBILE_CFG,
+          VW, VH, VH, 0,
+          dpr, true,
+          shuffledCatalog, allObjects, hitboxesRef.current,
+        );
+      }, 0);
 
       // No scroll or mousemove listeners on mobile
       return;
@@ -147,26 +149,12 @@ export default function CelestialBackground({
 
     // ── Desktop path ─────────────────────────────────────────────────
     const maxScroll = Math.max(VH, document.documentElement.scrollHeight - VH);
-    const maxSpeed  = Math.max(...LAYERS.map(l => l.speed));
-    const H         = Math.round(VH + maxScroll * maxSpeed + VH * 0.5);
 
     // Zero out mobile canvas slot
     const mc = refs.current[3];
     if (mc) { mc.width = 0; mc.height = 0; }
 
-    LAYERS.forEach((layer, li) => {
-      const canvas = refs.current[li];
-      if (!canvas) return;
-      // Always draw with objects — visibility is controlled via CSS opacity.
-      drawLayer(
-        canvas, layer,
-        VW, H, VH, maxScroll,
-        dpr, true,
-        shuffledCatalog, allObjects, hitboxesRef.current,
-      );
-    });
-
-    // Parallax scroll — translate3d keeps animation on compositor thread
+    // Parallax scroll — wire up immediately so it works even while canvases are drawing
     let rafId = 0;
     const onScroll = () => {
       cancelAnimationFrame(rafId);
@@ -180,6 +168,27 @@ export default function CelestialBackground({
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Draw one layer per event-loop turn so the browser can process clicks between paints.
+    // Each layer only needs a canvas tall enough for its own parallax travel, not the max.
+    const drawNext = (li: number) => {
+      if (li >= LAYERS.length) return;
+      setTimeout(() => {
+        const canvas = refs.current[li];
+        if (canvas) {
+          const layer = LAYERS[li];
+          const layerH = Math.round(VH + maxScroll * layer.speed + VH * 0.2);
+          drawLayer(
+            canvas, layer,
+            VW, layerH, VH, maxScroll,
+            dpr, true,
+            shuffledCatalog, allObjects, hitboxesRef.current,
+          );
+        }
+        drawNext(li + 1);
+      }, 0);
+    };
+    drawNext(0);
 
     // Hover detection — desktop only
     let currentHover: CelestialData | null = null;
