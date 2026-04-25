@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { Plus, Pencil, Trash2, LogOut, Eye, EyeOff } from "lucide-react";
 import type { Article } from "@/lib/schema";
 
@@ -49,8 +50,7 @@ export default function AdminDashboard() {
   }
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/admin");
+    await signOut({ callbackUrl: "/admin" });
   }
 
   return (
