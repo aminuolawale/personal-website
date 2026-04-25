@@ -63,10 +63,10 @@ export default function Experience() {
 
       <motion.div
         className="flex flex-col sm:flex-row gap-6 max-w-3xl"
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.4 }}
       >
         {/* Tab list */}
         <div className="flex sm:flex-col overflow-x-auto sm:overflow-visible border-b sm:border-b-0 sm:border-l-2 border-[#f2f3ae]/15 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

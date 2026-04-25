@@ -36,10 +36,10 @@ export default function Contact() {
   return (
     <section id="contact" className="py-20 sm:py-36 px-6 sm:px-16 max-w-6xl mx-auto text-center">
       <motion.div
-        initial={{ opacity: 0, y: 32 }}
+        initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.4 }}
         className="space-y-5 sm:space-y-6"
       >
         <p className="font-mono text-[#fc9e4f] text-sm">04. What&apos;s Next?</p>

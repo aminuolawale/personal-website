@@ -25,10 +25,10 @@ export default function About() {
         {/* Text + skills */}
         <motion.div
           className="space-y-6"
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
           <p className="text-[#edd382] leading-relaxed text-base sm:text-[1.05rem]">
             Hi, I&apos;m Aminu Olawale — a Software Engineer based in{" "}
@@ -62,7 +62,7 @@ export default function About() {
           initial={{ opacity: 0, x: 24 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
         >
           <div className="relative w-[220px] h-[220px] sm:w-[270px] sm:h-[270px] lg:w-[300px] lg:h-[300px] group">
             {/* Main photo box */}

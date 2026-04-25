@@ -19,9 +19,9 @@ export default function PageHeader({
   return (
     <section className="pt-24 sm:pt-40 pb-0 px-6 sm:px-16 max-w-6xl mx-auto">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.4 }}
       >
         <p className="font-mono text-[#fc9e4f] text-sm mb-4">{eyebrow}</p>
         <h1 className="text-[clamp(32px,6vw,64px)] font-bold text-[#f2f3ae] leading-tight mb-4 sm:mb-6">

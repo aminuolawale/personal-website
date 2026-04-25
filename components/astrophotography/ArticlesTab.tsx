@@ -25,7 +25,7 @@ export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
       {articles.map((article, index) => (
         <motion.div
           key={article.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.06, duration: 0.4 }}
         >
