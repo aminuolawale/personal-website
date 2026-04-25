@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import PageShell from "@/components/PageShell";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
@@ -43,8 +42,7 @@ export default function AstrophotographyPage() {
   const activeTab = ASTRO_TABS.find((tab) => tab.id === activeTabId)!;
 
   return (
-    <PageShell>
-      <main>
+    <main>
         <PageHeader
           eyebrow="02. Astrophotography"
           title="Capturing the Night Sky"
@@ -72,6 +70,5 @@ export default function AstrophotographyPage() {
           </AnimatePresence>
         </section>
       </main>
-    </PageShell>
   );
 }

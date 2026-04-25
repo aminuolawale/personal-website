@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import PageShell from "@/components/PageShell";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
@@ -49,8 +48,7 @@ export default function SwePage() {
   const activeTab = SWE_TABS.find((tab) => tab.id === activeTabId)!;
 
   return (
-    <PageShell>
-      <main>
+    <main>
         <PageHeader
           eyebrow="01. Engineering"
           title="Software Engineering"
@@ -78,6 +76,5 @@ export default function SwePage() {
           </AnimatePresence>
         </section>
       </main>
-    </PageShell>
   );
 }

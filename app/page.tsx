@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Hero from "@/components/Hero";
 import Contact from "@/components/Contact";
-import PageShell from "@/components/PageShell";
 
 const portals = [
   {
@@ -30,8 +29,7 @@ const portals = [
 
 export default function Home() {
   return (
-    <PageShell>
-      <main>
+    <main>
         <Hero />
 
         {/* Portal cards */}
@@ -85,6 +83,5 @@ export default function Home() {
 
         <Contact />
       </main>
-    </PageShell>
   );
 }

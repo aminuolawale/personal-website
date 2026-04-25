@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import PageShell from "@/components/PageShell";
 import PageHeader from "@/components/PageHeader";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
@@ -10,8 +9,7 @@ export default function WritingPage() {
   const { articles, isLoading } = useArticles("writing");
 
   return (
-    <PageShell>
-      <main>
+    <main>
         <PageHeader
           eyebrow="03. Writing"
           title="Essays & Reflections"
@@ -41,6 +39,5 @@ export default function WritingPage() {
           )}
         </section>
       </main>
-    </PageShell>
   );
 }

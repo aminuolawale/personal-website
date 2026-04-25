@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
+import ClientShell from "@/components/ClientShell";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -31,7 +32,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${spaceMono.variable}`}
     >
       <body className="bg-[#020122] text-[#edd382] font-sans antialiased">
-        {children}
+        <ClientShell>{children}</ClientShell>
       </body>
     </html>
   );

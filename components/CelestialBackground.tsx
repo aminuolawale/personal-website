@@ -133,10 +133,11 @@ export default function CelestialBackground({
       const canvas = refs.current[3];
       if (!canvas) return;
 
+      // Always draw with objects — visibility is controlled via CSS opacity.
       drawLayer(
         canvas, MOBILE_CFG,
         VW, VH, VH, 0,
-        dpr, showObjects,
+        dpr, true,
         shuffledCatalog, allObjects, hitboxesRef.current,
       );
 
@@ -156,10 +157,11 @@ export default function CelestialBackground({
     LAYERS.forEach((layer, li) => {
       const canvas = refs.current[li];
       if (!canvas) return;
+      // Always draw with objects — visibility is controlled via CSS opacity.
       drawLayer(
         canvas, layer,
         VW, H, VH, maxScroll,
-        dpr, showObjects,
+        dpr, true,
         shuffledCatalog, allObjects, hitboxesRef.current,
       );
     });
@@ -208,7 +210,8 @@ export default function CelestialBackground({
       window.removeEventListener("mousemove", onMouseMove);
       cancelAnimationFrame(rafId);
     };
-  }, [showObjects]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -222,7 +225,15 @@ export default function CelestialBackground({
             key={li}
             ref={(el) => { refs.current[li] = el; }}
             className="absolute"
-            style={{ willChange: "transform", transform: "translate3d(0,0,0)" }}
+            style={{
+              willChange: "transform",
+              transform: "translate3d(0,0,0)",
+              // Layer 2 holds the nebula — fade it instead of redrawing on toggle
+              ...(li === 2 ? {
+                opacity: showObjects ? 1 : 0,
+                transition: "opacity 0.4s ease",
+              } : {}),
+            }}
           />
         ))}
 
@@ -230,6 +241,10 @@ export default function CelestialBackground({
         <canvas
           ref={(el) => { refs.current[3] = el; }}
           className="absolute"
+          style={{
+            opacity: showObjects ? 1 : 0,
+            transition: "opacity 0.4s ease",
+          }}
         />
       </div>
 

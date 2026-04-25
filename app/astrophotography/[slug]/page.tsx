@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
-import PageShell from "@/components/PageShell";
 import TagBadge from "@/components/TagBadge";
 import { ASTRO_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
@@ -30,8 +29,7 @@ export default function AstroSessionPage() {
   const tags = article ? splitTags(article.tags) : [];
 
   return (
-    <PageShell>
-      <main className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
+    <main className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
         <Link
           href="/astrophotography"
           className="inline-flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors mb-12"
@@ -84,6 +82,5 @@ export default function AstroSessionPage() {
           </motion.article>
         )}
       </main>
-    </PageShell>
   );
 }
