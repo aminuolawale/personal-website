@@ -69,6 +69,18 @@ export default function AdminDashboard() {
             >
               Projects
             </Link>
+            <Link
+              href="/admin/dashboard/gallery"
+              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
+            >
+              Gallery
+            </Link>
+            <Link
+              href="/admin/dashboard/settings"
+              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
+            >
+              Settings
+            </Link>
           </div>
           <button
             onClick={handleLogout}

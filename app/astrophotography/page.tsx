@@ -6,6 +6,8 @@ import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
 import CalendarTab from "@/components/astrophotography/CalendarTab";
+import GalleryTab from "@/components/astrophotography/GalleryTab";
+import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import { useArticles } from "@/lib/hooks/use-articles";
 import type { Article } from "@/lib/schema";
 
@@ -33,13 +35,21 @@ const ASTRO_TABS: AstroTabConfig[] = [
     label: "Astro Calendar",
     renderContent: () => <CalendarTab />,
   },
+  {
+    id: "gallery",
+    label: "Gallery",
+    renderContent: () => <GalleryTab />,
+  },
 ];
 
 export default function AstrophotographyPage() {
+  const tabOrder = useTabOrder("astrophotography", ASTRO_TABS.map((t) => t.id));
+  const orderedTabs = tabOrder.map((id) => ASTRO_TABS.find((t) => t.id === id)!).filter(Boolean);
+
   const [activeTabId, setActiveTabId] = useState(ASTRO_TABS[0].id);
   const { articles, isLoading } = useArticles("astrophotography");
 
-  const activeTab = ASTRO_TABS.find((tab) => tab.id === activeTabId)!;
+  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
 
   return (
     <main>
@@ -49,7 +59,7 @@ export default function AstrophotographyPage() {
           description="Session logs from Zurich and the Swiss Alps — acquisition planning, capture notes, and post-processing walkthroughs."
         >
           <TabBar
-            tabs={ASTRO_TABS}
+            tabs={orderedTabs}
             activeId={activeTabId}
             onChange={setActiveTabId}
             layoutId="astrophotography-tab-indicator"

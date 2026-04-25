@@ -8,6 +8,7 @@ import ArticlesTab from "@/components/swe/ArticlesTab";
 import ProjectsTab from "@/components/swe/ProjectsTab";
 import AboutMeTab from "@/components/swe/AboutMeTab";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import type { Article } from "@/lib/schema";
 
 /**
@@ -42,10 +43,13 @@ const SWE_TABS: SweTabConfig[] = [
 ];
 
 export default function SwePage() {
+  const tabOrder = useTabOrder("swe", SWE_TABS.map((t) => t.id));
+  const orderedTabs = tabOrder.map((id) => SWE_TABS.find((t) => t.id === id)!).filter(Boolean);
+
   const [activeTabId, setActiveTabId] = useState(SWE_TABS[0].id);
   const { articles, isLoading } = useArticles("swe");
 
-  const activeTab = SWE_TABS.find((tab) => tab.id === activeTabId)!;
+  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];;
 
   return (
     <main>
@@ -55,7 +59,7 @@ export default function SwePage() {
           description="Building software since 2019 — web applications, APIs, microservices, and the tools that tie them together."
         >
           <TabBar
-            tabs={SWE_TABS}
+            tabs={orderedTabs}
             activeId={activeTabId}
             onChange={setActiveTabId}
             layoutId="swe-tab-indicator"

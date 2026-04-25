@@ -18,7 +18,8 @@ export default function ProjectsDashboard() {
     try {
       const res = await fetch("/api/projects?admin=true");
       if (res.status === 401) { router.push("/admin"); return; }
-      setProjectList(await res.json());
+      const data = await res.json();
+      setProjectList(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
