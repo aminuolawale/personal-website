@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import { Mail, Phone } from "lucide-react";
 import { GitHubIcon, LinkedInIcon, TwitterIcon } from "./icons";
 
@@ -35,7 +35,7 @@ const links = [
 export default function Contact() {
   return (
     <section id="contact" className="py-20 sm:py-36 px-6 sm:px-16 max-w-6xl mx-auto text-center">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -77,7 +77,7 @@ export default function Contact() {
             </a>
           ))}
         </div>
-      </motion.div>
+      </m.div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Hero from "@/components/Hero";
@@ -34,7 +34,7 @@ export default function Home() {
 
         {/* Portal cards */}
         <section id="work" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
-          <motion.div
+          <m.div
             className="flex items-center gap-6 mb-16"
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -45,11 +45,11 @@ export default function Home() {
               What I Do
             </h2>
             <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
-          </motion.div>
+          </m.div>
 
           <div className="grid md:grid-cols-3 gap-5">
             {portals.map((portal, i) => (
-              <motion.div
+              <m.div
                 key={portal.href}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -76,7 +76,7 @@ export default function Home() {
                     </div>
                   </div>
                 </Link>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </section>

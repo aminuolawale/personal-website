@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import CelestialBackground from "./CelestialBackground";
+import dynamic from "next/dynamic";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+
+const CelestialBackground = dynamic(() => import("./CelestialBackground"), { ssr: false });
 
 export default function PageShell({ children }: { children: React.ReactNode }) {
   const [viewMode, setViewMode] = useState<"immersive" | "minimal" | "cosmos">("immersive");

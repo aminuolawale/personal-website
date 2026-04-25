@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 
 interface SectionHeadingProps {
   number: string;
@@ -9,7 +9,7 @@ interface SectionHeadingProps {
 
 export default function SectionHeading({ number, title }: SectionHeadingProps) {
   return (
-    <motion.div
+    <m.div
       className="flex items-center gap-6 mb-10 sm:mb-16"
       initial={{ opacity: 0, x: -20 }}
       whileInView={{ opacity: 1, x: 0 }}
@@ -21,6 +21,6 @@ export default function SectionHeading({ number, title }: SectionHeadingProps) {
         {title}
       </h2>
       <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
-    </motion.div>
+    </m.div>
   );
 }

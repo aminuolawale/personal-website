@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {m, AnimatePresence} from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/SectionHeading";
 
@@ -61,7 +61,7 @@ export default function Experience() {
     <section id="experience" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       <SectionHeading number="02" title="Work Experience" />
 
-      <motion.div
+      <m.div
         className="flex flex-col sm:flex-row gap-6 max-w-3xl"
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -88,7 +88,7 @@ export default function Experience() {
         {/* Content panel */}
         <div className="flex-1 min-h-[200px]">
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={active}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -119,10 +119,10 @@ export default function Experience() {
                   </li>
                 ))}
               </ul>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
-      </motion.div>
+      </m.div>
     </section>
   );
 }

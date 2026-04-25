@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import AstroSessionCard from "@/components/AstroSessionCard";
 import type { Article } from "@/lib/schema";
 
@@ -23,14 +23,14 @@ export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {articles.map((article, index) => (
-        <motion.div
+        <m.div
           key={article.id}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.06, duration: 0.4 }}
         >
           <AstroSessionCard article={article} />
-        </motion.div>
+        </m.div>
       ))}
     </div>
   );

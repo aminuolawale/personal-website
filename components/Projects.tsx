@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { GitHubIcon } from "./icons";
 import SectionHeading from "@/components/SectionHeading";
@@ -109,7 +109,7 @@ export default function Projects() {
       {/* Featured projects */}
       <div className="space-y-16 sm:space-y-24 mb-16 sm:mb-28">
         {featuredProjects.map((project, i) => (
-          <motion.div
+          <m.div
             key={project.title}
             className="grid lg:grid-cols-2 gap-8 items-center"
             initial={{ opacity: 0, y: 16 }}
@@ -176,13 +176,13 @@ export default function Projects() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         ))}
       </div>
 
       {/* Other noteworthy projects */}
       <div>
-        <motion.div
+        <m.div
           className="text-center mb-8 sm:mb-12"
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -200,11 +200,11 @@ export default function Projects() {
           >
             View the full archive
           </a>
-        </motion.div>
+        </m.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {otherProjects.map((project, i) => (
-            <motion.div
+            <m.div
               key={project.title}
               className="group bg-[#f2f3ae]/[0.025] border border-[#f2f3ae]/10 p-6 flex flex-col hover:bg-[#f2f3ae]/[0.05] hover:border-[#fc9e4f]/25 hover:-translate-y-1 transition-all duration-300 cursor-default"
               initial={{ opacity: 0, y: 10 }}
@@ -248,7 +248,7 @@ export default function Projects() {
                   <li key={tech}>{tech}</li>
                 ))}
               </ul>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>

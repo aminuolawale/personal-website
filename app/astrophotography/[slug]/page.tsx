@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin } from "lucide-react";
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import TagBadge from "@/components/TagBadge";
 import { ASTRO_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
@@ -47,7 +47,7 @@ export default function AstroSessionPage() {
         )}
 
         {article && (
-          <motion.article
+          <m.article
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -79,7 +79,7 @@ export default function AstroSessionPage() {
               className="article-content"
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
-          </motion.article>
+          </m.article>
         )}
       </main>
   );

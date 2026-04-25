@@ -21,7 +21,9 @@ export async function GET(
       .where(and(...conditions));
 
     if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(article);
+    const res = NextResponse.json(article);
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    return res;
   } catch {
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }

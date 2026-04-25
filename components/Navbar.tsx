@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import {AnimatePresence, m} from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 const navItems = [
@@ -35,15 +35,12 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
   }, []);
 
   return (
-    <motion.header
+    <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? "bg-[#020122]/90 backdrop-blur-md shadow-[0_1px_0_rgba(242,243,174,0.08)]"
           : ""
       }`}
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <nav className="max-w-6xl mx-auto px-6 sm:px-16 py-5 flex items-center justify-between">
         <Link
@@ -130,7 +127,7 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
       {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && viewMode !== "cosmos" && (
-          <motion.div
+          <m.div
             className="sm:hidden border-t border-[#f2f3ae]/10 bg-[#020122]/95 backdrop-blur-md overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -171,9 +168,9 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
                 </li>
               ))}
             </ul>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   );
 }

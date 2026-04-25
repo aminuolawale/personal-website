@@ -26,7 +26,11 @@ export async function GET(req: NextRequest) {
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(articles.createdAt));
 
-    return NextResponse.json(rows);
+    const res = NextResponse.json(rows);
+    if (!adminMode) {
+      res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    }
+    return res;
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Database error" }, { status: 500 });

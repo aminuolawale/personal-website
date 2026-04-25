@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import {m, AnimatePresence} from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
@@ -58,7 +58,7 @@ export default function AstrophotographyPage() {
 
         <section className="py-10 sm:py-16 px-6 sm:px-16 max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={activeTabId}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -66,7 +66,7 @@ export default function AstrophotographyPage() {
               transition={{ duration: 0.2 }}
             >
               {activeTab.renderContent(articles, isLoading)}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </section>
       </main>

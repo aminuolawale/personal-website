@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/SectionHeading";
 
@@ -23,7 +23,7 @@ export default function About() {
 
       <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-16 items-start">
         {/* Text + skills */}
-        <motion.div
+        <m.div
           className="space-y-6"
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -54,10 +54,10 @@ export default function About() {
               </li>
             ))}
           </ul>
-        </motion.div>
+        </m.div>
 
         {/* Photo placeholder */}
-        <motion.div
+        <m.div
           className="relative mx-auto lg:mx-0 shrink-0"
           initial={{ opacity: 0, x: 24 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -75,7 +75,7 @@ export default function About() {
             {/* Offset decorative border */}
             <div className="absolute top-5 left-5 w-full h-full border border-[#fc9e4f]/22 transition-all duration-300 group-hover:top-4 group-hover:left-4" />
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

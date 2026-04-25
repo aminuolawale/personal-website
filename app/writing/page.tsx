@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {m} from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
@@ -26,14 +26,14 @@ export default function WritingPage() {
           ) : (
             <div className="flex flex-col gap-4 max-w-3xl">
               {articles.map((article, index) => (
-                <motion.div
+                <m.div
                   key={article.id}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.06, duration: 0.4 }}
                 >
                   <WritingArticleCard article={article} />
-                </motion.div>
+                </m.div>
               ))}
             </div>
           )}
