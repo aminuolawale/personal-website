@@ -19,10 +19,12 @@ const TYPE_COLOR: Record<string, string> = {
   swe: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
 };
 
+type Section = "writing" | "swe" | "astrophotography";
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>([]);
-  const [filter, setFilter] = useState<"all" | "writing" | "astrophotography" | "swe">("all");
+  const [section, setSection] = useState<Section>("writing");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -39,7 +41,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = filter === "all" ? articles : articles.filter((a) => a.type === filter);
+  const filtered = articles.filter((a) => a.type === section);
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this article?")) return;
@@ -64,18 +66,6 @@ export default function AdminDashboard() {
             </Link>
             <span className="font-mono text-xs text-[#edd382]/30 uppercase tracking-widest">CMS</span>
             <Link
-              href="/admin/dashboard/projects"
-              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
-            >
-              Projects
-            </Link>
-            <Link
-              href="/admin/dashboard/gallery"
-              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
-            >
-              Gallery
-            </Link>
-            <Link
               href="/admin/dashboard/settings"
               className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
             >
@@ -93,31 +83,67 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Actions row */}
+        {/* Section tabs + context actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex flex-wrap items-center gap-2">
-            {(["all", "writing", "astrophotography", "swe"] as const).map((f) => (
+            {(["writing", "swe", "astrophotography"] as const).map((s) => (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
+                key={s}
+                onClick={() => setSection(s)}
                 className={`font-mono text-xs px-3 py-1.5 border transition-all capitalize ${
-                  filter === f
+                  section === s
                     ? "bg-[#fc9e4f] text-[#020122] border-[#fc9e4f]"
                     : "text-[#edd382]/50 border-[#f2f3ae]/15 hover:border-[#fc9e4f]/40"
                 }`}
               >
-                {f}
+                {s}
               </button>
             ))}
           </div>
 
-          <Link
-            href="/admin/dashboard/new"
-            className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-2 hover:bg-[#fc9e4f]/10 transition-all"
-          >
-            <Plus size={13} />
-            New Article
-          </Link>
+          <div className="flex items-center gap-2">
+            {section === "swe" && (
+              <>
+                <Link
+                  href="/admin/dashboard/projects"
+                  className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-2 hover:border-[#fc9e4f]/30"
+                >
+                  All Projects
+                </Link>
+                <Link
+                  href="/admin/dashboard/projects/new"
+                  className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-2 hover:bg-[#fc9e4f]/10 transition-all"
+                >
+                  <Plus size={13} />
+                  New Project
+                </Link>
+              </>
+            )}
+            {section === "astrophotography" && (
+              <>
+                <Link
+                  href="/admin/dashboard/gallery"
+                  className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-2 hover:border-[#fc9e4f]/30"
+                >
+                  All Photos
+                </Link>
+                <Link
+                  href="/admin/dashboard/gallery/new"
+                  className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-2 hover:bg-[#fc9e4f]/10 transition-all"
+                >
+                  <Plus size={13} />
+                  New Photo
+                </Link>
+              </>
+            )}
+            <Link
+              href={`/admin/dashboard/new?type=${section}`}
+              className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-2 hover:bg-[#fc9e4f]/10 transition-all"
+            >
+              <Plus size={13} />
+              New Article
+            </Link>
+          </div>
         </div>
 
         {/* Article list */}
@@ -127,7 +153,7 @@ export default function AdminDashboard() {
           <div className="text-center py-24 border border-[#f2f3ae]/10">
             <p className="font-mono text-sm text-[#edd382]/30">No articles yet.</p>
             <Link
-              href="/admin/dashboard/new"
+              href={`/admin/dashboard/new?type=${section}`}
               className="inline-flex items-center gap-2 mt-4 font-mono text-xs text-[#fc9e4f] hover:underline"
             >
               <Plus size={12} /> Create your first article

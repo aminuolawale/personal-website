@@ -12,6 +12,7 @@ const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: f
 
 interface ArticleFormProps {
   article?: Article;
+  defaultType?: "writing" | "astrophotography" | "swe";
 }
 
 const INPUT =
@@ -19,12 +20,12 @@ const INPUT =
 
 const LABEL = "block font-mono text-xs text-[#edd382]/50 uppercase tracking-widest mb-1.5";
 
-export default function ArticleForm({ article }: ArticleFormProps) {
+export default function ArticleForm({ article, defaultType = "writing" }: ArticleFormProps) {
   const router = useRouter();
   const isNew = !article;
 
   const [type, setType] = useState<"writing" | "astrophotography" | "swe">(
-    (article?.type as "writing" | "astrophotography" | "swe") ?? "writing"
+    (article?.type as "writing" | "astrophotography" | "swe") ?? defaultType
   );
   const [title, setTitle] = useState(article?.title ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
