@@ -12,6 +12,7 @@ const ASTRO_TABS = [
   { id: "articles", label: "Articles" },
   { id: "calendar", label: "Astro Calendar" },
   { id: "gallery", label: "Gallery" },
+  { id: "gear", label: "Gear" },
 ];
 
 export default function SettingsPage() {
