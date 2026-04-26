@@ -57,6 +57,8 @@ export const astroGear = pgTable("astro_gear", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(), // "equipment" | "software" | "technique"
   name: text("name").notNull(),
+  imageUrl: text("image_url"),
+  link: text("link"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -67,6 +69,7 @@ export const siteUpdates = pgTable("site_updates", {
   id: serial("id").primaryKey(),
   text: text("text").notNull(),
   linkUrl: text("link_url"),
+  thumbnailUrl: text("thumbnail_url"),
   published: boolean("published").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

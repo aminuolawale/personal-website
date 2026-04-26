@@ -17,16 +17,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!(await getSession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { type, name, publishAsUpdate } = await req.json();
+  const { type, name, imageUrl, link, publishAsUpdate } = await req.json();
   if (!VALID_TYPES.has(type) || !name?.trim()) {
     return NextResponse.json({ error: "Valid type and name are required" }, { status: 400 });
   }
   const db = getDb();
-  const [item] = await db.insert(astroGear).values({ type, name: name.trim() }).returning();
+  const [item] = await db
+    .insert(astroGear)
+    .values({ type, name: name.trim(), imageUrl: imageUrl ?? null, link: link?.trim() || null })
+    .returning();
   if (publishAsUpdate) {
     await db.insert(siteUpdates).values({
       text: `Aminu added new ${type} — ${item.name} — to the Gear Library`,
       linkUrl: "/astrophotography?tab=gear",
+      thumbnailUrl: item.imageUrl ?? null,
     });
   }
   return NextResponse.json(item, { status: 201 });

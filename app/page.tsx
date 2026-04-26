@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {m} from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import Hero from "@/components/Hero";
 import Contact from "@/components/Contact";
 import type { SiteUpdate } from "@/lib/schema";
@@ -81,11 +82,18 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
                 >
-                  <div className="flex items-baseline gap-4 min-w-0">
-                    <span className="font-mono text-[10px] text-muted/30 shrink-0 tabular-nums">
-                      {timeAgo(u.createdAt)}
-                    </span>
-                    <p className="text-muted/70 text-sm leading-relaxed">{u.text}</p>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {u.thumbnailUrl && (
+                      <div className="w-8 h-8 shrink-0 overflow-hidden border border-surface/10">
+                        <Image src={u.thumbnailUrl} alt="" width={32} height={32} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex items-baseline gap-3 min-w-0 flex-1">
+                      <span className="font-mono text-[10px] text-muted/30 shrink-0 tabular-nums">
+                        {timeAgo(u.createdAt)}
+                      </span>
+                      <p className="text-muted/70 text-sm leading-relaxed">{u.text}</p>
+                    </div>
                   </div>
                   {u.linkUrl && (
                     <Link

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { m } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import type { SiteUpdate } from "@/lib/schema";
 
 function timeAgo(date: string | Date): string {
@@ -58,11 +59,18 @@ export default function UpdatesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.04 }}
             >
-              <div className="flex items-baseline gap-4 min-w-0">
-                <span className="font-mono text-[10px] text-muted/30 shrink-0 tabular-nums w-16">
-                  {timeAgo(u.createdAt)}
-                </span>
-                <p className="text-muted/70 text-sm leading-relaxed">{u.text}</p>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {u.thumbnailUrl && (
+                  <div className="w-9 h-9 shrink-0 overflow-hidden border border-surface/10">
+                    <Image src={u.thumbnailUrl} alt="" width={36} height={36} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex items-baseline gap-4 min-w-0 flex-1">
+                  <span className="font-mono text-[10px] text-muted/30 shrink-0 tabular-nums w-16">
+                    {timeAgo(u.createdAt)}
+                  </span>
+                  <p className="text-muted/70 text-sm leading-relaxed">{u.text}</p>
+                </div>
               </div>
               {u.linkUrl && (
                 <Link
