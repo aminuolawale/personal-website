@@ -4,6 +4,7 @@ import "./globals.css";
 import ClientShell from "@/components/ClientShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SITE } from "@/lib/site";
+import { Analytics } from "@vercel/analytics/next"
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -79,6 +80,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ClientShell>{children}</ClientShell>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
