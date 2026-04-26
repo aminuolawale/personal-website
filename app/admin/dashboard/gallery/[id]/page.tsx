@@ -23,15 +23,15 @@ export default function EditGalleryPhotoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020122] flex items-center justify-center">
-        <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="font-mono text-xs text-muted/30">Loading…</p>
       </div>
     );
   }
   if (notFound || !photo) {
     return (
-      <div className="min-h-screen bg-[#020122] flex items-center justify-center">
-        <p className="font-mono text-sm text-[#edd382]/50">Photo not found.</p>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="font-mono text-sm text-muted/50">Photo not found.</p>
       </div>
     );
   }

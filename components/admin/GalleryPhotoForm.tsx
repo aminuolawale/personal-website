@@ -8,8 +8,8 @@ import { upload } from "@vercel/blob/client";
 import type { GalleryPhoto, AstroGear } from "@/lib/schema";
 
 const INPUT =
-  "w-full bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/15 px-3 py-2 text-sm text-[#f2f3ae] placeholder:text-[#edd382]/20 focus:outline-none focus:border-[#fc9e4f]/50";
-const LABEL = "block font-mono text-xs text-[#edd382]/50 uppercase tracking-widest mb-1.5";
+  "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-sm text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/50";
+const LABEL = "block font-mono text-xs text-muted/50 uppercase tracking-widest mb-1.5";
 
 function GearMultiSelect({
   items,
@@ -30,9 +30,9 @@ function GearMultiSelect({
 
   if (items.length === 0) {
     return (
-      <p className="font-mono text-xs text-[#edd382]/30">
+      <p className="font-mono text-xs text-muted/30">
         No entries yet — add them in{" "}
-        <Link href="/admin/dashboard/astro-gear" className="text-[#fc9e4f] hover:underline">
+        <Link href="/admin/dashboard/astro-gear" className="text-accent hover:underline">
           Gear Library
         </Link>
         .
@@ -51,8 +51,8 @@ function GearMultiSelect({
             onClick={() => toggle(item.name)}
             className={`font-mono text-xs px-3 py-1.5 border transition-all ${
               active
-                ? "bg-[#fc9e4f] text-[#020122] border-[#fc9e4f]"
-                : "text-[#edd382]/60 border-[#f2f3ae]/20 hover:border-[#fc9e4f]/40"
+                ? "bg-accent text-base border-accent"
+                : "text-muted/60 border-surface/20 hover:border-accent/40"
             }`}
           >
             {item.name}
@@ -63,7 +63,7 @@ function GearMultiSelect({
         <button
           type="button"
           onClick={() => onChange([])}
-          className="font-mono text-[10px] text-[#edd382]/30 hover:text-red-400 transition-colors px-1"
+          className="font-mono text-[10px] text-muted/30 hover:text-red-400 transition-colors px-1"
         >
           clear
         </button>
@@ -168,13 +168,13 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#020122] text-[#edd382]">
+    <div className="min-h-screen bg-base text-muted">
       {/* Sticky top bar */}
-      <div className="sticky top-0 z-10 border-b border-[#f2f3ae]/10 bg-[#020122]">
+      <div className="sticky top-0 z-10 border-b border-surface/10 bg-base">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
           <Link
             href="/admin/dashboard/gallery"
-            className="flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors shrink-0"
+            className="flex items-center gap-2 font-mono text-xs text-muted/40 hover:text-accent transition-colors shrink-0"
           >
             <ArrowLeft size={13} />
             Gallery
@@ -184,7 +184,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             <button
               onClick={handleSave}
               disabled={saving || uploading}
-              className="flex items-center gap-2 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+              className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
             >
               <Save size={13} />
               {saving ? "Saving…" : "Save"}
@@ -204,14 +204,14 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
               <img
                 src={imageUrl}
                 alt="Preview"
-                className="w-full max-h-80 object-cover border border-[#f2f3ae]/10"
+                className="w-full max-h-80 object-cover border border-surface/10"
               />
-              <div className="absolute inset-0 bg-[#020122]/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-base/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center gap-2 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-4 py-2 hover:opacity-90 disabled:opacity-40"
+                  className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 disabled:opacity-40"
                 >
                   <Upload size={13} />
                   {uploading ? "Uploading…" : "Replace"}
@@ -219,7 +219,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
                 <button
                   type="button"
                   onClick={() => setImageUrl("")}
-                  className="flex items-center gap-2 font-mono text-xs text-[#f2f3ae] border border-[#f2f3ae]/30 px-4 py-2 hover:border-red-400/60 hover:text-red-400"
+                  className="flex items-center gap-2 font-mono text-xs text-surface border border-surface/30 px-4 py-2 hover:border-red-400/60 hover:text-red-400"
                 >
                   <X size={13} />
                   Remove
@@ -231,13 +231,13 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-full h-48 border border-dashed border-[#f2f3ae]/20 flex flex-col items-center justify-center gap-3 hover:border-[#fc9e4f]/40 hover:bg-[#fc9e4f]/[0.03] transition-all disabled:opacity-40"
+              className="w-full h-48 border border-dashed border-surface/20 flex flex-col items-center justify-center gap-3 hover:border-accent/40 hover:bg-accent/[0.03] transition-all disabled:opacity-40"
             >
-              <Upload size={24} className="text-[#fc9e4f]/50" />
-              <span className="font-mono text-xs text-[#edd382]/40">
+              <Upload size={24} className="text-accent/50" />
+              <span className="font-mono text-xs text-muted/40">
                 {uploading ? "Uploading…" : "Click to upload a photo"}
               </span>
-              <span className="font-mono text-[10px] text-[#edd382]/25">JPEG · PNG · WebP · TIFF</span>
+              <span className="font-mono text-[10px] text-muted/25">JPEG · PNG · WebP · TIFF</span>
             </button>
           )}
 
@@ -250,12 +250,12 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
           />
 
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-[#edd382]/30 shrink-0">or paste URL</span>
+            <span className="font-mono text-[10px] text-muted/30 shrink-0">or paste URL</span>
             <input
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://example.com/photo.jpg"
-              className="flex-1 bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/10 px-3 py-1.5 text-xs text-[#f2f3ae] placeholder:text-[#edd382]/20 focus:outline-none focus:border-[#fc9e4f]/40"
+              className="flex-1 bg-surface/[0.04] border border-surface/10 px-3 py-1.5 text-xs text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/40"
             />
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             <label className={LABEL.replace("mb-1.5", "")}>Equipment</label>
             <Link
               href="/admin/dashboard/astro-gear"
-              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+              className="font-mono text-[10px] text-muted/30 hover:text-accent transition-colors"
             >
               Manage →
             </Link>
@@ -308,9 +308,9 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
               ))}
             </select>
           ) : (
-            <p className="font-mono text-xs text-[#edd382]/30">
+            <p className="font-mono text-xs text-muted/30">
               No equipment yet — add it in{" "}
-              <Link href="/admin/dashboard/astro-gear" className="text-[#fc9e4f] hover:underline">
+              <Link href="/admin/dashboard/astro-gear" className="text-accent hover:underline">
                 Gear Library
               </Link>
               .
@@ -335,7 +335,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             <label className={LABEL.replace("mb-1.5", "")}>Technique</label>
             <Link
               href="/admin/dashboard/astro-gear"
-              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+              className="font-mono text-[10px] text-muted/30 hover:text-accent transition-colors"
             >
               Manage →
             </Link>
@@ -347,7 +347,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             placeholder="technique"
           />
           {selectedTechnique.length > 0 && (
-            <p className="font-mono text-[10px] text-[#edd382]/25 mt-2">
+            <p className="font-mono text-[10px] text-muted/25 mt-2">
               Saved as: {selectedTechnique.join(", ")}
             </p>
           )}
@@ -359,7 +359,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             <label className={LABEL.replace("mb-1.5", "")}>Software</label>
             <Link
               href="/admin/dashboard/astro-gear"
-              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+              className="font-mono text-[10px] text-muted/30 hover:text-accent transition-colors"
             >
               Manage →
             </Link>
@@ -371,7 +371,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             placeholder="software"
           />
           {selectedSoftware.length > 0 && (
-            <p className="font-mono text-[10px] text-[#edd382]/25 mt-2">
+            <p className="font-mono text-[10px] text-muted/25 mt-2">
               Saved as: {selectedSoftware.join(", ")}
             </p>
           )}
@@ -379,36 +379,36 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
 
         {/* Publish as Update (new items only) */}
         {!isEdit && (
-          <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">
+          <div className="flex items-center justify-between border border-surface/10 p-4">
             <div>
-              <p className="text-sm font-semibold text-[#f2f3ae]">Publish as Update</p>
-              <p className="font-mono text-xs text-[#edd382]/35 mt-0.5">Add to the Updates feed on the homepage</p>
+              <p className="text-sm font-semibold text-surface">Publish as Update</p>
+              <p className="font-mono text-xs text-muted/35 mt-0.5">Add to the Updates feed on the homepage</p>
             </div>
             <button
               type="button"
               onClick={() => setPublishAsUpdate((v) => !v)}
-              className={`relative w-10 h-5 rounded-full transition-colors ${publishAsUpdate ? "bg-[#fc9e4f]" : "bg-[#f2f3ae]/15"}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${publishAsUpdate ? "bg-accent" : "bg-surface/15"}`}
               aria-label={publishAsUpdate ? "Remove from updates" : "Add to updates"}
             >
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-[#020122] transition-all duration-200 ${publishAsUpdate ? "left-5" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-base transition-all duration-200 ${publishAsUpdate ? "left-5" : "left-0.5"}`} />
             </button>
           </div>
         )}
 
         {/* Published toggle */}
-        <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">
+        <div className="flex items-center justify-between border border-surface/10 p-4">
           <div>
-            <p className="text-sm font-semibold text-[#f2f3ae]">Published</p>
-            <p className="font-mono text-xs text-[#edd382]/35 mt-0.5">Show in the public gallery</p>
+            <p className="text-sm font-semibold text-surface">Published</p>
+            <p className="font-mono text-xs text-muted/35 mt-0.5">Show in the public gallery</p>
           </div>
           <button
             type="button"
             onClick={() => setPublished((v) => !v)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${published ? "bg-[#fc9e4f]" : "bg-[#f2f3ae]/15"}`}
+            className={`relative w-10 h-5 rounded-full transition-colors ${published ? "bg-accent" : "bg-surface/15"}`}
             aria-label={published ? "Unpublish" : "Publish"}
           >
             <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-[#020122] transition-all duration-200 ${published ? "left-5" : "left-0.5"}`}
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-base transition-all duration-200 ${published ? "left-5" : "left-0.5"}`}
             />
           </button>
         </div>

@@ -71,19 +71,19 @@ export default function AdminCommentsPage() {
   const approved = items.filter((c) => c.approved);
 
   return (
-    <div className="min-h-screen bg-[#020122] text-[#edd382]">
+    <div className="min-h-screen bg-base text-muted">
       <AdminPageHeader title="Comments" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-10">
         {loading ? (
-          <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">Loading…</p>
+          <p className="font-mono text-xs text-muted/30 text-center py-16">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">No comments yet.</p>
+          <p className="font-mono text-xs text-muted/30 text-center py-16">No comments yet.</p>
         ) : (
           <>
             {pending.length > 0 && (
               <section>
-                <h2 className="font-mono text-[10px] text-[#edd382]/40 uppercase tracking-widest mb-4">
+                <h2 className="font-mono text-[10px] text-muted/40 uppercase tracking-widest mb-4">
                   Pending approval ({pending.length})
                 </h2>
                 <CommentList items={pending} actingId={actingId} onApprove={approve} onReject={reject} onDelete={remove} />
@@ -91,7 +91,7 @@ export default function AdminCommentsPage() {
             )}
             {approved.length > 0 && (
               <section>
-                <h2 className="font-mono text-[10px] text-[#edd382]/40 uppercase tracking-widest mb-4">
+                <h2 className="font-mono text-[10px] text-muted/40 uppercase tracking-widest mb-4">
                   Approved ({approved.length})
                 </h2>
                 <CommentList items={approved} actingId={actingId} onApprove={approve} onReject={reject} onDelete={remove} />
@@ -118,21 +118,21 @@ function CommentList({
   onDelete: (id: number) => void;
 }) {
   return (
-    <div className="divide-y divide-[#f2f3ae]/[0.06]">
+    <div className="divide-y divide-surface/[0.06]">
       {items.map((c) => (
-        <div key={c.id} className="py-4 hover:bg-[#f2f3ae]/[0.015] -mx-3 px-3 transition-colors">
+        <div key={c.id} className="py-4 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-1">
-                <span className="text-[#f2f3ae] text-sm font-semibold">{c.readerName ?? c.readerEmail}</span>
-                <span className="font-mono text-[10px] text-[#edd382]/30">{timeAgo(c.createdAt)}</span>
+                <span className="text-surface text-sm font-semibold">{c.readerName ?? c.readerEmail}</span>
+                <span className="font-mono text-[10px] text-muted/30">{timeAgo(c.createdAt)}</span>
                 {c.article && (
-                  <span className="font-mono text-[10px] text-[#edd382]/30 truncate">
+                  <span className="font-mono text-[10px] text-muted/30 truncate">
                     on: {c.article.title}
                   </span>
                 )}
               </div>
-              <p className="text-[#f2f3ae]/70 text-sm leading-relaxed whitespace-pre-wrap">{c.content}</p>
+              <p className="text-surface/70 text-sm leading-relaxed whitespace-pre-wrap">{c.content}</p>
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -150,7 +150,7 @@ function CommentList({
                 <button
                   onClick={() => onReject(c.id)}
                   disabled={actingId === c.id}
-                  className="p-2 text-[#edd382]/40 hover:text-[#edd382] transition-colors disabled:opacity-40"
+                  className="p-2 text-muted/40 hover:text-muted transition-colors disabled:opacity-40"
                   title="Unapprove"
                 >
                   <X size={14} />
@@ -159,7 +159,7 @@ function CommentList({
               <button
                 onClick={() => onDelete(c.id)}
                 disabled={actingId === c.id}
-                className="p-2 text-[#edd382]/40 hover:text-red-400 transition-colors disabled:opacity-40"
+                className="p-2 text-muted/40 hover:text-red-400 transition-colors disabled:opacity-40"
                 title="Delete"
               >
                 <Trash2 size={14} />

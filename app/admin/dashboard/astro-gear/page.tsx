@@ -16,7 +16,7 @@ const TABS: { id: GearType; label: string }[] = [
 ];
 
 const INPUT =
-  "w-full bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/15 px-3 py-2 text-sm text-[#f2f3ae] placeholder:text-[#edd382]/20 focus:outline-none focus:border-[#fc9e4f]/50";
+  "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-sm text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/50";
 
 export default function AstroGearPage() {
   const [tab, setTab] = useState<GearType>("equipment");
@@ -122,7 +122,7 @@ export default function AstroGearPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020122] text-[#edd382]">
+    <div className="min-h-screen bg-base text-muted">
       <AdminPageHeader title="Gear Library" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
@@ -134,8 +134,8 @@ export default function AstroGearPage() {
               onClick={() => setTab(t.id)}
               className={`font-mono text-xs px-3 py-1.5 border transition-all ${
                 tab === t.id
-                  ? "bg-[#fc9e4f] text-[#020122] border-[#fc9e4f]"
-                  : "text-[#edd382]/50 border-[#f2f3ae]/15 hover:border-[#fc9e4f]/40"
+                  ? "bg-accent text-base border-accent"
+                  : "text-muted/50 border-surface/15 hover:border-accent/40"
               }`}
             >
               {t.label}
@@ -144,9 +144,9 @@ export default function AstroGearPage() {
         </div>
 
         {/* Add form */}
-        <form onSubmit={handleAdd} className="space-y-3 mb-8 border border-[#f2f3ae]/10 p-4">
+        <form onSubmit={handleAdd} className="space-y-3 mb-8 border border-surface/10 p-4">
           <div>
-            <label className="font-mono text-[10px] text-[#edd382]/40 uppercase tracking-widest block mb-1">Name</label>
+            <label className="font-mono text-[10px] text-muted/40 uppercase tracking-widest block mb-1">Name</label>
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -162,7 +162,7 @@ export default function AstroGearPage() {
           </div>
 
           <div>
-            <label className="font-mono text-[10px] text-[#edd382]/40 uppercase tracking-widest block mb-1">
+            <label className="font-mono text-[10px] text-muted/40 uppercase tracking-widest block mb-1">
               {tab === "equipment" ? "Product Link" : tab === "software" ? "Website" : "Reference Link"}
             </label>
             <input
@@ -176,16 +176,16 @@ export default function AstroGearPage() {
 
           {tab === "equipment" && (
             <div>
-              <label className="font-mono text-[10px] text-[#edd382]/40 uppercase tracking-widest block mb-1">Image</label>
+              <label className="font-mono text-[10px] text-muted/40 uppercase tracking-widest block mb-1">Image</label>
               <div className="flex items-start gap-3">
                 <div
-                  className="w-16 h-16 border border-[#f2f3ae]/15 flex items-center justify-center shrink-0 bg-[#f2f3ae]/[0.02] cursor-pointer hover:border-[#fc9e4f]/40 transition-colors overflow-hidden"
+                  className="w-16 h-16 border border-surface/15 flex items-center justify-center shrink-0 bg-surface/[0.02] cursor-pointer hover:border-accent/40 transition-colors overflow-hidden"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {imagePreview ? (
                     <Image src={imagePreview} alt="" width={64} height={64} className="w-full h-full object-cover" unoptimized />
                   ) : (
-                    <ImageIcon size={18} className="text-[#edd382]/20" />
+                    <ImageIcon size={18} className="text-muted/20" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -199,12 +199,12 @@ export default function AstroGearPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/15 px-3 py-1.5 hover:border-[#fc9e4f]/30"
+                    className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/15 px-3 py-1.5 hover:border-accent/30"
                   >
                     {imageFile ? "Change image" : "Choose image"}
                   </button>
                   {imageFile && (
-                    <p className="font-mono text-[10px] text-[#edd382]/30 mt-1 truncate">{imageFile.name}</p>
+                    <p className="font-mono text-[10px] text-muted/30 mt-1 truncate">{imageFile.name}</p>
                   )}
                 </div>
               </div>
@@ -217,14 +217,14 @@ export default function AstroGearPage() {
                 type="checkbox"
                 checked={publishAsUpdate}
                 onChange={(e) => setPublishAsUpdate(e.target.checked)}
-                className="accent-[#fc9e4f]"
+                className="accent-accent"
               />
-              <span className="font-mono text-xs text-[#edd382]/50">Publish as update</span>
+              <span className="font-mono text-xs text-muted/50">Publish as update</span>
             </label>
             <button
               type="submit"
               disabled={adding || !newName.trim()}
-              className="flex items-center gap-2 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               <Plus size={13} />
               {uploadProgress || (adding ? "Adding…" : "Add")}
@@ -236,20 +236,20 @@ export default function AstroGearPage() {
 
         {/* List */}
         {loading ? (
-          <p className="font-mono text-xs text-[#edd382]/30 py-8 text-center">Loading…</p>
+          <p className="font-mono text-xs text-muted/30 py-8 text-center">Loading…</p>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center border border-[#f2f3ae]/10">
-            <p className="font-mono text-sm text-[#edd382]/30">No {tab} entries yet.</p>
+          <div className="py-16 text-center border border-surface/10">
+            <p className="font-mono text-sm text-muted/30">No {tab} entries yet.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#f2f3ae]/[0.06]">
+          <div className="divide-y divide-surface/[0.06]">
             {items.map((item) => (
               <div
                 key={item.id}
-                className="py-3 flex items-center gap-3 hover:bg-[#f2f3ae]/[0.015] -mx-3 px-3 transition-colors"
+                className="py-3 flex items-center gap-3 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors"
               >
                 {item.imageUrl ? (
-                  <div className="w-9 h-9 shrink-0 overflow-hidden border border-[#f2f3ae]/10">
+                  <div className="w-9 h-9 shrink-0 overflow-hidden border border-surface/10">
                     <Image
                       src={item.imageUrl}
                       alt={item.name}
@@ -259,15 +259,15 @@ export default function AstroGearPage() {
                     />
                   </div>
                 ) : tab === "equipment" ? (
-                  <div className="w-9 h-9 shrink-0 border border-[#f2f3ae]/10 flex items-center justify-center">
-                    <ImageIcon size={13} className="text-[#edd382]/20" />
+                  <div className="w-9 h-9 shrink-0 border border-surface/10 flex items-center justify-center">
+                    <ImageIcon size={13} className="text-muted/20" />
                   </div>
                 ) : null}
 
                 <div className="flex-1 min-w-0">
-                  <span className="text-[#f2f3ae] text-sm">{item.name}</span>
+                  <span className="text-surface text-sm">{item.name}</span>
                   {item.link && (
-                    <p className="font-mono text-[10px] text-[#edd382]/30 truncate mt-0.5">{item.link}</p>
+                    <p className="font-mono text-[10px] text-muted/30 truncate mt-0.5">{item.link}</p>
                   )}
                 </div>
 
@@ -277,7 +277,7 @@ export default function AstroGearPage() {
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+                      className="p-1.5 text-muted/30 hover:text-accent transition-colors"
                       title="Open link"
                     >
                       <ExternalLink size={13} />
@@ -286,7 +286,7 @@ export default function AstroGearPage() {
                   <button
                     onClick={() => handleDelete(item.id)}
                     disabled={deletingId === item.id}
-                    className="p-1.5 text-[#edd382]/40 hover:text-red-400 transition-colors disabled:opacity-40"
+                    className="p-1.5 text-muted/40 hover:text-red-400 transition-colors disabled:opacity-40"
                   >
                     <Trash2 size={14} />
                   </button>

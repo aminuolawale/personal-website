@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
+import ThemeToggle from "@/components/ThemeToggle";
 import type { Article } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
 
@@ -16,9 +17,9 @@ interface ArticleFormProps {
 }
 
 const INPUT =
-  "w-full bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/15 px-3 py-2 text-[#edd382] font-mono text-sm focus:outline-none focus:border-[#fc9e4f]/60 placeholder-[#edd382]/25 transition-colors";
+  "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-muted font-mono text-sm focus:outline-none focus:border-accent/60 placeholder-muted/25 transition-colors";
 
-const LABEL = "block font-mono text-xs text-[#edd382]/50 uppercase tracking-widest mb-1.5";
+const LABEL = "block font-mono text-xs text-muted/50 uppercase tracking-widest mb-1.5";
 
 export default function ArticleForm({ article, defaultType = "writing" }: ArticleFormProps) {
   const router = useRouter();
@@ -81,17 +82,20 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   }
 
   return (
-    <div className="min-h-screen bg-[#020122] text-[#edd382]">
+    <div className="min-h-screen bg-base text-muted">
       {/* Top bar */}
-      <div className="sticky top-0 z-10 border-b border-[#f2f3ae]/10 bg-[#020122]/95 backdrop-blur-md">
+      <div className="sticky top-0 z-10 border-b border-surface/10 bg-base/95 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 sm:gap-4">
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center gap-2 font-mono text-xs text-[#edd382]/50 hover:text-[#fc9e4f] transition-colors"
-          >
-            <ArrowLeft size={14} />
-            Dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-2 font-mono text-xs text-muted/50 hover:text-accent transition-colors"
+            >
+              <ArrowLeft size={14} />
+              Dashboard
+            </Link>
+            <ThemeToggle />
+          </div>
 
           <div className="flex items-center gap-3">
             {isNew && (
@@ -100,8 +104,8 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
                 onClick={() => setPublishAsUpdate((v) => !v)}
                 className={`font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
                   publishAsUpdate
-                    ? "text-[#020122] bg-[#edd382] border-[#edd382]"
-                    : "text-[#edd382]/50 border-[#f2f3ae]/15 hover:border-[#edd382]/40"
+                    ? "text-base bg-muted border-muted"
+                    : "text-muted/50 border-surface/15 hover:border-muted/40"
                 }`}
               >
                 + Update
@@ -112,8 +116,8 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
               onClick={() => setPublished((v) => !v)}
               className={`flex items-center gap-2 font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
                 published
-                  ? "text-[#020122] bg-[#fc9e4f] border-[#fc9e4f]"
-                  : "text-[#edd382]/60 border-[#f2f3ae]/20 hover:border-[#fc9e4f]/40"
+                  ? "text-base bg-accent border-accent"
+                  : "text-muted/60 border-surface/20 hover:border-accent/40"
               }`}
             >
               {published ? <Eye size={13} /> : <EyeOff size={13} />}
@@ -124,7 +128,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
               type="submit"
               form="article-form"
               disabled={saving}
-              className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-1.5 hover:bg-[#fc9e4f]/10 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-1.5 hover:bg-accent/10 transition-all disabled:opacity-50"
             >
               <Save size={13} />
               {saving ? "Saving…" : "Save"}
@@ -153,8 +157,8 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
                   onClick={() => setType(t)}
                   className={`font-mono text-xs px-4 py-2 border transition-all duration-200 capitalize ${
                     type === t
-                      ? "bg-[#fc9e4f] text-[#020122] border-[#fc9e4f]"
-                      : "text-[#edd382]/60 border-[#f2f3ae]/20 hover:border-[#fc9e4f]/40"
+                      ? "bg-accent text-base border-accent"
+                      : "text-muted/60 border-surface/20 hover:border-accent/40"
                   }`}
                 >
                   {t}
@@ -168,7 +172,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
         <div>
           <label className={LABEL}>Title</label>
           <input
-            className="w-full bg-transparent border-b border-[#f2f3ae]/15 pb-2 text-[#f2f3ae] text-3xl font-bold focus:outline-none focus:border-[#fc9e4f]/60 placeholder-[#edd382]/20 transition-colors"
+            className="w-full bg-transparent border-b border-surface/15 pb-2 text-surface text-3xl font-bold focus:outline-none focus:border-accent/60 placeholder-muted/20 transition-colors"
             placeholder="Article title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}

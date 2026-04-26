@@ -67,9 +67,9 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
   }
 
   return (
-    <div className="border border-[#f2f3ae]/10 p-4 space-y-3">
+    <div className="border border-surface/10 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-xs text-[#edd382]/50 uppercase tracking-widest">
+        <p className="font-mono text-xs text-muted/50 uppercase tracking-widest">
           {section} tab order
         </p>
         <div className="flex items-center gap-2">
@@ -78,14 +78,14 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
           <button
             onClick={handleReset}
             title="Reset to default"
-            className="p-1.5 text-[#edd382]/30 hover:text-[#edd382]/70 transition-colors"
+            className="p-1.5 text-muted/30 hover:text-muted/70 transition-colors"
           >
             <RotateCcw size={12} />
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
+            className="flex items-center gap-1.5 font-mono text-xs text-base bg-accent px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
           >
             <Save size={11} />
             {saving ? "Saving…" : "Save"}
@@ -97,14 +97,14 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
         {tabsInOrder.map((tab, i) => (
           <div
             key={tab.id}
-            className="flex items-center justify-between bg-[#f2f3ae]/[0.03] border border-[#f2f3ae]/10 px-3 py-2"
+            className="flex items-center justify-between bg-surface/[0.03] border border-surface/10 px-3 py-2"
           >
-            <span className="text-[#f2f3ae] text-sm">{tab.label}</span>
+            <span className="text-surface text-sm">{tab.label}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
-                className="p-1 text-[#edd382]/40 hover:text-[#fc9e4f] disabled:opacity-20 transition-colors"
+                className="p-1 text-muted/40 hover:text-accent disabled:opacity-20 transition-colors"
                 aria-label="Move up"
               >
                 <ArrowUp size={13} />
@@ -112,7 +112,7 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
               <button
                 onClick={() => move(i, 1)}
                 disabled={i === tabsInOrder.length - 1}
-                className="p-1 text-[#edd382]/40 hover:text-[#fc9e4f] disabled:opacity-20 transition-colors"
+                className="p-1 text-muted/40 hover:text-accent disabled:opacity-20 transition-colors"
                 aria-label="Move down"
               >
                 <ArrowDown size={13} />

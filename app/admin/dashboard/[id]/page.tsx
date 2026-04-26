@@ -23,15 +23,15 @@ export default function EditArticlePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020122] flex items-center justify-center">
-        <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="font-mono text-xs text-muted/30">Loading…</p>
       </div>
     );
   }
 
   if (notFound || !article) {
     return (
-      <div className="min-h-screen bg-[#020122] flex items-center justify-center">
+      <div className="min-h-screen bg-base flex items-center justify-center">
         <p className="font-mono text-xs text-red-400">Article not found.</p>
       </div>
     );

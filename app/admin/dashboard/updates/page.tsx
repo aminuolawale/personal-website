@@ -81,22 +81,22 @@ export default function AdminUpdatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020122] text-[#edd382]">
+    <div className="min-h-screen bg-base text-muted">
       <AdminPageHeader title="Updates" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {loading ? (
-          <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">Loading…</p>
+          <p className="font-mono text-xs text-muted/30 text-center py-16">Loading…</p>
         ) : updates.length === 0 ? (
-          <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">No updates yet.</p>
+          <p className="font-mono text-xs text-muted/30 text-center py-16">No updates yet.</p>
         ) : (
-          <div className="divide-y divide-[#f2f3ae]/[0.06]">
+          <div className="divide-y divide-surface/[0.06]">
             {updates.map((u) => (
               <div
                 key={u.id}
-                className="py-4 flex items-start gap-4 hover:bg-[#f2f3ae]/[0.015] -mx-3 px-3 transition-colors"
+                className="py-4 flex items-start gap-4 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors"
               >
-                <span className="font-mono text-[10px] text-[#edd382]/30 shrink-0 tabular-nums pt-0.5 w-14">
+                <span className="font-mono text-[10px] text-muted/30 shrink-0 tabular-nums pt-0.5 w-14">
                   {timeAgo(u.createdAt)}
                 </span>
 
@@ -107,7 +107,7 @@ export default function AdminUpdatesPage() {
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         rows={2}
-                        className="flex-1 bg-[#f2f3ae]/5 border border-[#f2f3ae]/20 text-[#f2f3ae] text-sm px-2 py-1 resize-none font-sans focus:outline-none focus:border-[#fc9e4f]/50"
+                        className="flex-1 bg-surface/5 border border-surface/20 text-surface text-sm px-2 py-1 resize-none font-sans focus:outline-none focus:border-accent/50"
                         autoFocus
                       />
                       <div className="flex flex-col gap-1 shrink-0">
@@ -121,7 +121,7 @@ export default function AdminUpdatesPage() {
                         </button>
                         <button
                           onClick={cancelEdit}
-                          className="p-1.5 text-[#edd382]/40 hover:text-[#edd382] transition-colors"
+                          className="p-1.5 text-muted/40 hover:text-muted transition-colors"
                           title="Cancel"
                         >
                           <X size={14} />
@@ -129,10 +129,10 @@ export default function AdminUpdatesPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-[#f2f3ae]/75 text-sm leading-relaxed">{u.text}</p>
+                    <p className="text-surface/75 text-sm leading-relaxed">{u.text}</p>
                   )}
                   {u.linkUrl && editingId !== u.id && (
-                    <p className="font-mono text-[10px] text-[#edd382]/30 mt-0.5 truncate">{u.linkUrl}</p>
+                    <p className="font-mono text-[10px] text-muted/30 mt-0.5 truncate">{u.linkUrl}</p>
                   )}
                 </div>
 
@@ -140,7 +140,7 @@ export default function AdminUpdatesPage() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => startEdit(u)}
-                      className="p-2 text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors"
+                      className="p-2 text-muted/40 hover:text-accent transition-colors"
                       title="Edit"
                     >
                       <Pencil size={14} />
@@ -148,7 +148,7 @@ export default function AdminUpdatesPage() {
                     <button
                       onClick={() => handleDelete(u.id)}
                       disabled={deletingId === u.id}
-                      className="p-2 text-[#edd382]/40 hover:text-red-400 transition-colors disabled:opacity-40"
+                      className="p-2 text-muted/40 hover:text-red-400 transition-colors disabled:opacity-40"
                       title="Delete"
                     >
                       <Trash2 size={14} />
