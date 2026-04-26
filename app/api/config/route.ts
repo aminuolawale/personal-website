@@ -1,3 +1,7 @@
+// Key-value site configuration store.
+// Values are JSON-stringified so any serialisable type can be stored.
+// Currently used for tab order: key = "tab-order-<section>", value = string[].
+
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { siteConfig } from "@/lib/schema";
@@ -25,6 +29,7 @@ export async function PUT(req: NextRequest) {
   try {
     const { key, value } = await req.json();
     const db = getDb();
+    // Upsert: insert the row, or overwrite the value if the key already exists.
     await db
       .insert(siteConfig)
       .values({ key, value: JSON.stringify(value), updatedAt: new Date() })

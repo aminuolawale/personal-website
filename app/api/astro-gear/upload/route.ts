@@ -1,3 +1,7 @@
+// Gear image upload endpoint — same client-side upload pattern as gallery/upload.
+// See app/api/gallery/upload/route.ts for a full explanation of why images are
+// uploaded directly from the browser rather than through this function.
+
 import { NextRequest, NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { getSession } from "@/lib/auth";
@@ -14,7 +18,7 @@ export async function POST(req: NextRequest) {
     request: req,
     onBeforeGenerateToken: async () => ({
       allowedContentTypes: ALLOWED_TYPES,
-      maximumSizeInBytes: 10 * 1024 * 1024,
+      maximumSizeInBytes: 10 * 1024 * 1024, // 10 MB
       allowOverwrite: true,
     }),
     onUploadCompleted: async () => {},
