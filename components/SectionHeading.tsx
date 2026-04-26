@@ -16,11 +16,11 @@ export default function SectionHeading({ number, title }: SectionHeadingProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
     >
-      <h2 className="font-mono text-[#fc9e4f] text-xl sm:text-2xl whitespace-nowrap">
+      <h2 className="font-mono text-accent text-xl sm:text-2xl whitespace-nowrap">
         <span className="text-sm sm:text-base mr-2 opacity-70">{number}.</span>
         {title}
       </h2>
-      <div className="h-px bg-[#f2f3ae]/15 flex-1 max-w-xs" />
+      <div className="h-px bg-surface/15 flex-1 max-w-xs" />
     </m.div>
   );
 }

@@ -12,10 +12,12 @@ export default function PageShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <CelestialBackground
-        showObjects={viewMode !== "minimal"}
-        forceBright={viewMode === "cosmos"}
-      />
+      <div className="celestial-bg">
+        <CelestialBackground
+          showObjects={viewMode !== "minimal"}
+          forceBright={viewMode === "cosmos"}
+        />
+      </div>
       <Navbar viewMode={viewMode} setViewMode={setViewMode} />
       <div
         className={`transition-opacity duration-700 ${

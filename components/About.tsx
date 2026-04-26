@@ -30,13 +30,13 @@ export default function About() {
           viewport={{ once: true }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <p className="text-[#edd382] leading-relaxed text-base sm:text-[1.05rem]">
+          <p className="text-muted leading-relaxed text-base sm:text-[1.05rem]">
             Hi, I&apos;m Aminu Olawale — a Software Engineer based in{" "}
-            <span className="text-[#fc9e4f]">Zurich, Switzerland</span>. I enjoy
+            <span className="text-accent">Zurich, Switzerland</span>. I enjoy
             building things that live on the internet, from high-throughput APIs
             to polished user interfaces.
           </p>
-          <p className="text-[#edd382]/70 leading-relaxed text-base sm:text-[1.05rem]">
+          <p className="text-muted/70 leading-relaxed text-base sm:text-[1.05rem]">
             Here&apos;s a snapshot of technologies I&apos;ve been working with:
           </p>
 
@@ -44,11 +44,11 @@ export default function About() {
             {skills.map((skill) => (
               <li
                 key={skill}
-                className="flex items-center gap-2 font-mono text-sm text-[#edd382]/75"
+                className="flex items-center gap-2 font-mono text-sm text-muted/75"
               >
                 <ChevronRight
                   size={12}
-                  className="text-[#fc9e4f] shrink-0"
+                  className="text-accent shrink-0"
                 />
                 {skill}
               </li>
@@ -66,14 +66,14 @@ export default function About() {
         >
           <div className="relative w-[220px] h-[220px] sm:w-[270px] sm:h-[270px] lg:w-[300px] lg:h-[300px] group">
             {/* Main photo box */}
-            <div className="relative w-full h-full bg-gradient-to-br from-[#fc9e4f]/12 via-[#020122] to-[#edd382]/8 border border-[#fc9e4f]/35 flex items-center justify-center overflow-hidden z-[1]">
-              <span className="font-mono text-[#fc9e4f]/20 text-7xl sm:text-8xl font-bold group-hover:text-[#fc9e4f]/35 transition-colors duration-500 select-none">
+            <div className="relative w-full h-full bg-gradient-to-br from-accent/12 via-base to-muted/8 border border-accent/35 flex items-center justify-center overflow-hidden z-[1]">
+              <span className="font-mono text-accent/20 text-7xl sm:text-8xl font-bold group-hover:text-accent/35 transition-colors duration-500 select-none">
                 AO
               </span>
-              <div className="absolute inset-0 bg-[#fc9e4f]/0 group-hover:bg-[#fc9e4f]/[0.04] transition-colors duration-500" />
+              <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/[0.04] transition-colors duration-500" />
             </div>
             {/* Offset decorative border */}
-            <div className="absolute top-5 left-5 w-full h-full border border-[#fc9e4f]/22 transition-all duration-300 group-hover:top-4 group-hover:left-4" />
+            <div className="absolute top-5 left-5 w-full h-full border border-accent/22 transition-all duration-300 group-hover:top-4 group-hover:left-4" />
           </div>
         </m.div>
       </div>

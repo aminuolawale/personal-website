@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {AnimatePresence, m} from "framer-motion";
 import { Menu, X } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const navItems = [
   { label: "SWE", href: "/swe" },
@@ -38,14 +39,14 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#020122]/90 backdrop-blur-md shadow-[0_1px_0_rgba(242,243,174,0.08)]"
+          ? "bg-base/90 backdrop-blur-md shadow-[0_1px_0_rgba(242,243,174,0.08)]"
           : ""
       }`}
     >
       <nav className="max-w-6xl mx-auto px-6 sm:px-16 py-5 flex items-center justify-between">
         <Link
           href="/"
-          className={`font-mono text-[#fc9e4f] text-xl font-bold hover:opacity-75 transition-all duration-500 ${
+          className={`font-mono text-accent text-xl font-bold hover:opacity-75 transition-all duration-500 ${
             viewMode === "cosmos" ? "opacity-0 pointer-events-none -translate-x-4" : "opacity-100"
           }`}
         >
@@ -53,15 +54,15 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
         </Link>
 
         {/* Center Toggle (Desktop) */}
-        <div className="hidden md:flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 mx-4 shadow-sm">
+        <div className="hidden md:flex bg-base/40 backdrop-blur-sm border border-accent/20 rounded-full p-1 mx-4 shadow-sm">
           {toggleItems.map((mode) => (
             <button
               key={mode.id}
               onClick={() => setViewMode(mode.id)}
               className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
                 viewMode === mode.id
-                  ? "bg-[#fc9e4f] text-[#020122] shadow-[0_0_8px_rgba(252,158,79,0.5)]"
-                  : "text-[#edd382] hover:text-[#fc9e4f] hover:bg-[#fc9e4f]/5"
+                  ? "bg-accent text-base shadow-[0_0_8px_rgba(252,158,79,0.5)]"
+                  : "text-muted hover:text-accent hover:bg-accent/5"
               }`}
             >
               {mode.label}
@@ -81,12 +82,12 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  className="relative px-4 py-2 font-mono text-sm text-[#f2f3ae] hover:text-[#fc9e4f] transition-colors group inline-block"
+                  className="relative px-4 py-2 font-mono text-sm text-surface hover:text-accent transition-colors group inline-block"
                 >
-                  <span className="text-[#fc9e4f]/60 text-xs mr-1">0{i + 1}.</span>
+                  <span className="text-accent/60 text-xs mr-1">0{i + 1}.</span>
                   {item.label}
                   <span
-                    className={`absolute bottom-1 left-4 right-4 h-px bg-[#fc9e4f] transition-transform duration-200 origin-left ${
+                    className={`absolute bottom-1 left-4 right-4 h-px bg-accent transition-transform duration-200 origin-left ${
                       isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                     }`}
                   />
@@ -96,25 +97,37 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
           })}
         </ul>
 
-        {/* Mobile menu button */}
-        <button
-          className={`sm:hidden text-[#fc9e4f] p-1 transition-all duration-500 ${
+        {/* Theme toggle — desktop (after nav links) */}
+        <ThemeToggle
+          className={`hidden sm:block transition-all duration-500 ${
             viewMode === "cosmos" ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label="Toggle menu"
+        />
+
+        {/* Mobile: theme toggle + hamburger */}
+        <div
+          className={`sm:hidden flex items-center gap-1 transition-all duration-500 ${
+            viewMode === "cosmos" ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+          <ThemeToggle />
+          <button
+            className="text-accent p-1"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
 
         {viewMode === "cosmos" && (
-          <div className="sm:hidden absolute left-1/2 -translate-x-1/2 flex bg-[#020122]/40 backdrop-blur-sm border border-[#fc9e4f]/20 rounded-full p-1 shadow-sm">
+          <div className="sm:hidden absolute left-1/2 -translate-x-1/2 flex bg-base/40 backdrop-blur-sm border border-accent/20 rounded-full p-1 shadow-sm">
             {toggleItems.map((mode) => (
               <button
                 key={mode.id}
                 onClick={() => setViewMode(mode.id)}
                 className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
-                  viewMode === mode.id ? "bg-[#fc9e4f] text-[#020122]" : "text-[#edd382]"
+                  viewMode === mode.id ? "bg-accent text-base" : "text-muted"
                 }`}
               >
                 {mode.label}
@@ -128,22 +141,22 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
       <AnimatePresence>
         {mobileOpen && viewMode !== "cosmos" && (
           <m.div
-            className="sm:hidden border-t border-[#f2f3ae]/10 bg-[#020122]/95 backdrop-blur-md overflow-hidden"
+            className="sm:hidden border-t border-surface/10 bg-base/95 backdrop-blur-md overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
             <div className="px-6 pt-6 pb-2">
-              <div className="bg-[#020122]/40 border border-[#fc9e4f]/20 rounded-full flex p-1 justify-center">
+              <div className="bg-base/40 border border-accent/20 rounded-full flex p-1 justify-center">
                 {toggleItems.map((mode) => (
                   <button
                     key={mode.id}
                     onClick={() => setViewMode(mode.id)}
                     className={`flex-1 px-2 py-2 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all duration-300 ${
                       viewMode === mode.id
-                        ? "bg-[#fc9e4f] text-[#020122]"
-                        : "text-[#edd382] hover:text-[#fc9e4f]"
+                        ? "bg-accent text-base"
+                        : "text-muted hover:text-accent"
                     }`}
                   >
                     {mode.label}
@@ -158,11 +171,11 @@ export default function Navbar({ viewMode, setViewMode }: NavbarProps) {
                   <Link
                     href={item.href}
                     className={`font-mono text-sm transition-colors block ${
-                      pathname === item.href ? "text-[#fc9e4f]" : "text-[#f2f3ae] hover:text-[#fc9e4f]"
+                      pathname === item.href ? "text-accent" : "text-surface hover:text-accent"
                     }`}
                     onClick={() => setMobileOpen(false)}
                   >
-                    <span className="text-[#fc9e4f]/60 text-xs mr-2">0{i + 1}.</span>
+                    <span className="text-accent/60 text-xs mr-2">0{i + 1}.</span>
                     {item.label}
                   </Link>
                 </li>

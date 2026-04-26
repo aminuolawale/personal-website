@@ -69,15 +69,15 @@ export default function Experience() {
         transition={{ duration: 0.4 }}
       >
         {/* Tab list */}
-        <div className="flex sm:flex-col overflow-x-auto sm:overflow-visible border-b sm:border-b-0 sm:border-l-2 border-[#f2f3ae]/15 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex sm:flex-col overflow-x-auto sm:overflow-visible border-b sm:border-b-0 sm:border-l-2 border-surface/15 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {experiences.map((exp) => (
             <button
               key={exp.id}
               onClick={() => setActive(exp.id)}
               className={`shrink-0 font-mono text-sm px-5 py-3 text-left whitespace-nowrap transition-all duration-200 border-b-2 sm:border-b-0 sm:border-l-2 -mb-[2px] sm:mb-0 sm:-ml-[2px] ${
                 active === exp.id
-                  ? "text-[#fc9e4f] bg-[#fc9e4f]/5 border-[#fc9e4f]"
-                  : "text-[#f2f3ae]/45 hover:text-[#f2f3ae]/80 hover:bg-[#f2f3ae]/[0.03] border-transparent"
+                  ? "text-accent bg-accent/5 border-accent"
+                  : "text-surface/45 hover:text-surface/80 hover:bg-surface/[0.03] border-transparent"
               }`}
             >
               {exp.company}
@@ -97,11 +97,11 @@ export default function Experience() {
               className="space-y-4"
             >
               <div>
-                <h3 className="text-[#f2f3ae] text-lg sm:text-xl font-semibold">
+                <h3 className="text-surface text-lg sm:text-xl font-semibold">
                   {current.role}{" "}
-                  <span className="text-[#fc9e4f]">@ {current.company}</span>
+                  <span className="text-accent">@ {current.company}</span>
                 </h3>
-                <p className="font-mono text-xs text-[#edd382]/45 mt-1">
+                <p className="font-mono text-xs text-muted/45 mt-1">
                   {current.period}
                 </p>
               </div>
@@ -109,11 +109,11 @@ export default function Experience() {
                 {current.bullets.map((bullet, i) => (
                   <li
                     key={i}
-                    className="flex gap-3 text-[#edd382]/80 text-sm leading-relaxed"
+                    className="flex gap-3 text-muted/80 text-sm leading-relaxed"
                   >
                     <ChevronRight
                       size={15}
-                      className="text-[#fc9e4f] shrink-0 mt-0.5"
+                      className="text-accent shrink-0 mt-0.5"
                     />
                     {bullet}
                   </li>

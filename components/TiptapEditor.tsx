@@ -18,8 +18,8 @@ interface TiptapEditorProps {
 }
 
 const BTN =
-  "p-2 rounded text-[#edd382]/60 hover:text-[#fc9e4f] hover:bg-[#fc9e4f]/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
-const BTN_ACTIVE = "text-[#fc9e4f] bg-[#fc9e4f]/15";
+  "p-2 rounded text-muted/60 hover:text-accent hover:bg-accent/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
+const BTN_ACTIVE = "text-accent bg-accent/15";
 
 export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
   const editor = useEditor({
@@ -53,9 +53,9 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
   };
 
   return (
-    <div className="border border-[#f2f3ae]/15 rounded-sm flex flex-col bg-[#020122]">
+    <div className="border border-surface/15 rounded-sm flex flex-col bg-base">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-[#f2f3ae]/10 bg-[#f2f3ae]/[0.02]">
+      <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-surface/10 bg-surface/[0.02]">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -81,7 +81,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           <Heading3 size={15} />
         </button>
 
-        <div className="w-px h-4 bg-[#f2f3ae]/15 mx-1" />
+        <div className="w-px h-4 bg-surface/15 mx-1" />
 
         <button
           type="button"
@@ -116,7 +116,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           <Code size={15} />
         </button>
 
-        <div className="w-px h-4 bg-[#f2f3ae]/15 mx-1" />
+        <div className="w-px h-4 bg-surface/15 mx-1" />
 
         <button
           type="button"
@@ -159,7 +159,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           <Minus size={15} />
         </button>
 
-        <div className="w-px h-4 bg-[#f2f3ae]/15 mx-1" />
+        <div className="w-px h-4 bg-surface/15 mx-1" />
 
         <button
           type="button"
@@ -180,7 +180,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           </button>
         )}
 
-        <div className="w-px h-4 bg-[#f2f3ae]/15 mx-1" />
+        <div className="w-px h-4 bg-surface/15 mx-1" />
 
         <button
           type="button"

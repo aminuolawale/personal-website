@@ -18,9 +18,9 @@ export default function WritingPage() {
 
         <section className="py-10 sm:py-20 px-6 sm:px-16 max-w-6xl mx-auto">
           {isLoading ? (
-            <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
+            <p className="font-mono text-xs text-muted/30">Loading…</p>
           ) : articles.length === 0 ? (
-            <p className="font-mono text-sm text-[#edd382]/30 py-16 text-center">
+            <p className="font-mono text-sm text-muted/30 py-16 text-center">
               No articles published yet.
             </p>
           ) : (

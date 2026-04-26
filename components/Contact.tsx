@@ -42,11 +42,11 @@ export default function Contact() {
         transition={{ duration: 0.4 }}
         className="space-y-5 sm:space-y-6"
       >
-        <p className="font-mono text-[#fc9e4f] text-sm">04. What&apos;s Next?</p>
-        <h2 className="text-[#f2f3ae] text-3xl sm:text-4xl lg:text-5xl font-bold">
+        <p className="font-mono text-accent text-sm">04. What&apos;s Next?</p>
+        <h2 className="text-surface text-3xl sm:text-4xl lg:text-5xl font-bold">
           Get In Touch
         </h2>
-        <p className="text-[#edd382]/60 max-w-md mx-auto text-sm sm:text-base leading-relaxed">
+        <p className="text-muted/60 max-w-md mx-auto text-sm sm:text-base leading-relaxed">
           Feel free to reach out through any of these channels. I&apos;ll make
           sure to get back to you.
         </p>
@@ -54,7 +54,7 @@ export default function Contact() {
         <div className="pt-2 sm:pt-4">
           <a
             href="mailto:aminuolawalekan@gmail.com"
-            className="inline-block font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-8 sm:px-10 py-3 sm:py-4 hover:bg-[#fc9e4f]/10 hover:shadow-[0_0_28px_rgba(252,158,79,0.18)] transition-all duration-300"
+            className="inline-block font-mono text-sm text-accent border border-accent px-8 sm:px-10 py-3 sm:py-4 hover:bg-accent/10 hover:shadow-[0_0_28px_rgba(252,158,79,0.18)] transition-all duration-300"
           >
             Say Hello
           </a>
@@ -68,7 +68,7 @@ export default function Contact() {
               target={href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
               aria-label={label}
-              className="flex items-center gap-2 text-[#edd382]/40 hover:text-[#fc9e4f] transition-all duration-200 group"
+              className="flex items-center gap-2 text-muted/40 hover:text-accent transition-all duration-200 group"
             >
               <span className="group-hover:scale-110 transition-transform duration-200">
                 <Icon size={20} />

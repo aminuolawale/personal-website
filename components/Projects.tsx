@@ -20,7 +20,7 @@ const HARDCODED_FEATURED = [
     stack: ["Python", "Docker", "Google Calendar API", "NASA JPL"],
     github: "https://github.com/aminuolawale/astro-agent",
     live: null as string | null,
-    accent: "from-[#fc9e4f]/10 to-[#edd382]/5",
+    accent: "from-accent/10 to-muted/5",
   },
   {
     number: "02",
@@ -30,7 +30,7 @@ const HARDCODED_FEATURED = [
     stack: ["Kotlin", "Android", "Python"],
     github: "https://github.com/aminuolawale/Muffassa",
     live: null as string | null,
-    accent: "from-[#edd382]/10 to-[#fc9e4f]/5",
+    accent: "from-muted/10 to-accent/5",
   },
 ];
 
@@ -50,15 +50,15 @@ const GRID_LIMIT = 6;
 const TOTAL_LIMIT = FEATURED_COUNT + GRID_LIMIT;
 
 const ACCENTS = [
-  "from-[#fc9e4f]/10 to-[#edd382]/5",
-  "from-[#edd382]/10 to-[#fc9e4f]/5",
+  "from-accent/10 to-muted/5",
+  "from-muted/10 to-accent/5",
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function FolderIcon() {
   return (
-    <svg width="40" height="34" viewBox="0 0 40 34" fill="none" aria-hidden className="text-[#fc9e4f]">
+    <svg width="40" height="34" viewBox="0 0 40 34" fill="none" aria-hidden className="text-accent">
       <path d="M4 6C4 4.895 4.895 4 6 4H15L19 9H34C35.105 9 36 9.895 36 11V28C36 29.105 35.105 30 34 30H6C4.895 30 4 29.105 4 28V6Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
     </svg>
   );
@@ -79,7 +79,7 @@ function FeaturedCard({ project, index }: { project: Project; index: number }) {
     >
       {/* Image or gradient placeholder */}
       <div
-        className={`relative h-[240px] sm:h-[280px] overflow-hidden group border border-[#f2f3ae]/10 ${
+        className={`relative h-[240px] sm:h-[280px] overflow-hidden group border border-surface/10 ${
           index % 2 === 1 ? "lg:order-2" : ""
         } ${!project.imageUrl ? `bg-gradient-to-br ${accent}` : ""}`}
       >
@@ -87,32 +87,32 @@ function FeaturedCard({ project, index }: { project: Project; index: number }) {
           <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-mono text-[#fc9e4f]/12 text-[100px] font-bold leading-none select-none group-hover:text-[#fc9e4f]/20 transition-colors duration-500">
+            <span className="font-mono text-accent/12 text-[100px] font-bold leading-none select-none group-hover:text-accent/20 transition-colors duration-500">
               {label}
             </span>
           </div>
         )}
-        <div className="absolute inset-0 bg-[#020122]/30 group-hover:bg-[#020122]/10 transition-colors duration-500" />
+        <div className="absolute inset-0 bg-base/30 group-hover:bg-base/10 transition-colors duration-500" />
       </div>
 
       {/* Content */}
       <div className={`space-y-4 ${index % 2 === 1 ? "lg:text-right lg:order-1" : ""}`}>
-        <p className="font-mono text-[#fc9e4f] text-xs">Featured Project</p>
-        <h3 className="text-[#f2f3ae] text-2xl font-semibold">{project.title}</h3>
-        <div className="bg-[#f2f3ae]/[0.03] border border-[#f2f3ae]/10 p-5 backdrop-blur-sm">
-          <p className="text-[#edd382]/75 text-sm leading-relaxed">{project.description}</p>
+        <p className="font-mono text-accent text-xs">Featured Project</p>
+        <h3 className="text-surface text-2xl font-semibold">{project.title}</h3>
+        <div className="bg-surface/[0.03] border border-surface/10 p-5 backdrop-blur-sm">
+          <p className="text-muted/75 text-sm leading-relaxed">{project.description}</p>
         </div>
-        <ul className={`flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-[#fc9e4f]/80 ${index % 2 === 1 ? "lg:justify-end" : ""}`}>
+        <ul className={`flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-accent/80 ${index % 2 === 1 ? "lg:justify-end" : ""}`}>
           {stack.map((t) => <li key={t}>{t}</li>)}
         </ul>
         <div className={`flex gap-4 pt-1 ${index % 2 === 1 ? "lg:justify-end" : ""}`}>
           {project.githubUrl && (
-            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-[#f2f3ae]/50 hover:text-[#fc9e4f] transition-colors">
+            <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-surface/50 hover:text-accent transition-colors">
               <GitHubIcon size={20} />
             </a>
           )}
           {project.websiteUrl && (
-            <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label="Live site" className="text-[#f2f3ae]/50 hover:text-[#fc9e4f] transition-colors">
+            <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label="Live site" className="text-surface/50 hover:text-accent transition-colors">
               <ExternalLink size={20} />
             </a>
           )}
@@ -126,7 +126,7 @@ function GridCard({ project, index }: { project: Project; index: number }) {
   const stack = splitTags(project.tags);
   return (
     <m.div
-      className="group bg-[#f2f3ae]/[0.025] border border-[#f2f3ae]/10 p-6 flex flex-col hover:bg-[#f2f3ae]/[0.05] hover:border-[#fc9e4f]/25 hover:-translate-y-1 transition-all duration-300 cursor-default"
+      className="group bg-surface/[0.025] border border-surface/10 p-6 flex flex-col hover:bg-surface/[0.05] hover:border-accent/25 hover:-translate-y-1 transition-all duration-300 cursor-default"
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -134,7 +134,7 @@ function GridCard({ project, index }: { project: Project; index: number }) {
     >
       <div className="flex items-start justify-between mb-6">
         <FolderIcon />
-        <div className="flex gap-3 text-[#f2f3ae]/30 group-hover:text-[#f2f3ae]/60 transition-colors">
+        <div className="flex gap-3 text-surface/30 group-hover:text-surface/60 transition-colors">
           {project.githubUrl && (
             <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub" onClick={(e) => e.stopPropagation()}>
               <GitHubIcon size={18} />
@@ -147,9 +147,9 @@ function GridCard({ project, index }: { project: Project; index: number }) {
           )}
         </div>
       </div>
-      <h4 className="text-[#f2f3ae] font-semibold text-base mb-3 group-hover:text-[#fc9e4f] transition-colors">{project.title}</h4>
-      <p className="text-[#edd382]/50 text-sm leading-relaxed flex-1 mb-5">{project.description}</p>
-      <ul className="flex flex-wrap gap-3 font-mono text-xs text-[#fc9e4f]/60">
+      <h4 className="text-surface font-semibold text-base mb-3 group-hover:text-accent transition-colors">{project.title}</h4>
+      <p className="text-muted/50 text-sm leading-relaxed flex-1 mb-5">{project.description}</p>
+      <ul className="flex flex-wrap gap-3 font-mono text-xs text-accent/60">
         {stack.map((t) => <li key={t}>{t}</li>)}
       </ul>
     </m.div>
@@ -170,27 +170,27 @@ function HardcodedFeatured() {
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
         >
-          <div className={`relative h-[240px] sm:h-[280px] bg-gradient-to-br ${p.accent} border border-[#f2f3ae]/10 overflow-hidden group ${i % 2 === 1 ? "lg:order-2" : ""}`}>
+          <div className={`relative h-[240px] sm:h-[280px] bg-gradient-to-br ${p.accent} border border-surface/10 overflow-hidden group ${i % 2 === 1 ? "lg:order-2" : ""}`}>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-mono text-[#fc9e4f]/12 text-[100px] font-bold leading-none select-none group-hover:text-[#fc9e4f]/20 transition-colors duration-500">{p.number}</span>
+              <span className="font-mono text-accent/12 text-[100px] font-bold leading-none select-none group-hover:text-accent/20 transition-colors duration-500">{p.number}</span>
             </div>
-            <div className="absolute inset-0 bg-[#020122]/30 group-hover:bg-[#020122]/10 transition-colors duration-500" />
+            <div className="absolute inset-0 bg-base/30 group-hover:bg-base/10 transition-colors duration-500" />
           </div>
           <div className={`space-y-4 ${i % 2 === 1 ? "lg:text-right lg:order-1" : ""}`}>
-            <p className="font-mono text-[#fc9e4f] text-xs">Featured Project</p>
-            <h3 className="text-[#f2f3ae] text-2xl font-semibold">{p.title}</h3>
-            <div className="bg-[#f2f3ae]/[0.03] border border-[#f2f3ae]/10 p-5 backdrop-blur-sm">
-              <p className="text-[#edd382]/75 text-sm leading-relaxed">{p.description}</p>
+            <p className="font-mono text-accent text-xs">Featured Project</p>
+            <h3 className="text-surface text-2xl font-semibold">{p.title}</h3>
+            <div className="bg-surface/[0.03] border border-surface/10 p-5 backdrop-blur-sm">
+              <p className="text-muted/75 text-sm leading-relaxed">{p.description}</p>
             </div>
-            <ul className={`flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-[#fc9e4f]/80 ${i % 2 === 1 ? "lg:justify-end" : ""}`}>
+            <ul className={`flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-accent/80 ${i % 2 === 1 ? "lg:justify-end" : ""}`}>
               {p.stack.map((t) => <li key={t}>{t}</li>)}
             </ul>
             <div className={`flex gap-4 pt-1 ${i % 2 === 1 ? "lg:justify-end" : ""}`}>
-              <a href={p.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-[#f2f3ae]/50 hover:text-[#fc9e4f] transition-colors">
+              <a href={p.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-surface/50 hover:text-accent transition-colors">
                 <GitHubIcon size={20} />
               </a>
               {p.live && (
-                <a href={p.live} target="_blank" rel="noopener noreferrer" aria-label="Live site" className="text-[#f2f3ae]/50 hover:text-[#fc9e4f] transition-colors">
+                <a href={p.live} target="_blank" rel="noopener noreferrer" aria-label="Live site" className="text-surface/50 hover:text-accent transition-colors">
                   <ExternalLink size={20} />
                 </a>
               )}
@@ -208,7 +208,7 @@ function HardcodedGrid() {
       {HARDCODED_GRID.map((p, i) => (
         <m.div
           key={p.title}
-          className="group bg-[#f2f3ae]/[0.025] border border-[#f2f3ae]/10 p-6 flex flex-col hover:bg-[#f2f3ae]/[0.05] hover:border-[#fc9e4f]/25 hover:-translate-y-1 transition-all duration-300 cursor-default"
+          className="group bg-surface/[0.025] border border-surface/10 p-6 flex flex-col hover:bg-surface/[0.05] hover:border-accent/25 hover:-translate-y-1 transition-all duration-300 cursor-default"
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -216,14 +216,14 @@ function HardcodedGrid() {
         >
           <div className="flex items-start justify-between mb-6">
             <FolderIcon />
-            <div className="flex gap-3 text-[#f2f3ae]/30 group-hover:text-[#f2f3ae]/60 transition-colors">
+            <div className="flex gap-3 text-surface/30 group-hover:text-surface/60 transition-colors">
               <a href={p.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" onClick={(e) => e.stopPropagation()}><GitHubIcon size={18} /></a>
               {p.live && <a href={p.live} target="_blank" rel="noopener noreferrer" aria-label="Live site" onClick={(e) => e.stopPropagation()}><ExternalLink size={18} /></a>}
             </div>
           </div>
-          <h4 className="text-[#f2f3ae] font-semibold text-base mb-3 group-hover:text-[#fc9e4f] transition-colors">{p.title}</h4>
-          <p className="text-[#edd382]/50 text-sm leading-relaxed flex-1 mb-5">{p.description}</p>
-          <ul className="flex flex-wrap gap-3 font-mono text-xs text-[#fc9e4f]/60">
+          <h4 className="text-surface font-semibold text-base mb-3 group-hover:text-accent transition-colors">{p.title}</h4>
+          <p className="text-muted/50 text-sm leading-relaxed flex-1 mb-5">{p.description}</p>
+          <ul className="flex flex-wrap gap-3 font-mono text-xs text-accent/60">
             {p.stack.map((t) => <li key={t}>{t}</li>)}
           </ul>
         </m.div>
@@ -266,8 +266,8 @@ export default function Projects() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h3 className="font-mono text-[#fc9e4f] text-xl mb-2">Other Noteworthy Projects</h3>
-              <a href="https://github.com/aminuolawale?tab=repositories" target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-[#edd382]/35 hover:text-[#fc9e4f] transition-colors">
+              <h3 className="font-mono text-accent text-xl mb-2">Other Noteworthy Projects</h3>
+              <a href="https://github.com/aminuolawale?tab=repositories" target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-muted/35 hover:text-accent transition-colors">
                 View the full archive
               </a>
             </m.div>
@@ -295,7 +295,7 @@ export default function Projects() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
               >
-                <h3 className="font-mono text-[#fc9e4f] text-xl mb-2">Other Noteworthy Projects</h3>
+                <h3 className="font-mono text-accent text-xl mb-2">Other Noteworthy Projects</h3>
               </m.div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gridProjects.map((p, i) => (
@@ -316,7 +316,7 @@ export default function Projects() {
             >
               <Link
                 href="/swe/projects"
-                className="inline-flex items-center gap-2 font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f]/40 px-6 py-3 hover:bg-[#fc9e4f]/10 transition-all"
+                className="inline-flex items-center gap-2 font-mono text-sm text-accent border border-accent/40 px-6 py-3 hover:bg-accent/10 transition-all"
               >
                 View All Projects
                 <ExternalLink size={14} />

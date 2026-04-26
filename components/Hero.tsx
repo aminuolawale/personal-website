@@ -16,8 +16,8 @@ export default function Hero() {
     <section className="relative min-h-screen flex flex-col justify-center px-6 sm:px-16 max-w-6xl mx-auto">
       {/* Ambient background blobs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 right-0 w-[600px] h-[600px] bg-[#fc9e4f]/[0.04] rounded-full blur-[130px]" />
-        <div className="absolute bottom-16 -left-16 w-[500px] h-[500px] bg-[#edd382]/[0.04] rounded-full blur-[110px]" />
+        <div className="absolute -top-32 right-0 w-[600px] h-[600px] bg-accent/[0.04] rounded-full blur-[130px]" />
+        <div className="absolute bottom-16 -left-16 w-[500px] h-[500px] bg-muted/[0.04] rounded-full blur-[110px]" />
       </div>
 
       {/* Left social rail – desktop */}
@@ -29,53 +29,53 @@ export default function Hero() {
             target={href.startsWith("http") ? "_blank" : undefined}
             rel="noopener noreferrer"
             aria-label={label}
-            className="text-[#f2f3ae]/45 hover:text-[#fc9e4f] hover:-translate-y-1 transition-all duration-200"
+            className="text-surface/45 hover:text-accent hover:-translate-y-1 transition-all duration-200"
           >
             <Icon size={18} />
           </a>
         ))}
-        <div className="w-px h-24 bg-[#f2f3ae]/25 mt-1" />
+        <div className="w-px h-24 bg-surface/25 mt-1" />
       </div>
 
       {/* Right email rail – desktop */}
       <div className="hidden lg:flex fixed right-10 bottom-0 flex-col items-center gap-4 pb-2 z-10">
         <a
           href="mailto:aminuolawalekan@gmail.com"
-          className="text-[#f2f3ae]/45 hover:text-[#fc9e4f] transition-colors font-mono text-xs tracking-[0.18em] hover:-translate-y-1 duration-200"
+          className="text-surface/45 hover:text-accent transition-colors font-mono text-xs tracking-[0.18em] hover:-translate-y-1 duration-200"
           style={{ writingMode: "vertical-rl" }}
         >
           aminuolawalekan@gmail.com
         </a>
-        <div className="w-px h-24 bg-[#f2f3ae]/25" />
+        <div className="w-px h-24 bg-surface/25" />
       </div>
 
       {/* Main content — no entrance animations; content must be visible on first paint */}
       <div className="pt-20 sm:pt-24 pb-12 sm:pb-16">
-        <p className="font-mono text-[#fc9e4f] text-sm mb-5">Hi, my name is</p>
+        <p className="font-mono text-accent text-sm mb-5">Hi, my name is</p>
 
-        <h1 className="text-[clamp(42px,8vw,82px)] font-bold text-[#f2f3ae] leading-[1.05] mb-3">
+        <h1 className="text-[clamp(42px,8vw,82px)] font-bold text-surface leading-[1.05] mb-3">
           Aminu Olawale.
         </h1>
 
-        <h2 className="text-[clamp(22px,4vw,46px)] font-bold text-[#edd382]/35 leading-[1.1] mb-8">
+        <h2 className="text-[clamp(22px,4vw,46px)] font-bold text-muted/35 leading-[1.1] mb-8">
           Software Engineer · Astrophotographer · Writer.
         </h2>
 
-        <p className="max-w-[520px] text-[#edd382]/75 text-base sm:text-lg leading-relaxed mb-8 sm:mb-12">
-          Based in <span className="text-[#fc9e4f]">Zurich, Switzerland</span>.
+        <p className="max-w-[520px] text-muted/75 text-base sm:text-lg leading-relaxed mb-8 sm:mb-12">
+          Based in <span className="text-accent">Zurich, Switzerland</span>.
           Building software since 2022. I also capture deep-sky objects and write.
         </p>
 
         <div className="flex flex-wrap gap-4">
           <a
             href="#work"
-            className="font-mono text-sm text-[#fc9e4f] border border-[#fc9e4f] px-8 py-4 hover:bg-[#fc9e4f]/10 hover:shadow-[0_0_24px_rgba(252,158,79,0.18)] transition-all duration-300"
+            className="font-mono text-sm text-accent border border-accent px-8 py-4 hover:bg-accent/10 hover:shadow-[0_0_24px_rgba(252,158,79,0.18)] transition-all duration-300"
           >
             Explore My Work
           </a>
           <a
             href="mailto:aminuolawalekan@gmail.com"
-            className="font-mono text-sm text-[#edd382]/70 hover:text-[#fc9e4f] transition-colors py-4 flex items-center gap-2"
+            className="font-mono text-sm text-muted/70 hover:text-accent transition-colors py-4 flex items-center gap-2"
           >
             Get In Touch <ExternalLink size={14} />
           </a>
@@ -84,13 +84,13 @@ export default function Hero() {
 
       {/* Scroll indicator — purely decorative, fine to animate after hydration */}
       <m.div
-        className="absolute bottom-10 left-6 sm:left-16 flex items-center gap-3 text-[#f2f3ae]/25"
+        className="absolute bottom-10 left-6 sm:left-16 flex items-center gap-3 text-surface/25"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
         <m.div
-          className="w-px h-12 bg-gradient-to-b from-[#f2f3ae]/40 to-transparent"
+          className="w-px h-12 bg-gradient-to-b from-surface/40 to-transparent"
           animate={{ scaleY: [0.4, 1, 0.4] }}
           transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
         />

@@ -14,20 +14,20 @@ interface TabBarProps {
 
 export default function TabBar({ tabs, activeId, onChange }: TabBarProps) {
   return (
-    <div className="flex border-b border-[#f2f3ae]/10 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex border-b border-surface/10 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={`relative shrink-0 font-mono text-sm px-5 py-3 transition-colors duration-200 ${
             activeId === tab.id
-              ? "text-[#fc9e4f]"
-              : "text-[#edd382]/40 hover:text-[#edd382]/70"
+              ? "text-accent"
+              : "text-muted/40 hover:text-muted/70"
           }`}
         >
           {tab.label}
           <span
-            className="absolute bottom-0 left-0 right-0 h-px bg-[#fc9e4f] transition-transform duration-200 origin-left"
+            className="absolute bottom-0 left-0 right-0 h-px bg-accent transition-transform duration-200 origin-left"
             style={{ transform: activeId === tab.id ? "scaleX(1)" : "scaleX(0)" }}
           />
         </button>

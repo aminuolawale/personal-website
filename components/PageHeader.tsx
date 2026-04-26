@@ -23,11 +23,11 @@ export default function PageHeader({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <p className="font-mono text-[#fc9e4f] text-sm mb-4">{eyebrow}</p>
-        <h1 className="text-[clamp(32px,6vw,64px)] font-bold text-[#f2f3ae] leading-tight mb-4 sm:mb-6">
+        <p className="font-mono text-accent text-sm mb-4">{eyebrow}</p>
+        <h1 className="text-[clamp(32px,6vw,64px)] font-bold text-surface leading-tight mb-4 sm:mb-6">
           {title}
         </h1>
-        <p className="text-[#edd382]/65 text-base sm:text-lg max-w-xl leading-relaxed mb-8 sm:mb-12">
+        <p className="text-muted/65 text-base sm:text-lg max-w-xl leading-relaxed mb-8 sm:mb-12">
           {description}
         </p>
         {children}

@@ -32,18 +32,18 @@ export default function WritingArticlePage() {
     <main className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
         <Link
           href="/writing"
-          className="inline-flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors mb-12"
+          className="inline-flex items-center gap-2 font-mono text-xs text-muted/40 hover:text-accent transition-colors mb-12"
         >
           <ArrowLeft size={13} />
           All Writing
         </Link>
 
         {isLoading && (
-          <p className="font-mono text-xs text-[#edd382]/30">Loading…</p>
+          <p className="font-mono text-xs text-muted/30">Loading…</p>
         )}
 
         {isNotFound && !isLoading && (
-          <p className="font-mono text-sm text-[#edd382]/50">Article not found.</p>
+          <p className="font-mono text-sm text-muted/50">Article not found.</p>
         )}
 
         {article && (
@@ -52,14 +52,14 @@ export default function WritingArticlePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <header className="mb-12 pb-8 border-b border-[#f2f3ae]/10">
-              <h1 className="text-[#f2f3ae] text-3xl sm:text-4xl font-bold leading-tight mb-6">
+            <header className="mb-12 pb-8 border-b border-surface/10">
+              <h1 className="text-surface text-3xl sm:text-4xl font-bold leading-tight mb-6">
                 {article.title}
               </h1>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
-                <span className="font-mono text-xs text-[#edd382]/40">{article.date}</span>
+                <span className="font-mono text-xs text-muted/40">{article.date}</span>
                 {article.readTime && (
-                  <span className="font-mono text-xs text-[#edd382]/30">{article.readTime}</span>
+                  <span className="font-mono text-xs text-muted/30">{article.readTime}</span>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">

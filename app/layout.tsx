@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 import ClientShell from "@/components/ClientShell";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { SITE } from "@/lib/site";
 
 const spaceGrotesk = Space_Grotesk({
@@ -63,16 +64,21 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${spaceMono.variable}`}
     >
       <head>
+        {/* Runs synchronously before first paint to avoid flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t||'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
         />
       </head>
-      <body className="bg-[#020122] text-[#edd382] font-sans antialiased">
-        <ClientShell>{children}</ClientShell>
+      <body className="font-sans antialiased">
+        <ThemeProvider>
+          <ClientShell>{children}</ClientShell>
+        </ThemeProvider>
       </body>
     </html>
   );

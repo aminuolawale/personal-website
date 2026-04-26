@@ -75,7 +75,7 @@ export default function GalleryDashboard() {
                 <img
                   src={p.imageUrl}
                   alt={p.name}
-                  className="w-full aspect-square object-cover"
+                  className="w-full h-auto block"
                 />
                 <div className="absolute inset-0 bg-[#020122]/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                   <div className="flex items-center justify-between">

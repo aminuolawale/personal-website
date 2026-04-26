@@ -9,7 +9,7 @@ interface ArticlesTabProps {
 export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
   if (isLoading) {
     return (
-      <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">
+      <p className="font-mono text-xs text-muted/30 text-center py-16">
         Loading…
       </p>
     );
@@ -17,7 +17,7 @@ export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
 
   if (articles.length === 0) {
     return (
-      <p className="font-mono text-sm text-[#edd382]/30 text-center py-16">
+      <p className="font-mono text-sm text-muted/30 text-center py-16">
         No articles published yet.
       </p>
     );
