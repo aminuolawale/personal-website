@@ -3,14 +3,19 @@ import { getDb } from "@/lib/db";
 import { astroGear } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { unauthorized, serverError } from "@/lib/api";
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await getSession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await getSession())) return unauthorized();
   const { id } = await params;
-  const db = getDb();
-  await db.delete(astroGear).where(eq(astroGear.id, parseInt(id)));
-  return NextResponse.json({ ok: true });
+  try {
+    const db = getDb();
+    await db.delete(astroGear).where(eq(astroGear.id, parseInt(id)));
+    return NextResponse.json({ ok: true });
+  } catch {
+    return serverError();
+  }
 }

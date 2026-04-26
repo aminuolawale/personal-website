@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { GalleryPhoto } from "@/lib/schema";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 export default function GalleryDashboard() {
   const router = useRouter();
@@ -36,15 +37,9 @@ export default function GalleryDashboard() {
 
   return (
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
-      <div className="border-b border-[#f2f3ae]/10 bg-[#020122]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin/dashboard" className="flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors">
-              <ArrowLeft size={13} />
-              Dashboard
-            </Link>
-            <span className="font-mono text-[#fc9e4f] text-sm font-bold">Gallery</span>
-          </div>
+      <AdminPageHeader
+        title="Gallery"
+        actions={
           <Link
             href="/admin/dashboard/gallery/new"
             className="flex items-center gap-2 font-mono text-xs text-[#fc9e4f] border border-[#fc9e4f] px-4 py-2 hover:bg-[#fc9e4f]/10 transition-all"
@@ -52,8 +47,8 @@ export default function GalleryDashboard() {
             <Plus size={13} />
             Add Photo
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {loading ? (

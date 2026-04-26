@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { Pencil, Trash2, Check, X, ArrowLeft } from "lucide-react";
+import { Pencil, Trash2, Check, X } from "lucide-react";
 import type { SiteUpdate } from "@/lib/schema";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 function timeAgo(date: string | Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -82,23 +82,9 @@ export default function AdminUpdatesPage() {
 
   return (
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
-      <div className="border-b border-[#f2f3ae]/10 bg-[#020122]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-4">
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center gap-1.5 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors"
-          >
-            <ArrowLeft size={13} />
-            Dashboard
-          </Link>
-          <span className="font-mono text-xs text-[#edd382]/20">/</span>
-          <span className="font-mono text-xs text-[#edd382]/60">Updates</span>
-        </div>
-      </div>
+      <AdminPageHeader title="Updates" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <h1 className="font-mono text-[#fc9e4f] text-lg mb-8">Site Updates</h1>
-
         {loading ? (
           <p className="font-mono text-xs text-[#edd382]/30 text-center py-16">Loading…</p>
         ) : updates.length === 0 ? (

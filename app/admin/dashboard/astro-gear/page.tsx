@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Plus, Trash2, ExternalLink, ImageIcon } from "lucide-react";
+import { Plus, Trash2, ExternalLink, ImageIcon } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 import type { AstroGear } from "@/lib/schema";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type GearType = "equipment" | "software" | "technique";
 
@@ -123,18 +123,7 @@ export default function AstroGearPage() {
 
   return (
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
-      <div className="border-b border-[#f2f3ae]/10 bg-[#020122]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-4">
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors"
-          >
-            <ArrowLeft size={13} />
-            Dashboard
-          </Link>
-          <span className="font-mono text-[#fc9e4f] text-sm font-bold">Gear Library</span>
-        </div>
-      </div>
+      <AdminPageHeader title="Gear Library" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Tabs */}

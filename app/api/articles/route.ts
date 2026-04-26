@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { articles, siteUpdates } from "@/lib/schema";
+import { articles } from "@/lib/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
+import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { createUpdate } from "@/lib/updates";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
   const adminMode = searchParams.get("admin") === "true";
 
-  if (adminMode && !(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (adminMode && !(await getSession())) return unauthorized();
 
   try {
     const db = getDb();
@@ -27,13 +27,11 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(articles.createdAt));
 
     const res = NextResponse.json(rows);
-    if (!adminMode) {
-      res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
-    }
+    if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -44,9 +42,7 @@ const SECTION_LABEL: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await getSession())) return unauthorized();
 
   const { publishAsUpdate, ...body } = await req.json();
   const slug = body.slug || slugify(body.title);
@@ -60,15 +56,11 @@ export async function POST(req: NextRequest) {
     if (publishAsUpdate) {
       const section = SECTION_LABEL[article.type] ?? article.type;
       const linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
-      await db.insert(siteUpdates).values({
-        text: `Aminu published a new article — ${article.title} — in ${section}`,
-        linkUrl,
-      });
+      await createUpdate({ text: `Aminu published a new article — ${article.title} — in ${section}`, linkUrl });
     }
     return NextResponse.json(article, { status: 201 });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }
-

@@ -7,10 +7,11 @@ import { getDb } from "@/lib/db";
 import { siteConfig } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { unauthorized, badRequest, serverError } from "@/lib/api";
 
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get("key");
-  if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  if (!key) return badRequest("Missing key");
   try {
     const db = getDb();
     const [row] = await db.select().from(siteConfig).where(eq(siteConfig.key, key));
@@ -23,9 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await getSession())) return unauthorized();
   try {
     const { key, value } = await req.json();
     const db = getDb();
@@ -37,6 +36,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    return serverError("Failed to save");
   }
 }

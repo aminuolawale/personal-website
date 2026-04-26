@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
+import { notFound, serverError, PUBLIC_CACHE } from "@/lib/api";
 
 export async function GET(
   req: NextRequest,
@@ -20,11 +21,11 @@ export async function GET(
       .from(articles)
       .where(and(...conditions));
 
-    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!article) return notFound();
     const res = NextResponse.json(article);
-    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { unauthorized, notFound, serverError } from "@/lib/api";
 
 export async function GET(
   _req: NextRequest,
@@ -15,10 +16,10 @@ export async function GET(
       .select()
       .from(articles)
       .where(eq(articles.id, parseInt(id)));
-    if (!article) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!article) return notFound();
     return NextResponse.json(article);
   } catch {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -26,9 +27,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await getSession())) return unauthorized();
 
   const { id } = await params;
   const body = await req.json();
@@ -42,7 +41,7 @@ export async function PUT(
       .returning();
     return NextResponse.json(article);
   } catch {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -50,9 +49,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await getSession())) return unauthorized();
 
   const { id } = await params;
   try {
@@ -60,6 +57,6 @@ export async function DELETE(
     await db.delete(articles).where(eq(articles.id, parseInt(id)));
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return serverError();
   }
 }

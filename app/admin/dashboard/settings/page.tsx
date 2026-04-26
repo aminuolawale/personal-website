@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import TabOrderEditor from "@/components/admin/TabOrderEditor";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const SWE_TABS = [
   { id: "articles", label: "Articles" },
@@ -18,15 +17,7 @@ const ASTRO_TABS = [
 export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-[#020122] text-[#edd382]">
-      <div className="border-b border-[#f2f3ae]/10 bg-[#020122]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-4">
-          <Link href="/admin/dashboard" className="flex items-center gap-2 font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors">
-            <ArrowLeft size={13} />
-            Dashboard
-          </Link>
-          <span className="font-mono text-[#fc9e4f] text-sm font-bold">Settings</span>
-        </div>
-      </div>
+      <AdminPageHeader title="Settings" />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         <div>

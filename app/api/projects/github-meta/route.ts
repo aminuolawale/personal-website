@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { unauthorized, badRequest, notFound, serverError } from "@/lib/api";
 
 export async function GET(req: NextRequest) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!(await getSession())) return unauthorized();
 
   const url = new URL(req.url).searchParams.get("url") || "";
   const match = url.match(/github\.com\/([^/]+)\/([^/#?]+)/);
-  if (!match) {
-    return NextResponse.json({ error: "Invalid GitHub URL" }, { status: 400 });
-  }
+  if (!match) return badRequest("Invalid GitHub URL");
 
   const [, owner, repo] = match;
   const cleanRepo = repo.replace(/\.git$/, "");
@@ -23,9 +20,7 @@ export async function GET(req: NextRequest) {
         next: { revalidate: 3600 },
       }
     );
-    if (!res.ok) {
-      return NextResponse.json({ error: "Repo not found" }, { status: 404 });
-    }
+    if (!res.ok) return notFound("Repo not found");
     const data = await res.json();
     return NextResponse.json({
       title: data.name ?? "",
@@ -36,6 +31,6 @@ export async function GET(req: NextRequest) {
         : data.language ?? "",
     });
   } catch {
-    return NextResponse.json({ error: "GitHub fetch failed" }, { status: 500 });
+    return serverError("GitHub fetch failed");
   }
 }
