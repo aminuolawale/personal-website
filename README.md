@@ -2,7 +2,7 @@
 
 A full-stack personal portfolio and content management system built with Next.js. The site covers three areas — **software engineering**, **astrophotography**, and **writing** — each with its own section, tab layout, and article system. A password-free admin panel (Google OAuth) handles all content creation.
 
-**Live site:** https://aminuolawale.com  
+**Live site:** https://mohamedall.com  
 **Hosting:** Vercel
 
 ---
