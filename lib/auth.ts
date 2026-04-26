@@ -12,7 +12,7 @@ export async function getSession(): Promise<boolean> {
   return session?.user?.email === ADMIN_EMAIL
 }
 
-export type ReaderSession = {
+type ReaderSession = {
   email: string;
   name: string | null;
   image: string | null;

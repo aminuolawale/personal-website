@@ -1,6 +1,6 @@
 "use client";
 
-export interface TabConfig {
+interface TabConfig {
   id: string;
   label: string;
 }

@@ -1,5 +1,11 @@
 import { colorPalette, glow } from "./utils";
 
+export interface NebulaTraits {
+  shape?: 'cloud' | 'ring' | 'burst' | 'pillars';
+  color1?: string;
+  color2?: string;
+}
+
 export function drawNebula(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -7,7 +13,7 @@ export function drawNebula(
   r: number,
   lw: number,
   rand: () => number,
-  traits: any
+  traits: NebulaTraits
 ) {
   const shape = traits.shape || 'cloud';
   const c1 = traits.color1 || colorPalette.orange;
@@ -68,6 +74,7 @@ export function drawNebula(
        ctx.fill();
     });
   } else {
+    // Cloud shape (default)
     const blobs = 5 + Math.floor(rand() * 4);
     for (let i = 0; i < blobs; i++) {
       const bx = (rand() - 0.5) * r * 0.7;

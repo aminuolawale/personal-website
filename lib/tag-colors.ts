@@ -21,7 +21,7 @@ export const WRITING_TAG_COLORS: Record<string, string> = {
 };
 
 /** Fallback class string for tags not present in a color map. */
-export const FALLBACK_TAG_COLOR = "text-surface/50 bg-surface/5 border-surface/15";
+const FALLBACK_TAG_COLOR = "text-surface/50 bg-surface/5 border-surface/15";
 
 /** Returns the Tailwind class string for a given tag, falling back gracefully. */
 export function tagColorClass(
