@@ -49,7 +49,7 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/updates")
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setUpdates(Array.isArray(data) ? data.slice(0, 8) : []))
+      .then((data) => setUpdates(Array.isArray(data) ? data.slice(0, 4) : []))
       .catch(() => {});
   }, []);
 
@@ -99,6 +99,22 @@ export default function Home() {
                 </m.div>
               ))}
             </div>
+
+            <m.div
+              className="mt-8 flex justify-end"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Link
+                href="/updates"
+                className="flex items-center gap-1.5 font-mono text-xs text-accent/50 hover:text-accent transition-colors"
+              >
+                View all updates
+                <ArrowRight size={12} />
+              </Link>
+            </m.div>
           </section>
         )}
 
