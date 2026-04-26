@@ -58,7 +58,7 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
         </div>
 
         {/* Details sidebar */}
-        <div className="lg:w-80 xl:w-96 bg-[#04033a] border-t lg:border-t-0 lg:border-l border-surface/10 flex flex-col overflow-y-auto shrink-0">
+        <div className="lg:w-80 xl:w-96 bg-base border-t lg:border-t-0 lg:border-l border-surface/20 flex flex-col overflow-y-auto shrink-0">
           <div className="flex items-start justify-between p-5 border-b border-surface/10">
             <div>
               <h2 className="text-surface font-bold text-lg leading-tight">{photo.name}</h2>
