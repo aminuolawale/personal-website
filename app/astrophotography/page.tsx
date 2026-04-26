@@ -46,7 +46,7 @@ export default function AstrophotographyPage() {
   const tabOrder = useTabOrder("astrophotography", ASTRO_TABS.map((t) => t.id));
   const orderedTabs = tabOrder.map((id) => ASTRO_TABS.find((t) => t.id === id)!).filter(Boolean);
 
-  const [activeTabId, setActiveTabId] = useState(ASTRO_TABS[0].id);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const { articles, isLoading } = useArticles("astrophotography");
 
   const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
@@ -60,7 +60,7 @@ export default function AstrophotographyPage() {
         >
           <TabBar
             tabs={orderedTabs}
-            activeId={activeTabId}
+            activeId={activeTab.id}
             onChange={setActiveTabId}
             layoutId="astrophotography-tab-indicator"
           />

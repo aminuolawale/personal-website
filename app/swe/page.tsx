@@ -46,10 +46,10 @@ export default function SwePage() {
   const tabOrder = useTabOrder("swe", SWE_TABS.map((t) => t.id));
   const orderedTabs = tabOrder.map((id) => SWE_TABS.find((t) => t.id === id)!).filter(Boolean);
 
-  const [activeTabId, setActiveTabId] = useState(SWE_TABS[0].id);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const { articles, isLoading } = useArticles("swe");
 
-  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];;
+  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
 
   return (
     <main>
@@ -60,7 +60,7 @@ export default function SwePage() {
         >
           <TabBar
             tabs={orderedTabs}
-            activeId={activeTabId}
+            activeId={activeTab.id}
             onChange={setActiveTabId}
             layoutId="swe-tab-indicator"
           />
