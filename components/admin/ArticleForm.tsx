@@ -36,6 +36,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [location, setLocation] = useState(article?.location ?? "");
   const [published, setPublished] = useState(article?.published ?? false);
   const [content, setContent] = useState(article?.content ?? "");
+  const [publishAsUpdate, setPublishAsUpdate] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +50,11 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
     setSaving(true);
     setError("");
 
-    const payload = { type, title, slug, summary, tags, date, readTime, location: location || null, published, content };
+    const payload = {
+      type, title, slug, summary, tags, date, readTime,
+      location: location || null, published, content,
+      ...(isNew ? { publishAsUpdate } : {}),
+    };
 
     try {
       const res = await fetch(
@@ -89,6 +94,19 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
           </Link>
 
           <div className="flex items-center gap-3">
+            {isNew && (
+              <button
+                type="button"
+                onClick={() => setPublishAsUpdate((v) => !v)}
+                className={`font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
+                  publishAsUpdate
+                    ? "text-[#020122] bg-[#edd382] border-[#edd382]"
+                    : "text-[#edd382]/50 border-[#f2f3ae]/15 hover:border-[#edd382]/40"
+                }`}
+              >
+                + Update
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setPublished((v) => !v)}

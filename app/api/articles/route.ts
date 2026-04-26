@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { articles } from "@/lib/schema";
+import { articles, siteUpdates } from "@/lib/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
@@ -37,12 +37,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const SECTION_LABEL: Record<string, string> = {
+  writing: "Writing",
+  astrophotography: "Astrophotography",
+  swe: "SWE",
+};
+
 export async function POST(req: NextRequest) {
   if (!(await getSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const { publishAsUpdate, ...body } = await req.json();
   const slug = body.slug || slugify(body.title);
 
   try {
@@ -51,6 +57,14 @@ export async function POST(req: NextRequest) {
       .insert(articles)
       .values({ ...body, slug })
       .returning();
+    if (publishAsUpdate) {
+      const section = SECTION_LABEL[article.type] ?? article.type;
+      const linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
+      await db.insert(siteUpdates).values({
+        text: `Aminu published a new article — ${article.title} — in ${section}`,
+        linkUrl,
+      });
+    }
     return NextResponse.json(article, { status: 201 });
   } catch (err) {
     console.error(err);

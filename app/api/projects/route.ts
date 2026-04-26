@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { projects } from "@/lib/schema";
+import { projects, siteUpdates } from "@/lib/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 
@@ -36,9 +36,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const { publishAsUpdate, ...projectData } = await req.json();
     const db = getDb();
-    const [project] = await db.insert(projects).values(body).returning();
+    const [project] = await db.insert(projects).values(projectData).returning();
+    if (publishAsUpdate) {
+      await db.insert(siteUpdates).values({
+        text: `Aminu added a new project — ${project.title} — to SWE`,
+        linkUrl: project.websiteUrl ?? project.githubUrl ?? "/swe?tab=projects",
+      });
+    }
     return NextResponse.json(project, { status: 201 });
   } catch (err) {
     console.error(err);

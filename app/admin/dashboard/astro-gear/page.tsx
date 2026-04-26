@@ -22,6 +22,7 @@ export default function AstroGearPage() {
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [publishAsUpdate, setPublishAsUpdate] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -47,13 +48,14 @@ export default function AstroGearPage() {
       const res = await fetch("/api/astro-gear", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: tab, name: newName.trim() }),
+        body: JSON.stringify({ type: tab, name: newName.trim(), publishAsUpdate }),
       });
       if (!res.ok) {
         const d = await res.json();
         throw new Error(d.error ?? "Failed to add");
       }
       setNewName("");
+      setPublishAsUpdate(false);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add");
@@ -104,27 +106,38 @@ export default function AstroGearPage() {
         </div>
 
         {/* Add form */}
-        <form onSubmit={handleAdd} className="flex gap-2 mb-6">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder={
-              tab === "equipment"
-                ? "e.g. Redcat 51 + ASI2600MC + EQ6-R"
-                : tab === "software"
-                ? "e.g. PixInsight"
-                : "e.g. HOO narrowband · 120×300s"
-            }
-            className={INPUT}
-          />
-          <button
-            type="submit"
-            disabled={adding || !newName.trim()}
-            className="flex items-center gap-2 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
-          >
-            <Plus size={13} />
-            {adding ? "Adding…" : "Add"}
-          </button>
+        <form onSubmit={handleAdd} className="space-y-2 mb-6">
+          <div className="flex gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder={
+                tab === "equipment"
+                  ? "e.g. Redcat 51 + ASI2600MC + EQ6-R"
+                  : tab === "software"
+                  ? "e.g. PixInsight"
+                  : "e.g. HOO narrowband · 120×300s"
+              }
+              className={INPUT}
+            />
+            <button
+              type="submit"
+              disabled={adding || !newName.trim()}
+              className="flex items-center gap-2 font-mono text-xs text-[#020122] bg-[#fc9e4f] px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+            >
+              <Plus size={13} />
+              {adding ? "Adding…" : "Add"}
+            </button>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={publishAsUpdate}
+              onChange={(e) => setPublishAsUpdate(e.target.checked)}
+              className="accent-[#fc9e4f]"
+            />
+            <span className="font-mono text-xs text-[#edd382]/50">Publish as update on homepage</span>
+          </label>
         </form>
 
         {error && <p className="font-mono text-xs text-red-400 mb-4">{error}</p>}

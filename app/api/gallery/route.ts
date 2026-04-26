@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { galleryPhotos } from "@/lib/schema";
+import { galleryPhotos, siteUpdates } from "@/lib/schema";
 import { eq, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 
@@ -35,9 +35,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const body = await req.json();
+    const { publishAsUpdate, ...photoData } = await req.json();
     const db = getDb();
-    const [photo] = await db.insert(galleryPhotos).values(body).returning();
+    const [photo] = await db.insert(galleryPhotos).values(photoData).returning();
+    if (publishAsUpdate) {
+      await db.insert(siteUpdates).values({
+        text: `Aminu added a new photo — ${photo.name} — to Astrophotography`,
+        linkUrl: "/astrophotography?tab=gallery",
+      });
+    }
     return NextResponse.json(photo, { status: 201 });
   } catch (err) {
     console.error(err);

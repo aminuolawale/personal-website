@@ -100,6 +100,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
     splitValues(photo?.technique ?? "")
   );
 
+  const [publishAsUpdate, setPublishAsUpdate] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -151,6 +152,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
       technique: selectedTechnique.join(", "),
       software: selectedSoftware.join(", "),
       published,
+      ...(isEdit ? {} : { publishAsUpdate }),
     };
     try {
       const res = await fetch(
@@ -374,6 +376,24 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             </p>
           )}
         </div>
+
+        {/* Publish as Update (new items only) */}
+        {!isEdit && (
+          <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#f2f3ae]">Publish as Update</p>
+              <p className="font-mono text-xs text-[#edd382]/35 mt-0.5">Add to the Updates feed on the homepage</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPublishAsUpdate((v) => !v)}
+              className={`relative w-10 h-5 rounded-full transition-colors ${publishAsUpdate ? "bg-[#fc9e4f]" : "bg-[#f2f3ae]/15"}`}
+              aria-label={publishAsUpdate ? "Remove from updates" : "Add to updates"}
+            >
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-[#020122] transition-all duration-200 ${publishAsUpdate ? "left-5" : "left-0.5"}`} />
+            </button>
+          </div>
+        )}
 
         {/* Published toggle */}
         <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">

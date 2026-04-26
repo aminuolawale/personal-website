@@ -63,6 +63,17 @@ export const astroGear = pgTable("astro_gear", {
 export type AstroGear = typeof astroGear.$inferSelect;
 export type NewAstroGear = typeof astroGear.$inferInsert;
 
+export const siteUpdates = pgTable("site_updates", {
+  id: serial("id").primaryKey(),
+  text: text("text").notNull(),
+  linkUrl: text("link_url"),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type SiteUpdate = typeof siteUpdates.$inferSelect;
+export type NewSiteUpdate = typeof siteUpdates.$inferInsert;
+
 // Stores arbitrary site configuration as key → JSON value pairs.
 export const siteConfig = pgTable("site_config", {
   key: text("key").primaryKey(),

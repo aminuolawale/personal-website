@@ -19,6 +19,7 @@ export default function ProjectForm({ project }: { project?: Project }) {
   const [position, setPosition] = useState<number>(project?.position ?? 1);
   const [published, setPublished] = useState(project?.published ?? true);
 
+  const [publishAsUpdate, setPublishAsUpdate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
@@ -55,6 +56,7 @@ export default function ProjectForm({ project }: { project?: Project }) {
       tags: tags.trim(),
       position,
       published,
+      ...(isEdit ? {} : { publishAsUpdate }),
     };
     try {
       const res = await fetch(
@@ -198,6 +200,24 @@ export default function ProjectForm({ project }: { project?: Project }) {
             className="w-24 bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/15 px-3 py-2 text-sm text-[#f2f3ae] focus:outline-none focus:border-[#fc9e4f]/50"
           />
         </div>
+
+        {/* Publish as Update (new items only) */}
+        {!isEdit && (
+          <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#f2f3ae]">Publish as Update</p>
+              <p className="font-mono text-xs text-[#edd382]/35 mt-0.5">Add to the Updates feed on the homepage</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPublishAsUpdate((v) => !v)}
+              className={`relative w-10 h-5 rounded-full transition-colors ${publishAsUpdate ? "bg-[#fc9e4f]" : "bg-[#f2f3ae]/15"}`}
+              aria-label={publishAsUpdate ? "Remove from updates" : "Add to updates"}
+            >
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-[#020122] transition-all duration-200 ${publishAsUpdate ? "left-5" : "left-0.5"}`} />
+            </button>
+          </div>
+        )}
 
         {/* Published toggle */}
         <div className="flex items-center justify-between border border-[#f2f3ae]/10 p-4">
