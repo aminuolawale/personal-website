@@ -8,12 +8,6 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
-    environmentMatchGlobs: [
-      // API route tests run in Node (no DOM needed)
-      ["tests/api/**", "node"],
-      // Component tests use jsdom
-      ["tests/components/**", "jsdom"],
-    ],
   },
   resolve: {
     alias: {

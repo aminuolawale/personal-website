@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 // POST { articleId, content } — submit a comment (requires sign-in; awaits admin approval).
 export async function POST(req: NextRequest) {
   try {
-    const reader = await getReaderSession(req);
+    const reader = await getReaderSession();
     if (!reader) return unauthorized();
     const { articleId, content } = await req.json();
     if (!articleId || !content?.trim()) return badRequest("articleId and content required");

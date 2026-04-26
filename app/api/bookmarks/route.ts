@@ -8,7 +8,7 @@ import { unauthorized, badRequest, serverError } from "@/lib/api";
 // GET — returns all bookmarked articles for the signed-in reader.
 export async function GET(req: NextRequest) {
   try {
-    const reader = await getReaderSession(req);
+    const reader = await getReaderSession();
     if (!reader) return unauthorized();
     const db = getDb();
     const rows = await db
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 // POST { articleId } — add a bookmark.
 export async function POST(req: NextRequest) {
   try {
-    const reader = await getReaderSession(req);
+    const reader = await getReaderSession();
     if (!reader) return unauthorized();
     const { articleId } = await req.json();
     if (!articleId) return badRequest("articleId required");
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 // DELETE ?articleId=123 — remove a bookmark.
 export async function DELETE(req: NextRequest) {
   try {
-    const reader = await getReaderSession(req);
+    const reader = await getReaderSession();
     if (!reader) return unauthorized();
     const articleId = new URL(req.url).searchParams.get("articleId");
     if (!articleId) return badRequest("articleId required");

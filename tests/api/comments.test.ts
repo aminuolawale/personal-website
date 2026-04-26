@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -36,7 +37,7 @@ import { getReaderSession, getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
-  return new NextRequest(new URL(url, "http://localhost:3000"), opts);
+  return new NextRequest(new URL(url, "http://localhost:3000"), opts as any);
 }
 
 describe("GET /api/comments", () => {

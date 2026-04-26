@@ -83,10 +83,17 @@ lib/
 scripts/
   db-push.js                Schema push helper — supports --prod flag
 
+tests/
+  lib/                      Tests for shared utility functions (api helpers)
+  api/                      Route handler tests (comments, bookmarks, analytics)
+  components/               React component tests (AuthButton, CommentSection)
+  setup.ts                  Vitest global setup — imports @testing-library/jest-dom matchers
+
 auth.ts                     NextAuth configuration (root file, not inside lib/)
 proxy.ts                    Route proxy — protects /admin/dashboard/* (Next.js 16 replaces middleware.ts)
 drizzle.config.ts           Drizzle Kit config — reads DATABASE_URL from .env.local
 next.config.ts              Next.js config — allows Vercel Blob image hostnames
+vitest.config.ts            Vitest config — jsdom for components, node for API tests
 ```
 
 ---
@@ -232,6 +239,40 @@ Most create forms include a **Publish as Update** toggle. When enabled, creating
 Tab order for SWE and Astrophotography is configurable from the admin Settings page. The order is stored as a JSON array in `site_config` and fetched on the client via the `useTabOrder` hook.
 
 Deep-linking to a specific tab works via `?tab=<tab-id>` — for example, a site update about a new gear item links to `/astrophotography?tab=gear`.
+
+---
+
+## Testing
+
+Tests are written with [Vitest](https://vitest.dev) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/). All external dependencies (database, auth, fetch) are mocked so the suite runs without a live database or Google OAuth credentials.
+
+```bash
+npm run test          # run all tests once (CI mode)
+npm run test:watch    # watch mode — re-runs on file changes
+npm run test:ui       # open Vitest's browser UI
+```
+
+To run a single test file:
+
+```bash
+npx vitest run tests/api/comments.test.ts
+npx vitest run tests/components/AuthButton.test.tsx
+```
+
+### Coverage
+
+| File | What's tested |
+|---|---|
+| `tests/lib/api-helpers.test.ts` | `unauthorized`, `notFound`, `badRequest`, `serverError` response shapes and status codes |
+| `tests/api/comments.test.ts` | `GET /api/comments` — auth, articleId validation, approved filter; `POST /api/comments` — auth, field validation, successful insert |
+| `tests/api/bookmarks.test.ts` | `GET`, `POST`, `DELETE /api/bookmarks` — auth on every verb, missing-param validation, happy paths |
+| `tests/api/analytics.test.ts` | `GET /api/admin/analytics` — admin-only gate, reader aggregation from bookmarks + comments, empty state |
+| `tests/components/AuthButton.test.tsx` | Loading / unauthenticated / authenticated states; dropdown toggle; `inline` mode for mobile drawer |
+| `tests/components/CommentSection.test.tsx` | Sign-in prompt when logged out; textarea form when logged in; comment list rendering; pending-approval notice after submit; empty state |
+
+### Test environment
+
+API tests run in the `node` environment (no DOM). Component tests run in `jsdom`. The split is configured in `vitest.config.ts` via `environmentMatchGlobs`.
 
 ---
 

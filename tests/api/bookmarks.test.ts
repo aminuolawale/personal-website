@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -11,7 +12,7 @@ const mockBookmark = {
 };
 
 vi.mock("@/lib/auth", () => ({
-  getReaderSession: vi.fn().mockResolvedValue(null),
+  getReaderSession: vi.fn().mockResolvedValue(null), // no-arg version
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -23,7 +24,7 @@ import { getReaderSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
-  return new NextRequest(new URL(url, "http://localhost:3000"), opts);
+  return new NextRequest(new URL(url, "http://localhost:3000"), opts as any);
 }
 
 describe("GET /api/bookmarks", () => {
