@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {AnimatePresence, m} from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import AuthButton from "./AuthButton";
 
 const navItems = [
   { label: "SWE", href: "/swe" },
@@ -63,8 +64,11 @@ export default function Navbar() {
           })}
         </ul>
 
-        {/* Theme toggle — desktop */}
-        <ThemeToggle className="hidden sm:block" />
+        {/* Auth + theme — desktop */}
+        <div className="hidden sm:flex items-center gap-3">
+          <AuthButton />
+          <ThemeToggle />
+        </div>
 
         {/* Mobile: theme toggle + hamburger */}
         <div className="sm:hidden flex items-center gap-1">
@@ -104,6 +108,9 @@ export default function Navbar() {
                   </Link>
                 </li>
               ))}
+              <li className="pt-2 border-t border-surface/10">
+                <AuthButton />
+              </li>
             </ul>
           </m.div>
         )}

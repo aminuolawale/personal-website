@@ -11,3 +11,22 @@ export async function getSession(): Promise<boolean> {
   const session = await auth()
   return session?.user?.email === ADMIN_EMAIL
 }
+
+export type ReaderSession = {
+  email: string;
+  name: string | null;
+  image: string | null;
+}
+
+// Returns the signed-in reader's profile, or null if not authenticated.
+// Any Google account is a valid reader — admin is also a valid reader.
+// Used by bookmark, comment, and subscription API routes.
+export async function getReaderSession(): Promise<ReaderSession | null> {
+  const session = await auth();
+  if (!session?.user?.email) return null;
+  return {
+    email: session.user.email,
+    name: session.user.name ?? null,
+    image: session.user.image ?? null,
+  };
+}

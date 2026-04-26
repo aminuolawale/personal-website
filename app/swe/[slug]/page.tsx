@@ -8,6 +8,8 @@ import {m} from "framer-motion";
 import TagBadge from "@/components/TagBadge";
 import { WRITING_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
+import BookmarkButton from "@/components/BookmarkButton";
+import CommentSection from "@/components/CommentSection";
 import type { Article } from "@/lib/schema";
 
 export default function SweArticlePage() {
@@ -30,51 +32,49 @@ export default function SweArticlePage() {
 
   return (
     <main className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 sm:px-16 max-w-3xl mx-auto">
-        <Link
-          href="/swe"
-          className="inline-flex items-center gap-2 font-mono text-xs text-muted/40 hover:text-accent transition-colors mb-12"
+      <Link
+        href="/swe"
+        className="inline-flex items-center gap-2 font-mono text-xs text-muted/40 hover:text-accent transition-colors mb-12"
+      >
+        <ArrowLeft size={13} />
+        All SWE Articles
+      </Link>
+
+      {isLoading && <p className="font-mono text-xs text-muted/30">Loading…</p>}
+      {isNotFound && !isLoading && <p className="font-mono text-sm text-muted/50">Article not found.</p>}
+
+      {article && (
+        <m.article
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <ArrowLeft size={13} />
-          All SWE Articles
-        </Link>
+          <header className="mb-12 pb-8 border-b border-surface/10">
+            <h1 className="text-surface text-3xl sm:text-4xl font-bold leading-tight mb-6">
+              {article.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
+              <span className="font-mono text-xs text-muted/40">{article.date}</span>
+              {article.readTime && (
+                <span className="font-mono text-xs text-muted/30">{article.readTime}</span>
+              )}
+              <BookmarkButton articleId={article.id} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <TagBadge key={tag} tag={tag} colorMap={WRITING_TAG_COLORS} />
+              ))}
+            </div>
+          </header>
 
-        {isLoading && (
-          <p className="font-mono text-xs text-muted/30">Loading…</p>
-        )}
+          <div
+            className="article-content"
+            dangerouslySetInnerHTML={{ __html: article.content }}
+          />
 
-        {isNotFound && !isLoading && (
-          <p className="font-mono text-sm text-muted/50">Article not found.</p>
-        )}
-
-        {article && (
-          <m.article
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <header className="mb-12 pb-8 border-b border-surface/10">
-              <h1 className="text-surface text-3xl sm:text-4xl font-bold leading-tight mb-6">
-                {article.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
-                <span className="font-mono text-xs text-muted/40">{article.date}</span>
-                {article.readTime && (
-                  <span className="font-mono text-xs text-muted/30">{article.readTime}</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <TagBadge key={tag} tag={tag} colorMap={WRITING_TAG_COLORS} />
-                ))}
-              </div>
-            </header>
-
-            <div
-              className="article-content"
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
-          </m.article>
-        )}
-      </main>
+          <CommentSection articleId={article.id} />
+        </m.article>
+      )}
+    </main>
   );
 }

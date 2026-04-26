@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
 
 // All database tables are defined here. This is the single source of truth —
 // edit this file and run `npm run db:push` to apply changes to the database.
@@ -103,3 +103,31 @@ export const siteConfig = pgTable("site_config", {
 });
 
 export type SiteConfig = typeof siteConfig.$inferSelect;
+
+// Reader-saved articles. One row per (readerEmail, articleId) pair.
+// The unique index prevents duplicate bookmarks at the database level.
+export const bookmarks = pgTable("bookmarks", {
+  id: serial("id").primaryKey(),
+  readerEmail: text("reader_email").notNull(),
+  articleId: integer("article_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex("bookmarks_reader_article_idx").on(t.readerEmail, t.articleId),
+}));
+
+export type Bookmark = typeof bookmarks.$inferSelect;
+
+// Reader comments on articles. New comments are unapproved by default — the admin
+// must approve them (from /admin/dashboard/comments) before they appear publicly.
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  articleId: integer("article_id").notNull(),
+  readerEmail: text("reader_email").notNull(),
+  readerName: text("reader_name"),
+  readerAvatarUrl: text("reader_avatar_url"),
+  content: text("content").notNull(),
+  approved: boolean("approved").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Comment = typeof comments.$inferSelect;

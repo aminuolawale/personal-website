@@ -72,6 +72,12 @@ export default function AdminDashboard() {
               Updates
             </Link>
             <Link
+              href="/admin/dashboard/comments"
+              className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
+            >
+              Comments
+            </Link>
+<Link
               href="/admin/dashboard/settings"
               className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-1 hover:border-[#fc9e4f]/30"
             >
