@@ -78,7 +78,6 @@ export default function AstroGearPage() {
         const blob = await upload(imageFile.name, imageFile, {
           access: "public",
           handleUploadUrl: "/api/astro-gear/upload",
-          allowOverwrite: true,
         });
         imageUrl = blob.url;
         setUploadProgress("");
