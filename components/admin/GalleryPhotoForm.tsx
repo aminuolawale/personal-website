@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { upload } from "@vercel/blob/client";
 import type { GalleryPhoto } from "@/lib/schema";
 
 const INPUT =
@@ -34,15 +35,11 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
     setUploading(true);
     setError("");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/gallery/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "Upload failed");
-      }
-      const { url } = await res.json();
-      setImageUrl(url);
+      const blob = await upload(`gallery/${Date.now()}-${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/gallery/upload",
+      });
+      setImageUrl(blob.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {

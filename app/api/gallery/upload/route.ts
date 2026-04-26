@@ -1,61 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { getSession } from "@/lib/auth";
 
-const MIME_FROM_EXT: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  tif: "image/tiff",
-  tiff: "image/tiff",
-  gif: "image/gif",
-};
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/tiff",
+  "image/gif",
+];
 
-const ALLOWED_MIME = new Set(Object.values(MIME_FROM_EXT));
-
-function resolveContentType(file: File): string | null {
-  if (file.type && ALLOWED_MIME.has(file.type)) return file.type;
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  return MIME_FROM_EXT[ext] ?? null;
-}
-
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function POST(req: NextRequest): Promise<Response> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
-      { error: "Image storage is not configured. Add BLOB_READ_WRITE_TOKEN to your environment variables (create a Vercel Blob store in the Vercel dashboard)." },
+      { error: "Image storage is not configured (BLOB_READ_WRITE_TOKEN missing)." },
       { status: 503 }
     );
   }
 
-  const form = await req.formData();
-  const file = form.get("file") as File | null;
-  if (!file || file.size === 0) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  }
+  const body = (await req.json()) as HandleUploadBody;
 
-  const contentType = resolveContentType(file);
-  if (!contentType) {
-    return NextResponse.json(
-      { error: `Unsupported file type "${file.type || file.name.split(".").pop()}". Use JPEG, PNG, WebP, TIFF, or GIF.` },
-      { status: 400 }
-    );
+  // Only check auth for token generation; upload-completed is called by Vercel Blob servers
+  if (body.type === "blob.generate-client-token" && !(await getSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const blob = await put(`gallery/${Date.now()}-${file.name}`, arrayBuffer, {
-      access: "public",
-      contentType,
+    const jsonResponse = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: ALLOWED_TYPES,
+        maximumSizeInBytes: 25 * 1024 * 1024, // 25 MB
+      }),
+      onUploadCompleted: async () => {
+        // no server-side post-processing needed
+      },
     });
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json(jsonResponse);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
     console.error("Blob upload error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
