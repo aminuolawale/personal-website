@@ -53,6 +53,16 @@ export const galleryPhotos = pgTable("gallery_photos", {
 export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
 export type NewGalleryPhoto = typeof galleryPhotos.$inferInsert;
 
+export const astroGear = pgTable("astro_gear", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "equipment" | "software" | "technique"
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type AstroGear = typeof astroGear.$inferSelect;
+export type NewAstroGear = typeof astroGear.$inferInsert;
+
 // Stores arbitrary site configuration as key → JSON value pairs.
 export const siteConfig = pgTable("site_config", {
   key: text("key").primaryKey(),

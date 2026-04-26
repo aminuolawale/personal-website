@@ -1,15 +1,80 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
-import type { GalleryPhoto } from "@/lib/schema";
+import type { GalleryPhoto, AstroGear } from "@/lib/schema";
 
 const INPUT =
   "w-full bg-[#f2f3ae]/[0.04] border border-[#f2f3ae]/15 px-3 py-2 text-sm text-[#f2f3ae] placeholder:text-[#edd382]/20 focus:outline-none focus:border-[#fc9e4f]/50";
 const LABEL = "block font-mono text-xs text-[#edd382]/50 uppercase tracking-widest mb-1.5";
+
+function GearMultiSelect({
+  items,
+  selected,
+  onChange,
+  placeholder,
+}: {
+  items: AstroGear[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+}) {
+  function toggle(name: string) {
+    onChange(
+      selected.includes(name) ? selected.filter((s) => s !== name) : [...selected, name]
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <p className="font-mono text-xs text-[#edd382]/30">
+        No entries yet — add them in{" "}
+        <Link href="/admin/dashboard/astro-gear" className="text-[#fc9e4f] hover:underline">
+          Gear Library
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => {
+        const active = selected.includes(item.name);
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => toggle(item.name)}
+            className={`font-mono text-xs px-3 py-1.5 border transition-all ${
+              active
+                ? "bg-[#fc9e4f] text-[#020122] border-[#fc9e4f]"
+                : "text-[#edd382]/60 border-[#f2f3ae]/20 hover:border-[#fc9e4f]/40"
+            }`}
+          >
+            {item.name}
+          </button>
+        );
+      })}
+      {selected.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange([])}
+          className="font-mono text-[10px] text-[#edd382]/30 hover:text-red-400 transition-colors px-1"
+        >
+          clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+function splitValues(raw: string): string[] {
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
 
 export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const router = useRouter();
@@ -19,15 +84,39 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const [name, setName] = useState(photo?.name ?? "");
   const [description, setDescription] = useState(photo?.description ?? "");
   const [imageUrl, setImageUrl] = useState(photo?.imageUrl ?? "");
-  const [equipment, setEquipment] = useState(photo?.equipment ?? "");
   const [capturedAt, setCapturedAt] = useState(photo?.capturedAt ?? "");
-  const [technique, setTechnique] = useState(photo?.technique ?? "");
-  const [software, setSoftware] = useState(photo?.software ?? "");
   const [published, setPublished] = useState(photo?.published ?? true);
+
+  // Gear selections
+  const [equipmentItems, setEquipmentItems] = useState<AstroGear[]>([]);
+  const [softwareItems, setSoftwareItems] = useState<AstroGear[]>([]);
+  const [techniqueItems, setTechniqueItems] = useState<AstroGear[]>([]);
+
+  const [equipment, setEquipment] = useState(photo?.equipment ?? "");
+  const [selectedSoftware, setSelectedSoftware] = useState<string[]>(
+    splitValues(photo?.software ?? "")
+  );
+  const [selectedTechnique, setSelectedTechnique] = useState<string[]>(
+    splitValues(photo?.technique ?? "")
+  );
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadGear() {
+      const [eq, sw, te] = await Promise.all([
+        fetch("/api/astro-gear?type=equipment").then((r) => r.json()),
+        fetch("/api/astro-gear?type=software").then((r) => r.json()),
+        fetch("/api/astro-gear?type=technique").then((r) => r.json()),
+      ]);
+      setEquipmentItems(Array.isArray(eq) ? eq : []);
+      setSoftwareItems(Array.isArray(sw) ? sw : []);
+      setTechniqueItems(Array.isArray(te) ? te : []);
+    }
+    loadGear();
+  }, []);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -59,8 +148,8 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
       imageUrl: imageUrl.trim(),
       equipment: equipment.trim(),
       capturedAt: capturedAt.trim(),
-      technique: technique.trim(),
-      software: software.trim(),
+      technique: selectedTechnique.join(", "),
+      software: selectedSoftware.join(", "),
       published,
     };
     try {
@@ -158,7 +247,6 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             onChange={handleFileChange}
           />
 
-          {/* Manual URL fallback */}
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] text-[#edd382]/30 shrink-0">or paste URL</span>
             <input
@@ -193,48 +281,98 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
           />
         </div>
 
-        {/* Equipment */}
+        {/* Equipment — single select */}
         <div>
-          <label className={LABEL}>Equipment</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={LABEL.replace("mb-1.5", "")}>Equipment</label>
+            <Link
+              href="/admin/dashboard/astro-gear"
+              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+            >
+              Manage →
+            </Link>
+          </div>
+          {equipmentItems.length > 0 ? (
+            <select
+              value={equipment}
+              onChange={(e) => setEquipment(e.target.value)}
+              className={INPUT + " cursor-pointer"}
+            >
+              <option value="">Select equipment…</option>
+              {equipmentItems.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="font-mono text-xs text-[#edd382]/30">
+              No equipment yet — add it in{" "}
+              <Link href="/admin/dashboard/astro-gear" className="text-[#fc9e4f] hover:underline">
+                Gear Library
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+
+        {/* Captured At — datetime picker */}
+        <div>
+          <label className={LABEL}>Time of Capture</label>
           <input
-            value={equipment}
-            onChange={(e) => setEquipment(e.target.value)}
-            placeholder="Telescope: Redcat 51 · Camera: ASI2600MC · Mount: EQ6-R"
-            className={INPUT}
+            type="datetime-local"
+            value={capturedAt}
+            onChange={(e) => setCapturedAt(e.target.value)}
+            className={INPUT + " [color-scheme:dark]"}
           />
         </div>
 
-        {/* Two-column row: Captured At + Technique */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={LABEL}>Time of Capture</label>
-            <input
-              value={capturedAt}
-              onChange={(e) => setCapturedAt(e.target.value)}
-              placeholder="March 2025, Zurich"
-              className={INPUT}
-            />
+        {/* Technique — multi-select */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={LABEL.replace("mb-1.5", "")}>Technique</label>
+            <Link
+              href="/admin/dashboard/astro-gear"
+              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+            >
+              Manage →
+            </Link>
           </div>
-          <div>
-            <label className={LABEL}>Technique</label>
-            <input
-              value={technique}
-              onChange={(e) => setTechnique(e.target.value)}
-              placeholder="HOO narrowband · 120×300s"
-              className={INPUT}
-            />
-          </div>
+          <GearMultiSelect
+            items={techniqueItems}
+            selected={selectedTechnique}
+            onChange={setSelectedTechnique}
+            placeholder="technique"
+          />
+          {selectedTechnique.length > 0 && (
+            <p className="font-mono text-[10px] text-[#edd382]/25 mt-2">
+              Saved as: {selectedTechnique.join(", ")}
+            </p>
+          )}
         </div>
 
-        {/* Software */}
+        {/* Software — multi-select */}
         <div>
-          <label className={LABEL}>Software Used</label>
-          <input
-            value={software}
-            onChange={(e) => setSoftware(e.target.value)}
-            placeholder="PixInsight · Lightroom · Photoshop"
-            className={INPUT}
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={LABEL.replace("mb-1.5", "")}>Software</label>
+            <Link
+              href="/admin/dashboard/astro-gear"
+              className="font-mono text-[10px] text-[#edd382]/30 hover:text-[#fc9e4f] transition-colors"
+            >
+              Manage →
+            </Link>
+          </div>
+          <GearMultiSelect
+            items={softwareItems}
+            selected={selectedSoftware}
+            onChange={setSelectedSoftware}
+            placeholder="software"
           />
+          {selectedSoftware.length > 0 && (
+            <p className="font-mono text-[10px] text-[#edd382]/25 mt-2">
+              Saved as: {selectedSoftware.join(", ")}
+            </p>
+          )}
         </div>
 
         {/* Published toggle */}

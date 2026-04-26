@@ -122,6 +122,12 @@ export default function AdminDashboard() {
             {section === "astrophotography" && (
               <>
                 <Link
+                  href="/admin/dashboard/astro-gear"
+                  className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-2 hover:border-[#fc9e4f]/30"
+                >
+                  Gear Library
+                </Link>
+                <Link
                   href="/admin/dashboard/gallery"
                   className="font-mono text-xs text-[#edd382]/40 hover:text-[#fc9e4f] transition-colors border border-[#f2f3ae]/10 px-2.5 py-2 hover:border-[#fc9e4f]/30"
                 >

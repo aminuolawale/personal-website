@@ -5,6 +5,16 @@ import { X, Calendar, Cpu, Layers, Wrench } from "lucide-react";
 import {m, AnimatePresence} from "framer-motion";
 import type { GalleryPhoto } from "@/lib/schema";
 
+function formatCapturedAt(raw: string): string {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw; // legacy free-text value
+  return d.toLocaleString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+
 function MetaRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   if (!value) return null;
   return (
@@ -79,7 +89,7 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
 
             <div className="space-y-4 pt-1">
               <MetaRow icon={<Cpu size={14} />} label="Equipment" value={photo.equipment} />
-              <MetaRow icon={<Calendar size={14} />} label="Captured" value={photo.capturedAt} />
+              <MetaRow icon={<Calendar size={14} />} label="Captured" value={formatCapturedAt(photo.capturedAt)} />
               <MetaRow icon={<Layers size={14} />} label="Technique" value={photo.technique} />
               <MetaRow icon={<Wrench size={14} />} label="Software" value={photo.software} />
             </div>
