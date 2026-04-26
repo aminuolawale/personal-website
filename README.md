@@ -84,7 +84,7 @@ scripts/
   db-push.js                Schema push helper — supports --prod flag
 
 auth.ts                     NextAuth configuration (root file, not inside lib/)
-middleware.ts               Edge middleware — protects /admin/dashboard/*
+proxy.ts                    Route proxy — protects /admin/dashboard/* (Next.js 16 replaces middleware.ts)
 drizzle.config.ts           Drizzle Kit config — reads DATABASE_URL from .env.local
 next.config.ts              Next.js config — allows Vercel Blob image hostnames
 ```
@@ -140,15 +140,15 @@ Uploaded image URLs are stored in the database and rendered via `next/image`. Al
 
 There is exactly **one admin** — the email address hardcoded in two files:
 
-- `middleware.ts` — edge-level route protection
+- `proxy.ts` — route-level protection before the page renders
 - `lib/auth.ts` — API-level session check
 
 To change the admin, update `ADMIN_EMAIL` in both files.
 
 **How protection is layered:**
 
-1. `middleware.ts` runs at the edge and redirects any non-admin away from `/admin/dashboard/*` before the page renders — fast and cheap.
-2. Every API write route additionally calls `getSession()` as a second check, so the API cannot be bypassed even if middleware were somehow circumvented.
+1. `proxy.ts` runs on the Node.js runtime and redirects any non-admin away from `/admin/dashboard/*` before the page renders.
+2. Every API write route additionally calls `getSession()` as a second check, so the API cannot be bypassed even if the proxy were somehow circumvented.
 3. Public GET routes have no auth requirement — content is public by design.
 
 ---
