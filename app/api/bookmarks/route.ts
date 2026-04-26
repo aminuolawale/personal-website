@@ -7,9 +7,9 @@ import { unauthorized, badRequest, serverError } from "@/lib/api";
 
 // GET — returns all bookmarked articles for the signed-in reader.
 export async function GET() {
-  const reader = await getReaderSession();
-  if (!reader) return unauthorized();
   try {
+    const reader = await getReaderSession();
+    if (!reader) return unauthorized();
     const db = getDb();
     const rows = await db
       .select()
@@ -23,42 +23,46 @@ export async function GET() {
       article: arts.find((a) => a.id === b.articleId) ?? null,
     }));
     return NextResponse.json(result);
-  } catch {
+  } catch (err) {
+    console.error("GET /api/bookmarks:", err);
     return serverError();
   }
 }
 
 // POST { articleId } — add a bookmark.
 export async function POST(req: NextRequest) {
-  const reader = await getReaderSession();
-  if (!reader) return unauthorized();
   try {
+    const reader = await getReaderSession();
+    if (!reader) return unauthorized();
     const { articleId } = await req.json();
     if (!articleId) return badRequest("articleId required");
+    const country = req.headers.get("x-vercel-ip-country") ?? null;
     const db = getDb();
     await db
       .insert(bookmarks)
-      .values({ readerEmail: reader.email, articleId: Number(articleId) })
+      .values({ readerEmail: reader.email, articleId: Number(articleId), country })
       .onConflictDoNothing();
     return NextResponse.json({ bookmarked: true });
-  } catch {
+  } catch (err) {
+    console.error("POST /api/bookmarks:", err);
     return serverError();
   }
 }
 
 // DELETE ?articleId=123 — remove a bookmark.
 export async function DELETE(req: NextRequest) {
-  const reader = await getReaderSession();
-  if (!reader) return unauthorized();
-  const articleId = new URL(req.url).searchParams.get("articleId");
-  if (!articleId) return badRequest("articleId required");
   try {
+    const reader = await getReaderSession();
+    if (!reader) return unauthorized();
+    const articleId = new URL(req.url).searchParams.get("articleId");
+    if (!articleId) return badRequest("articleId required");
     const db = getDb();
     await db
       .delete(bookmarks)
       .where(and(eq(bookmarks.readerEmail, reader.email), eq(bookmarks.articleId, Number(articleId))));
     return NextResponse.json({ bookmarked: false });
-  } catch {
+  } catch (err) {
+    console.error("DELETE /api/bookmarks:", err);
     return serverError();
   }
 }

@@ -110,6 +110,7 @@ export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
   readerEmail: text("reader_email").notNull(),
   articleId: integer("article_id").notNull(),
+  country: text("country"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   uniq: uniqueIndex("bookmarks_reader_article_idx").on(t.readerEmail, t.articleId),
@@ -127,6 +128,7 @@ export const comments = pgTable("comments", {
   readerAvatarUrl: text("reader_avatar_url"),
   content: text("content").notNull(),
   approved: boolean("approved").notNull().default(false),
+  country: text("country"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -109,7 +109,7 @@ export default function Navbar() {
                 </li>
               ))}
               <li className="pt-2 border-t border-surface/10">
-                <AuthButton />
+                <AuthButton inline />
               </li>
             </ul>
           </m.div>

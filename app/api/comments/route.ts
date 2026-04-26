@@ -51,11 +51,12 @@ export async function GET(req: NextRequest) {
 
 // POST { articleId, content } — submit a comment (requires sign-in; awaits admin approval).
 export async function POST(req: NextRequest) {
-  const reader = await getReaderSession();
-  if (!reader) return unauthorized();
   try {
+    const reader = await getReaderSession();
+    if (!reader) return unauthorized();
     const { articleId, content } = await req.json();
     if (!articleId || !content?.trim()) return badRequest("articleId and content required");
+    const country = req.headers.get("x-vercel-ip-country") ?? null;
     const db = getDb();
     const [comment] = await db
       .insert(comments)
@@ -65,10 +66,12 @@ export async function POST(req: NextRequest) {
         readerName: reader.name,
         readerAvatarUrl: reader.image,
         content: content.trim(),
+        country,
       })
       .returning();
     return NextResponse.json(comment, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("POST /api/comments:", err);
     return serverError();
   }
 }

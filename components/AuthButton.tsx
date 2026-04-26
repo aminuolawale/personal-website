@@ -6,7 +6,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { LogOut, Bookmark, ChevronDown } from "lucide-react";
 
-export default function AuthButton() {
+interface Props {
+  inline?: boolean;
+}
+
+export default function AuthButton({ inline = false }: Props) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -23,17 +27,59 @@ export default function AuthButton() {
     return <div className="w-7 h-7 rounded-full bg-surface/10 animate-pulse" />;
   }
 
-  if (!session) {
+  const signInButton = (
+    <button
+      onClick={() => signIn("google", { callbackUrl: window.location.href })}
+      className="font-mono text-xs text-muted/50 hover:text-accent transition-colors border border-surface/15 px-3 py-1.5 hover:border-accent/40"
+    >
+      Sign in
+    </button>
+  );
+
+  if (!session) return signInButton;
+
+  // Inline mode: flat list items for the mobile drawer
+  if (inline) {
     return (
-      <button
-        onClick={() => signIn("google", { callbackUrl: window.location.href })}
-        className="font-mono text-xs text-muted/50 hover:text-accent transition-colors border border-surface/15 px-3 py-1.5 hover:border-accent/40"
-      >
-        Sign in
-      </button>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          {session.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt={session.user.name ?? ""}
+              width={28}
+              height={28}
+              className="w-7 h-7 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center font-mono text-xs text-accent">
+              {session.user?.name?.[0] ?? "?"}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-mono text-xs text-surface truncate">{session.user?.name}</p>
+            <p className="font-mono text-[10px] text-muted/40 truncate">{session.user?.email}</p>
+          </div>
+        </div>
+        <Link
+          href="/bookmarks"
+          className="flex items-center gap-2 font-mono text-sm text-surface hover:text-accent transition-colors"
+        >
+          <Bookmark size={13} />
+          My Bookmarks
+        </Link>
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="flex items-center gap-2 font-mono text-sm text-surface hover:text-accent transition-colors"
+        >
+          <LogOut size={13} />
+          Sign out
+        </button>
+      </div>
     );
   }
 
+  // Default: avatar + dropdown for desktop
   return (
     <div ref={ref} className="relative">
       <button
@@ -47,7 +93,7 @@ export default function AuthButton() {
             alt={session.user.name ?? ""}
             width={28}
             height={28}
-            className="rounded-full"
+            className="w-7 h-7 rounded-full object-cover"
           />
         ) : (
           <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center font-mono text-xs text-accent">

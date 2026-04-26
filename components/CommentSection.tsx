@@ -71,7 +71,7 @@ export default function CommentSection({ articleId }: Props) {
                 alt=""
                 width={32}
                 height={32}
-                className="rounded-full shrink-0 mt-1"
+                className="w-8 h-8 rounded-full object-cover shrink-0 mt-1"
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-mono text-xs text-accent shrink-0 mt-1">
@@ -126,7 +126,7 @@ export default function CommentSection({ articleId }: Props) {
                   alt=""
                   width={32}
                   height={32}
-                  className="rounded-full shrink-0 mt-0.5"
+                  className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-mono text-xs text-accent shrink-0">
