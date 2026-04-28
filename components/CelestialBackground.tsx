@@ -6,6 +6,7 @@ import { CelestialData, CELESTIAL_CATALOG } from "./celestial/catalog";
 import { mulberry32 } from "./celestial/utils";
 import { drawNebula } from "./celestial/nebula";
 import { drawStarField } from "./celestial/starfield";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface LayerCfg {
   speed: number;
@@ -38,6 +39,7 @@ function drawLayer(
   showObjects: boolean,
   shuffledCatalog: CelestialData[],
   allObjects: CelestialData[],
+  isDark: boolean,
 ) {
   canvas.width  = Math.round(VW * dpr);
   canvas.height = Math.round(H  * dpr);
@@ -55,7 +57,7 @@ function drawLayer(
   // Blur baked into pixels at draw time — cheaper than CSS filter during scroll.
   if (layer.blur > 0) ctx.filter = `blur(${layer.blur}px)`;
 
-  drawStarField(ctx, VW, H, layer.stars, rand);
+  drawStarField(ctx, VW, H, layer.stars, rand, isDark);
 
   if (showObjects) {
     const min_cy  = VH * 0.2;
@@ -71,7 +73,7 @@ function drawLayer(
       const data   = shuffledCatalog.pop() || allObjects[0];
       const radius = (50 + rand() * 45) * layer.scale;
 
-      drawNebula(ctx, cx, cy, radius, layer.lw, rand, data.traits);
+      drawNebula(ctx, cx, cy, radius, layer.lw, rand, data.traits, isDark);
     }
   }
 
@@ -85,6 +87,8 @@ export default function CelestialBackground({
   showObjects?: boolean;
   forceBright?: boolean;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const refs = useRef<(HTMLCanvasElement | null)[]>([null, null, null, null]);
 
   useEffect(() => {
@@ -107,7 +111,7 @@ export default function CelestialBackground({
       if (!canvas) return;
 
       setTimeout(() => {
-        drawLayer(canvas, MOBILE_CFG, VW, VH, VH, 0, dpr, true, shuffledCatalog, allObjects);
+        drawLayer(canvas, MOBILE_CFG, VW, VH, VH, 0, dpr, true, shuffledCatalog, allObjects, isDark);
       }, 0);
 
       return;
@@ -140,7 +144,7 @@ export default function CelestialBackground({
         if (canvas) {
           const layer = LAYERS[li];
           const layerH = Math.round(VH + maxScroll * layer.speed + VH * 0.2);
-          drawLayer(canvas, layer, VW, layerH, VH, maxScroll, dpr, true, shuffledCatalog, allObjects);
+          drawLayer(canvas, layer, VW, layerH, VH, maxScroll, dpr, true, shuffledCatalog, allObjects, isDark);
         }
         drawNext(li + 1);
       }, 0);
@@ -151,12 +155,15 @@ export default function CelestialBackground({
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDark]);
+
+  const opacity = forceBright ? 1 : (isDark ? 0.4 : 0.65);
 
   return (
     <div
       className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: -1, opacity: forceBright ? 1 : 0.4 }}
+      style={{ zIndex: -1, opacity }}
     >
       {LAYERS.map((_, li) => (
         <canvas

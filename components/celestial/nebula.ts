@@ -13,7 +13,8 @@ export function drawNebula(
   r: number,
   lw: number,
   rand: () => number,
-  traits: NebulaTraits
+  traits: NebulaTraits,
+  isDark: boolean = true
 ) {
   const shape = traits.shape || 'cloud';
   const c1 = traits.color1 || colorPalette.orange;
@@ -74,14 +75,17 @@ export function drawNebula(
        ctx.fill();
     });
   } else {
-    // Cloud shape (default)
+    // Cloud shape (default).
+    // Light mode uses higher alpha so warm colors read against the white background.
+    const baseAlpha = isDark ? 0.05 : 0.10;
+    const alphaRange = isDark ? 0.07 : 0.12;
     const blobs = 5 + Math.floor(rand() * 4);
     for (let i = 0; i < blobs; i++) {
       const bx = (rand() - 0.5) * r * 0.7;
       const by = (rand() - 0.5) * r * 0.7;
       const br = r * (0.25 + rand() * 0.75);
       const color = palette[Math.floor(rand() * palette.length)];
-      const alpha = 0.05 + rand() * 0.07;
+      const alpha = baseAlpha + rand() * alphaRange;
 
       ctx.save();
       ctx.globalAlpha = alpha;
