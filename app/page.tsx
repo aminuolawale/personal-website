@@ -6,7 +6,6 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import Hero from "@/components/Hero";
-import Contact from "@/components/Contact";
 import type { SiteUpdate } from "@/lib/schema";
 import { timeAgo } from "@/lib/utils";
 
@@ -162,7 +161,6 @@ export default function Home() {
           </div>
         </section>
 
-        <Contact />
       </main>
   );
 }
