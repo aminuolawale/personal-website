@@ -17,9 +17,9 @@
 /* ── Light theme overrides ───────────────────────────────── */
 [data-theme="light"] {
   --color-base:    #ffffff;
-  --color-accent:  #c2410c;
-  --color-surface: #111827;
-  --color-muted:   #374151;
+  --color-accent:  #b83a08;
+  --color-surface: #030712;
+  --color-muted:   #111827;
 }
 
 /* ── Base ────────────────────────────────────────────────── */
