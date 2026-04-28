@@ -9,7 +9,6 @@ import TagBadge from "@/components/TagBadge";
 import { WRITING_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
 import BookmarkButton from "@/components/BookmarkButton";
-import CommentSection from "@/components/CommentSection";
 import type { Article } from "@/lib/schema";
 
 export default function SweArticlePage() {
@@ -72,7 +71,6 @@ export default function SweArticlePage() {
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          <CommentSection articleId={article.id} />
         </m.article>
       )}
     </main>
