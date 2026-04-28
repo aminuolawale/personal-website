@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { DEFAULT_EXPERIENCES, type WorkExperience } from "@/lib/hooks/use-experience";
 
@@ -9,7 +9,7 @@ const INPUT = "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-
 
 function newEntry(): WorkExperience {
   return {
-    id: crypto.randomUUID(),
+    id: `exp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     company: "",
     role: "",
     startDate: "",
@@ -24,6 +24,8 @@ export default function ExperienceEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+  const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     fetch("/api/config?key=work-experience")
@@ -44,8 +46,19 @@ export default function ExperienceEditor() {
     setSaved(false);
   }
 
+  useEffect(() => {
+    if (!pendingScrollId) return;
+    const el = entryRefs.current[pendingScrollId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setPendingScrollId(null);
+    }
+  }, [pendingScrollId, experiences]);
+
   function add() {
-    setExperiences((prev) => [newEntry(), ...prev]);
+    const entry = newEntry();
+    setExperiences((prev) => [entry, ...prev]);
+    setPendingScrollId(entry.id);
     setSaved(false);
   }
 
@@ -101,7 +114,7 @@ export default function ExperienceEditor() {
 
       {/* ── Entries ───────────────────────────────────────────────── */}
       {experiences.map((exp, idx) => (
-        <div key={exp.id} className="px-4 py-5 space-y-4">
+        <div key={exp.id} ref={(el) => { entryRefs.current[exp.id] = el; }} className="px-4 py-5 space-y-4">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[10px] text-accent/60 uppercase tracking-widest">
               {exp.company || `Entry ${idx + 1}`}
