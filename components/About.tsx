@@ -3,20 +3,12 @@
 import {m} from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/SectionHeading";
-
-const skills = [
-  "Python",
-  "JavaScript / TypeScript",
-  "Node.js",
-  "React / React Native",
-  "Go",
-  "Docker",
-  "PostgreSQL",
-  "Redis",
-  "Microservices",
-];
+import { useSiteContent } from "@/lib/hooks/use-site-content";
 
 export default function About() {
+  const { aboutBio, aboutSkills } = useSiteContent();
+  const skills = aboutSkills.split("\n").filter(Boolean);
+
   return (
     <section id="about" className="py-16 sm:py-28 px-6 sm:px-16 max-w-6xl mx-auto">
       <SectionHeading number="01" title="About Me" />
@@ -31,10 +23,7 @@ export default function About() {
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <p className="text-muted leading-relaxed text-base sm:text-[1.05rem]">
-            Hi, I&apos;m Aminu Olawale — a Software Engineer based in{" "}
-            <span className="text-accent">Zurich, Switzerland</span>. I enjoy
-            building things that live on the internet, from high-throughput APIs
-            to polished user interfaces.
+            {aboutBio}
           </p>
           <p className="text-muted/70 leading-relaxed text-base sm:text-[1.05rem]">
             Here&apos;s a snapshot of technologies I&apos;ve been working with:

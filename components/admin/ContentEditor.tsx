@@ -179,6 +179,31 @@ export default function ContentEditor() {
                   placeholder={descPlaceholder}
                 />
               </div>
+
+              {label === "SWE" && (
+                <>
+                  <div>
+                    <label className={LABEL}>About Me — Bio</label>
+                    <textarea
+                      className={`${INPUT} resize-none`}
+                      rows={3}
+                      value={content.aboutBio}
+                      onChange={(e) => set("aboutBio", e.target.value)}
+                      placeholder="Hi, I'm Aminu Olawale…"
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL}>About Me — Skills (one per line)</label>
+                    <textarea
+                      className={`${INPUT} resize-none font-mono text-xs`}
+                      rows={5}
+                      value={content.aboutSkills}
+                      onChange={(e) => set("aboutSkills", e.target.value)}
+                      placeholder={"Python\nTypeScript\nGo\n…"}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

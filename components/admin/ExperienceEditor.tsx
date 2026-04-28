@@ -1,0 +1,196 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { DEFAULT_EXPERIENCES, type WorkExperience } from "@/lib/hooks/use-experience";
+
+const LABEL = "block font-mono text-xs text-muted/50 uppercase tracking-widest mb-1.5";
+const INPUT = "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-sm text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/50";
+
+function newEntry(): WorkExperience {
+  return {
+    id: crypto.randomUUID(),
+    company: "",
+    role: "",
+    startDate: "",
+    endDate: "",
+    location: "",
+    responsibilities: [],
+  };
+}
+
+export default function ExperienceEditor() {
+  const [experiences, setExperiences] = useState<WorkExperience[]>(DEFAULT_EXPERIENCES);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/config?key=work-experience")
+      .then((r) => (r.ok ? r.json() : { value: null }))
+      .then(({ value }) => {
+        if (Array.isArray(value) && value.length > 0) setExperiences(value);
+      })
+      .catch(() => {});
+  }, []);
+
+  function update(id: string, field: keyof WorkExperience, value: string | string[]) {
+    setExperiences((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+    setSaved(false);
+  }
+
+  function remove(id: string) {
+    setExperiences((prev) => prev.filter((e) => e.id !== id));
+    setSaved(false);
+  }
+
+  function add() {
+    setExperiences((prev) => [newEntry(), ...prev]);
+    setSaved(false);
+  }
+
+  function handleReset() {
+    setExperiences(DEFAULT_EXPERIENCES);
+    setSaved(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "work-experience", value: experiences }),
+      });
+      if (!res.ok) throw new Error();
+      setSaved(true);
+    } catch {
+      setError("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border border-surface/10 divide-y divide-surface/[0.08]">
+
+      {/* ── Toolbar ───────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <p className="font-mono text-xs text-muted/50 uppercase tracking-widest">work experience</p>
+        <div className="flex items-center gap-2">
+          {error && <span className="font-mono text-xs text-red-400">{error}</span>}
+          {saved && <span className="font-mono text-xs text-emerald-400/70">Saved</span>}
+          <button
+            onClick={handleReset}
+            title="Reset to defaults"
+            className="p-1.5 text-muted/30 hover:text-muted/70 transition-colors"
+          >
+            <RotateCcw size={12} />
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 font-mono text-xs text-base bg-accent px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
+          >
+            <Save size={11} />
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Entries ───────────────────────────────────────────────── */}
+      {experiences.map((exp, idx) => (
+        <div key={exp.id} className="px-4 py-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] text-accent/60 uppercase tracking-widest">
+              {exp.company || `Entry ${idx + 1}`}
+            </p>
+            <button
+              onClick={() => remove(exp.id)}
+              className="p-1 text-muted/30 hover:text-red-400 transition-colors"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LABEL}>Company</label>
+              <input
+                className={INPUT}
+                value={exp.company}
+                onChange={(e) => update(exp.id, "company", e.target.value)}
+                placeholder="Google"
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Role</label>
+              <input
+                className={INPUT}
+                value={exp.role}
+                onChange={(e) => update(exp.id, "role", e.target.value)}
+                placeholder="Software Engineer"
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label className={LABEL}>Start Date</label>
+              <input
+                className={INPUT}
+                value={exp.startDate}
+                onChange={(e) => update(exp.id, "startDate", e.target.value)}
+                placeholder="Jun 2022"
+              />
+            </div>
+            <div>
+              <label className={LABEL}>End Date</label>
+              <input
+                className={INPUT}
+                value={exp.endDate}
+                onChange={(e) => update(exp.id, "endDate", e.target.value)}
+                placeholder="Present"
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Location</label>
+              <input
+                className={INPUT}
+                value={exp.location}
+                onChange={(e) => update(exp.id, "location", e.target.value)}
+                placeholder="Zurich, Switzerland"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={LABEL}>Responsibilities (one per line)</label>
+            <textarea
+              className={`${INPUT} resize-none`}
+              rows={4}
+              value={exp.responsibilities.join("\n")}
+              onChange={(e) =>
+                update(exp.id, "responsibilities", e.target.value.split("\n"))
+              }
+              placeholder={"Build and maintain large-scale systems…\nCollaborate with cross-functional teams…"}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* ── Add button ────────────────────────────────────────────── */}
+      <div className="px-4 py-3">
+        <button
+          onClick={add}
+          className="flex items-center gap-1.5 font-mono text-xs text-muted/40 hover:text-accent transition-colors"
+        >
+          <Plus size={12} />
+          Add experience
+        </button>
+      </div>
+
+    </div>
+  );
+}

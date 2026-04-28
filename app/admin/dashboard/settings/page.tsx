@@ -1,5 +1,6 @@
 import TabOrderEditor from "@/components/admin/TabOrderEditor";
 import ContentEditor from "@/components/admin/ContentEditor";
+import ExperienceEditor from "@/components/admin/ExperienceEditor";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const SWE_TABS = [
@@ -24,6 +25,11 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-surface font-semibold mb-4">Site Content</h2>
           <ContentEditor />
+        </div>
+
+        <div>
+          <h2 className="text-surface font-semibold mb-4">Work Experience</h2>
+          <ExperienceEditor />
         </div>
 
         <div>
