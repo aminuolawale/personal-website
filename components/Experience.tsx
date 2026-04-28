@@ -6,12 +6,21 @@ import { ChevronRight } from "lucide-react";
 import SectionHeading from "@/components/SectionHeading";
 import { useExperience } from "@/lib/hooks/use-experience";
 
+function formatMonthYear(value: string): string {
+  if (value === "Present" || !value) return value;
+  const [year, month] = value.split("-");
+  return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function Experience() {
   const experiences = useExperience();
   const [active, setActive] = useState<string | null>(null);
   const current = experiences.find((e) => e.id === active) ?? experiences[0];
   const period = current
-    ? `${current.startDate} – ${current.endDate}${current.location ? ` · ${current.location}` : ""}`
+    ? `${formatMonthYear(current.startDate)} – ${formatMonthYear(current.endDate)}${current.location ? ` · ${current.location}` : ""}`
     : "";
 
   if (!current) return null;

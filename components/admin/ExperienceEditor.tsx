@@ -152,20 +152,34 @@ export default function ExperienceEditor() {
             <div>
               <label className={LABEL}>Start Date</label>
               <input
+                type="month"
                 className={INPUT}
                 value={exp.startDate}
                 onChange={(e) => update(exp.id, "startDate", e.target.value)}
-                placeholder="Jun 2022"
               />
             </div>
             <div>
               <label className={LABEL}>End Date</label>
-              <input
-                className={INPUT}
-                value={exp.endDate}
-                onChange={(e) => update(exp.id, "endDate", e.target.value)}
-                placeholder="Present"
-              />
+              <div className="space-y-2">
+                <input
+                  type="month"
+                  className={INPUT}
+                  value={exp.endDate === "Present" ? "" : exp.endDate}
+                  disabled={exp.endDate === "Present"}
+                  onChange={(e) => update(exp.id, "endDate", e.target.value)}
+                />
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={exp.endDate === "Present"}
+                    onChange={(e) =>
+                      update(exp.id, "endDate", e.target.checked ? "Present" : "")
+                    }
+                    className="accent-accent"
+                  />
+                  <span className="font-mono text-xs text-muted/50">Present</span>
+                </label>
+              </div>
             </div>
             <div>
               <label className={LABEL}>Location</label>

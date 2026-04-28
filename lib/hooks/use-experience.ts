@@ -17,7 +17,7 @@ export const DEFAULT_EXPERIENCES: WorkExperience[] = [
     id: "google",
     company: "Google",
     role: "Software Engineer",
-    startDate: "Jun 2022",
+    startDate: "2022-06",
     endDate: "Present",
     location: "Zurich, Switzerland",
     responsibilities: [
@@ -31,8 +31,8 @@ export const DEFAULT_EXPERIENCES: WorkExperience[] = [
     id: "kudi",
     company: "Kudi",
     role: "Data Engineer",
-    startDate: "Aug 2021",
-    endDate: "Mar 2022",
+    startDate: "2021-08",
+    endDate: "2022-03",
     location: "Lagos, Nigeria",
     responsibilities: [
       "Designed and maintained data pipelines for financial transaction processing",
@@ -44,8 +44,8 @@ export const DEFAULT_EXPERIENCES: WorkExperience[] = [
     id: "centricity",
     company: "Centricity",
     role: "Software Engineer",
-    startDate: "Mar 2021",
-    endDate: "Jun 2021",
+    startDate: "2021-03",
+    endDate: "2021-06",
     location: "Lagos, Nigeria",
     responsibilities: [
       "Developed backend services and APIs for the core product",
@@ -56,8 +56,8 @@ export const DEFAULT_EXPERIENCES: WorkExperience[] = [
     id: "sendbox",
     company: "Sendbox",
     role: "Software Engineer",
-    startDate: "Dec 2019",
-    endDate: "Apr 2021",
+    startDate: "2019-12",
+    endDate: "2021-04",
     location: "Nigeria",
     responsibilities: [
       "Developed and maintained the firm's core infrastructure and services",
