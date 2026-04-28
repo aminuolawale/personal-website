@@ -4,16 +4,18 @@ import {m} from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useSiteContent } from "@/lib/hooks/use-site-content";
 
 export default function WritingPage() {
   const { articles, isLoading } = useArticles("writing");
+  const { writingTitle, writingDescription } = useSiteContent();
 
   return (
     <main>
         <PageHeader
           eyebrow="03. Writing"
-          title="Essays & Reflections"
-          description="On technology, the cosmos, and the occasional personal dispatch from life in Zurich."
+          title={writingTitle}
+          description={writingDescription}
         />
 
         <section className="py-10 sm:py-20 px-6 sm:px-16 max-w-6xl mx-auto">

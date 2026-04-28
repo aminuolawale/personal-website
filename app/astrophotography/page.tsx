@@ -11,6 +11,7 @@ import GalleryTab from "@/components/astrophotography/GalleryTab";
 import GearTab from "@/components/astrophotography/GearTab";
 import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useSiteContent } from "@/lib/hooks/use-site-content";
 import type { Article } from "@/lib/schema";
 
 type AstroTab = TabConfig & {
@@ -54,6 +55,7 @@ function AstrophotographyContent() {
 
   const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
   const { articles, isLoading } = useArticles("astrophotography");
+  const { astroTitle, astroDescription } = useSiteContent();
 
   const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
 
@@ -61,8 +63,8 @@ function AstrophotographyContent() {
     <main>
       <PageHeader
         eyebrow="02. Astrophotography"
-        title="Capturing the Night Sky"
-        description="Session logs from Zurich and the Swiss Alps — acquisition planning, capture notes, and post-processing walkthroughs."
+        title={astroTitle}
+        description={astroDescription}
       >
         <TabBar
           tabs={orderedTabs}

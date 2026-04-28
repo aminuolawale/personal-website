@@ -3,6 +3,7 @@
 import {m} from "framer-motion";
 import { Mail, ExternalLink } from "lucide-react";
 import { GitHubIcon, LinkedInIcon, TwitterIcon } from "./icons";
+import { useSiteContent } from "@/lib/hooks/use-site-content";
 
 const socials = [
   { icon: GitHubIcon, href: "https://github.com/aminuolawale", label: "GitHub" },
@@ -12,6 +13,8 @@ const socials = [
 ];
 
 export default function Hero() {
+  const content = useSiteContent();
+
   return (
     <section className="relative min-h-screen flex flex-col justify-center px-6 sm:px-16 max-w-6xl mx-auto">
       {/* Ambient background blobs */}
@@ -51,19 +54,18 @@ export default function Hero() {
 
       {/* Main content — no entrance animations; content must be visible on first paint */}
       <div className="pt-20 sm:pt-24 pb-12 sm:pb-16">
-        <p className="font-mono text-accent text-sm mb-5">Hi, my name is</p>
+        <p className="font-mono text-accent text-sm mb-5">{content.greeting}</p>
 
         <h1 className="text-[clamp(42px,8vw,82px)] font-bold text-surface leading-[1.05] mb-3">
-          Aminu Olawale.
+          {content.name}
         </h1>
 
         <h2 className="text-[clamp(22px,4vw,46px)] font-bold text-muted/35 leading-[1.1] mb-8">
-          Software Engineer · Astrophotographer · Writer.
+          {content.roles}
         </h2>
 
         <p className="max-w-[520px] text-muted/75 text-base sm:text-lg leading-relaxed mb-8 sm:mb-12">
-          Based in <span className="text-accent">Zurich, Switzerland</span>.
-          Building software since 2022. I also capture deep-sky objects and write.
+          {content.bio}
         </p>
 
         <div className="flex flex-wrap gap-4">

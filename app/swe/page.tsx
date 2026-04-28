@@ -11,6 +11,7 @@ import About from "@/components/About";
 import Experience from "@/components/Experience";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabOrder } from "@/lib/hooks/use-tab-order";
+import { useSiteContent } from "@/lib/hooks/use-site-content";
 import type { Article } from "@/lib/schema";
 
 type SweTab = TabConfig & {
@@ -49,6 +50,7 @@ function SweContent() {
 
   const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
   const { articles, isLoading } = useArticles("swe");
+  const { sweTitle, sweDescription } = useSiteContent();
 
   const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
 
@@ -56,8 +58,8 @@ function SweContent() {
     <main>
       <PageHeader
         eyebrow="01. Engineering"
-        title="Software Engineering"
-        description="Building software since 2019 — web applications, APIs, microservices, and the tools that tie them together."
+        title={sweTitle}
+        description={sweDescription}
       >
         <TabBar
           tabs={orderedTabs}

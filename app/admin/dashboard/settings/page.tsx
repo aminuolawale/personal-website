@@ -1,4 +1,5 @@
 import TabOrderEditor from "@/components/admin/TabOrderEditor";
+import ContentEditor from "@/components/admin/ContentEditor";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const SWE_TABS = [
@@ -19,7 +20,12 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-base text-muted">
       <AdminPageHeader title="Settings" />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+        <div>
+          <h2 className="text-surface font-semibold mb-4">Site Content</h2>
+          <ContentEditor />
+        </div>
+
         <div>
           <h2 className="text-surface font-semibold mb-4">Tab Order</h2>
           <div className="space-y-4">
