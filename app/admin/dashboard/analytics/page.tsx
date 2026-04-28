@@ -5,19 +5,7 @@ import Image from "next/image";
 import { Bookmark, MessageSquare, Globe, Clock } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import type { ReaderProfile } from "@/app/api/admin/analytics/route";
-
-function timeAgo(date: string): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
-}
+import { timeAgo } from "@/lib/utils";
 
 function Avatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
   if (avatarUrl) {

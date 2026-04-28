@@ -1,6 +1,6 @@
 "use client";
 
-interface TabConfig {
+export interface TabConfig {
   id: string;
   label: string;
 }
@@ -9,7 +9,6 @@ interface TabBarProps {
   tabs: TabConfig[];
   activeId: string;
   onChange: (id: string) => void;
-  layoutId?: string;
 }
 
 export default function TabBar({ tabs, activeId, onChange }: TabBarProps) {

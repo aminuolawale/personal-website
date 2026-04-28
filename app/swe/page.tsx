@@ -4,21 +4,20 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {m, AnimatePresence} from "framer-motion";
 import PageHeader from "@/components/PageHeader";
-import TabBar from "@/components/TabBar";
+import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
-import ProjectsTab from "@/components/swe/ProjectsTab";
-import AboutMeTab from "@/components/swe/AboutMeTab";
+import Projects from "@/components/Projects";
+import About from "@/components/About";
+import Experience from "@/components/Experience";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import type { Article } from "@/lib/schema";
 
-interface SweTabConfig {
-  id: string;
-  label: string;
+type SweTab = TabConfig & {
   renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;
-}
+};
 
-const SWE_TABS: SweTabConfig[] = [
+const SWE_TABS: SweTab[] = [
   {
     id: "articles",
     label: "Articles",
@@ -29,12 +28,12 @@ const SWE_TABS: SweTabConfig[] = [
   {
     id: "projects",
     label: "Projects",
-    renderContent: () => <ProjectsTab />,
+    renderContent: () => <Projects />,
   },
   {
     id: "about",
     label: "About Me",
-    renderContent: () => <AboutMeTab />,
+    renderContent: () => <div><About /><Experience /></div>,
   },
 ];
 
@@ -64,7 +63,6 @@ function SweContent() {
           tabs={orderedTabs}
           activeId={activeTab.id}
           onChange={setActiveTabId}
-          layoutId="swe-tab-indicator"
         />
       </PageHeader>
 

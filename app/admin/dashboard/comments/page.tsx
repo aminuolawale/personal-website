@@ -3,22 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Check, X, Trash2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import type { Comment } from "@/lib/schema";
-import type { Article } from "@/lib/schema";
+import type { Comment, Article } from "@/lib/schema";
+import { timeAgo } from "@/lib/utils";
 
 type CommentWithArticle = Comment & {
   article: Pick<Article, "id" | "title" | "slug" | "type"> | null;
 };
-
-function timeAgo(date: string | Date): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
 
 export default function AdminCommentsPage() {
   const [items, setItems] = useState<CommentWithArticle[]>([]);

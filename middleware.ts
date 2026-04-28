@@ -1,8 +1,8 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 
-// Must match the constant in lib/auth.ts — kept separate because proxy
-// runs on the Node.js runtime and cannot import lib/ without bundling concerns.
+// Must match ADMIN_EMAIL in lib/auth.ts — kept separate because middleware
+// runs on the Edge runtime and cannot import server-side lib/ modules.
 const ADMIN_EMAIL = "aminuolawalekan@gmail.com"
 
 // Protects every page under /admin/dashboard/* before rendering.

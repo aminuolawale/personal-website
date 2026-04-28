@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {m, AnimatePresence} from "framer-motion";
 import PageHeader from "@/components/PageHeader";
-import TabBar from "@/components/TabBar";
+import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
 import CalendarTab from "@/components/astrophotography/CalendarTab";
 import GalleryTab from "@/components/astrophotography/GalleryTab";
@@ -13,13 +13,11 @@ import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import { useArticles } from "@/lib/hooks/use-articles";
 import type { Article } from "@/lib/schema";
 
-interface AstroTabConfig {
-  id: string;
-  label: string;
+type AstroTab = TabConfig & {
   renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;
-}
+};
 
-const ASTRO_TABS: AstroTabConfig[] = [
+const ASTRO_TABS: AstroTab[] = [
   {
     id: "articles",
     label: "Articles",
@@ -70,7 +68,6 @@ function AstrophotographyContent() {
           tabs={orderedTabs}
           activeId={activeTab.id}
           onChange={setActiveTabId}
-          layoutId="astrophotography-tab-indicator"
         />
       </PageHeader>
 
