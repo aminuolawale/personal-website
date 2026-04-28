@@ -92,7 +92,9 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const [softwareItems, setSoftwareItems] = useState<AstroGear[]>([]);
   const [techniqueItems, setTechniqueItems] = useState<AstroGear[]>([]);
 
-  const [equipment, setEquipment] = useState(photo?.equipment ?? "");
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>(
+    splitValues(photo?.equipment ?? "")
+  );
   const [selectedSoftware, setSelectedSoftware] = useState<string[]>(
     splitValues(photo?.software ?? "")
   );
@@ -147,7 +149,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
       name: name.trim(),
       description: description.trim(),
       imageUrl: imageUrl.trim(),
-      equipment: equipment.trim(),
+      equipment: selectedEquipment.join(", "),
       capturedAt: capturedAt.trim(),
       technique: selectedTechnique.join(", "),
       software: selectedSoftware.join(", "),
@@ -283,7 +285,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
           />
         </div>
 
-        {/* Equipment — single select */}
+        {/* Equipment — multi-select */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className={LABEL.replace("mb-1.5", "")}>Equipment</label>
@@ -294,26 +296,15 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
               Manage →
             </Link>
           </div>
-          {equipmentItems.length > 0 ? (
-            <select
-              value={equipment}
-              onChange={(e) => setEquipment(e.target.value)}
-              className={INPUT + " cursor-pointer"}
-            >
-              <option value="">Select equipment…</option>
-              {equipmentItems.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="font-mono text-xs text-muted/30">
-              No equipment yet — add it in{" "}
-              <Link href="/admin/dashboard/astro-gear" className="text-accent hover:underline">
-                Gear Library
-              </Link>
-              .
+          <GearMultiSelect
+            items={equipmentItems}
+            selected={selectedEquipment}
+            onChange={setSelectedEquipment}
+            placeholder="equipment"
+          />
+          {selectedEquipment.length > 0 && (
+            <p className="font-mono text-[10px] text-muted/25 mt-2">
+              Saved as: {selectedEquipment.join(", ")}
             </p>
           )}
         </div>
