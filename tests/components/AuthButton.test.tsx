@@ -68,7 +68,6 @@ describe("AuthButton", () => {
     render(<AuthButton />);
     const trigger = screen.getByRole("button", { name: /account menu/i });
     fireEvent.click(trigger);
-    expect(screen.getByText("My Bookmarks")).toBeInTheDocument();
     expect(screen.getByText("Sign out")).toBeInTheDocument();
   });
 
@@ -82,7 +81,6 @@ describe("AuthButton", () => {
       update: vi.fn(),
     });
     render(<AuthButton inline />);
-    expect(screen.getByText("My Bookmarks")).toBeInTheDocument();
     expect(screen.getByText("Sign out")).toBeInTheDocument();
     // In inline mode there's no dropdown button
     expect(screen.queryByRole("button", { name: /account menu/i })).not.toBeInTheDocument();

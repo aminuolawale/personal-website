@@ -15,17 +15,25 @@ interface TabOrderEditorProps {
 
 export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorProps) {
   const [order, setOrder] = useState<string[]>(defaultTabs.map((t) => t.id));
+  const [labels, setLabels] = useState<Record<string, string>>(
+    Object.fromEntries(defaultTabs.map((t) => [t.id, t.label]))
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/config?key=tab-order-${section}`)
-      .then((r) => (r.ok ? r.json() : { value: null }))
-      .then(({ value }) => {
-        if (Array.isArray(value) && value.length === defaultTabs.length) {
-          const valid = defaultTabs.every((t) => value.includes(t.id));
-          if (valid) setOrder(value);
+    Promise.all([
+      fetch(`/api/config?key=tab-order-${section}`).then((r) => (r.ok ? r.json() : { value: null })),
+      fetch(`/api/config?key=tab-labels-${section}`).then((r) => (r.ok ? r.json() : { value: null })),
+    ])
+      .then(([orderRes, labelsRes]) => {
+        if (Array.isArray(orderRes.value) && orderRes.value.length === defaultTabs.length) {
+          const valid = defaultTabs.every((t) => orderRes.value.includes(t.id));
+          if (valid) setOrder(orderRes.value);
+        }
+        if (labelsRes.value && typeof labelsRes.value === "object" && !Array.isArray(labelsRes.value)) {
+          setLabels((prev) => ({ ...prev, ...labelsRes.value }));
         }
       })
       .catch(() => {});
@@ -43,16 +51,27 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
     setSaved(false);
   }
 
+  function setLabel(id: string, value: string) {
+    setLabels((prev) => ({ ...prev, [id]: value }));
+    setSaved(false);
+  }
+
   async function handleSave() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: `tab-order-${section}`, value: order }),
-      });
-      if (!res.ok) throw new Error();
+      await Promise.all([
+        fetch("/api/config", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: `tab-order-${section}`, value: order }),
+        }),
+        fetch("/api/config", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: `tab-labels-${section}`, value: labels }),
+        }),
+      ]);
       setSaved(true);
     } catch {
       setError("Failed to save");
@@ -63,6 +82,7 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
 
   function handleReset() {
     setOrder(defaultTabs.map((t) => t.id));
+    setLabels(Object.fromEntries(defaultTabs.map((t) => [t.id, t.label])));
     setSaved(false);
   }
 
@@ -70,7 +90,7 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
     <div className="border border-surface/10 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="font-mono text-xs text-muted/50 uppercase tracking-widest">
-          {section} tab order
+          {section} tabs
         </p>
         <div className="flex items-center gap-2">
           {error && <span className="font-mono text-xs text-red-400">{error}</span>}
@@ -97,10 +117,15 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
         {tabsInOrder.map((tab, i) => (
           <div
             key={tab.id}
-            className="flex items-center justify-between bg-surface/[0.03] border border-surface/10 px-3 py-2"
+            className="flex items-center gap-3 bg-surface/[0.03] border border-surface/10 px-3 py-2"
           >
-            <span className="text-surface text-sm">{tab.label}</span>
-            <div className="flex gap-1">
+            <input
+              type="text"
+              value={labels[tab.id] ?? tab.label}
+              onChange={(e) => setLabel(tab.id, e.target.value)}
+              className="flex-1 bg-transparent font-mono text-xs text-surface placeholder-muted/30 border-b border-surface/20 focus:border-accent outline-none py-0.5"
+            />
+            <div className="flex gap-1 shrink-0">
               <button
                 onClick={() => move(i, -1)}
                 disabled={i === 0}

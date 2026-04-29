@@ -8,7 +8,6 @@ import {m} from "framer-motion";
 import TagBadge from "@/components/TagBadge";
 import { ASTRO_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
-import BookmarkButton from "@/components/BookmarkButton";
 import type { Article } from "@/lib/schema";
 
 export default function AstroSessionPage() {
@@ -63,7 +62,6 @@ export default function AstroSessionPage() {
               {article.readTime && (
                 <span className="font-mono text-xs text-muted/30">{article.readTime}</span>
               )}
-              <BookmarkButton articleId={article.id} />
             </div>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Bookmark, MessageSquare, Globe, Clock } from "lucide-react";
+import { MessageSquare, Globe, Clock } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import type { ReaderProfile } from "@/app/api/admin/analytics/route";
 import { timeAgo } from "@/lib/utils";
@@ -28,7 +28,6 @@ function Avatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | 
 
 function CountryFlag({ country }: { country: string | null }) {
   if (!country) return <span className="text-muted/25">—</span>;
-  // Convert ISO 3166-1 alpha-2 code to flag emoji using regional indicator symbols
   const flag = country
     .toUpperCase()
     .split("")
@@ -64,10 +63,9 @@ export default function AnalyticsPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Summary bar */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-8">
           {[
             { label: "Readers", value: total },
-            { label: "Bookmarks", value: readers.reduce((s, r) => s + r.bookmarkCount, 0) },
             { label: "Comments", value: readers.reduce((s, r) => s + r.commentCount, 0) },
           ].map(({ label, value }) => (
             <div key={label} className="border border-surface/10 p-4 text-center">
@@ -87,7 +85,6 @@ export default function AnalyticsPage() {
           <div className="divide-y divide-surface/[0.06]">
             {readers.map((reader) => (
               <div key={reader.email}>
-                {/* Reader row */}
                 <button
                   onClick={() => setExpanded(expanded === reader.email ? null : reader.email)}
                   className="w-full py-4 flex items-center gap-4 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors text-left"
@@ -117,10 +114,6 @@ export default function AnalyticsPage() {
 
                   <div className="flex items-center gap-4 shrink-0">
                     <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted/50">
-                      <Bookmark size={11} />
-                      {reader.bookmarkCount}
-                    </span>
-                    <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted/50">
                       <MessageSquare size={11} />
                       {reader.commentCount}
                     </span>
@@ -130,56 +123,33 @@ export default function AnalyticsPage() {
                   </div>
                 </button>
 
-                {/* Expanded detail */}
-                {expanded === reader.email && (
-                  <div className="pb-6 pl-13 ml-[52px] border-l border-surface/[0.06] pl-4 space-y-6">
-                    {reader.bookmarks.length > 0 && (
-                      <div>
-                        <p className="font-mono text-[10px] text-muted/30 uppercase tracking-widest mb-3">
-                          Bookmarks ({reader.bookmarkCount})
-                        </p>
-                        <div className="space-y-2">
-                          {reader.bookmarks.map((b) => (
-                            <div key={b.id} className="flex items-center justify-between gap-4">
-                              <span className="text-surface/75 text-xs truncate">
-                                {b.article?.title ?? `Article #${b.articleId}`}
+                {expanded === reader.email && reader.comments.length > 0 && (
+                  <div className="pb-6 ml-[52px] border-l border-surface/[0.06] pl-4 space-y-6">
+                    <div>
+                      <p className="font-mono text-[10px] text-muted/30 uppercase tracking-widest mb-3">
+                        Comments ({reader.commentCount})
+                      </p>
+                      <div className="space-y-3">
+                        {reader.comments.map((c) => (
+                          <div key={c.id} className="space-y-0.5">
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="font-mono text-[10px] text-muted/40 truncate">
+                                {c.article?.title ?? `Article #${c.articleId}`}
+                                {!c.approved && (
+                                  <span className="ml-2 text-accent/60">(pending)</span>
+                                )}
                               </span>
                               <span className="font-mono text-[10px] text-muted/30 shrink-0">
-                                {timeAgo(b.createdAt)}
+                                {timeAgo(c.createdAt)}
                               </span>
                             </div>
-                          ))}
-                        </div>
+                            <p className="text-surface/60 text-xs leading-relaxed line-clamp-2">
+                              {c.content}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    )}
-
-                    {reader.comments.length > 0 && (
-                      <div>
-                        <p className="font-mono text-[10px] text-muted/30 uppercase tracking-widest mb-3">
-                          Comments ({reader.commentCount})
-                        </p>
-                        <div className="space-y-3">
-                          {reader.comments.map((c) => (
-                            <div key={c.id} className="space-y-0.5">
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="font-mono text-[10px] text-muted/40 truncate">
-                                  {c.article?.title ?? `Article #${c.articleId}`}
-                                  {!c.approved && (
-                                    <span className="ml-2 text-accent/60">(pending)</span>
-                                  )}
-                                </span>
-                                <span className="font-mono text-[10px] text-muted/30 shrink-0">
-                                  {timeAgo(c.createdAt)}
-                                </span>
-                              </div>
-                              <p className="text-surface/60 text-xs leading-relaxed line-clamp-2">
-                                {c.content}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>

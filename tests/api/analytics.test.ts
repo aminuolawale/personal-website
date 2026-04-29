@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({
   getSession: vi.fn().mockResolvedValue(false),
@@ -16,13 +15,6 @@ import { getDb } from "@/lib/db";
 
 const now = new Date();
 
-const mockBookmark = {
-  id: 1,
-  readerEmail: "alice@test.com",
-  articleId: 10,
-  country: "US",
-  createdAt: now,
-};
 const mockComment = {
   id: 1,
   readerEmail: "bob@test.com",
@@ -34,11 +26,7 @@ const mockComment = {
   country: "GB",
   createdAt: now,
 };
-const mockArticle = { id: 10, title: "Article A", slug: "article-a", type: "writing" };
-
-function makeRequest(url: string): NextRequest {
-  return new NextRequest(new URL(url, "http://localhost:3000"));
-}
+const mockArticle = { id: 20, title: "Article A", slug: "article-a", type: "writing" };
 
 describe("GET /api/admin/analytics", () => {
   it("returns 401 when not admin", async () => {
@@ -47,11 +35,10 @@ describe("GET /api/admin/analytics", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns reader profiles aggregated from bookmarks and comments", async () => {
+  it("returns reader profiles aggregated from comments", async () => {
     vi.mocked(getSession).mockResolvedValue(true);
 
     // The route calls Promise.all([
-    //   db.select().from(bookmarks).orderBy(...),   → array of bookmarks
     //   db.select().from(comments).orderBy(...),    → array of comments
     //   db.select({...}).from(articles),            → array of articles (no orderBy)
     // ])
@@ -60,9 +47,8 @@ describe("GET /api/admin/analytics", () => {
       select: () => ({
         from: () => {
           fromCallCount++;
-          if (fromCallCount === 1) return { orderBy: async () => [mockBookmark] };
-          if (fromCallCount === 2) return { orderBy: async () => [mockComment] };
-          return Promise.resolve([mockArticle]); // articles query has no orderBy
+          if (fromCallCount === 1) return { orderBy: async () => [mockComment] };
+          return Promise.resolve([mockArticle]);
         },
       }),
     } as any);
@@ -83,8 +69,7 @@ describe("GET /api/admin/analytics", () => {
         from: () => {
           fromCallCount++;
           if (fromCallCount === 1) return { orderBy: async () => [] };
-          if (fromCallCount === 2) return { orderBy: async () => [] };
-          return Promise.resolve([]); // articles
+          return Promise.resolve([]);
         },
       }),
     } as any);

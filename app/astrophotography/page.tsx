@@ -11,6 +11,7 @@ import GalleryTab from "@/components/astrophotography/GalleryTab";
 import GearTab from "@/components/astrophotography/GearTab";
 import NightSkyMap from "@/components/astrophotography/NightSkyMap";
 import { useTabOrder } from "@/lib/hooks/use-tab-order";
+import { useTabLabels } from "@/lib/hooks/use-tab-labels";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import type { Article } from "@/lib/schema";
@@ -57,7 +58,11 @@ function AstrophotographyContent() {
   const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
 
   const tabOrder = useTabOrder("astrophotography", ASTRO_TABS.map((t) => t.id));
-  const orderedTabs = tabOrder.map((id) => ASTRO_TABS.find((t) => t.id === id)!).filter(Boolean);
+  const tabLabels = useTabLabels("astrophotography", ASTRO_TABS);
+  const orderedTabs = tabOrder
+    .map((id) => ASTRO_TABS.find((t) => t.id === id)!)
+    .filter(Boolean)
+    .map((t) => ({ ...t, label: tabLabels[t.id] ?? t.label }));
 
   const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
   const { articles, isLoading } = useArticles("astrophotography");

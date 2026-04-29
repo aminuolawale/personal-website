@@ -104,20 +104,6 @@ export const siteConfig = pgTable("site_config", {
 
 export type SiteConfig = typeof siteConfig.$inferSelect;
 
-// Reader-saved articles. One row per (readerEmail, articleId) pair.
-// The unique index prevents duplicate bookmarks at the database level.
-export const bookmarks = pgTable("bookmarks", {
-  id: serial("id").primaryKey(),
-  readerEmail: text("reader_email").notNull(),
-  articleId: integer("article_id").notNull(),
-  country: text("country"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => ({
-  uniq: uniqueIndex("bookmarks_reader_article_idx").on(t.readerEmail, t.articleId),
-}));
-
-export type Bookmark = typeof bookmarks.$inferSelect;
-
 // Reader comments on articles. New comments are unapproved by default — the admin
 // must approve them (from /admin/dashboard/comments) before they appear publicly.
 export const comments = pgTable("comments", {

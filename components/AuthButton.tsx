@@ -3,8 +3,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { LogOut, Bookmark, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
 
 interface Props {
   inline?: boolean;
@@ -61,13 +60,6 @@ export default function AuthButton({ inline = false }: Props) {
             <p className="font-mono text-[10px] text-muted/40 truncate">{session.user?.email}</p>
           </div>
         </div>
-        <Link
-          href="/bookmarks"
-          className="flex items-center gap-2 font-mono text-sm text-surface hover:text-accent transition-colors"
-        >
-          <Bookmark size={13} />
-          My Bookmarks
-        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="flex items-center gap-2 font-mono text-sm text-surface hover:text-accent transition-colors"
@@ -109,14 +101,6 @@ export default function AuthButton({ inline = false }: Props) {
             <p className="text-surface text-xs font-semibold truncate">{session.user?.name}</p>
             <p className="font-mono text-[10px] text-muted/40 truncate">{session.user?.email}</p>
           </div>
-          <Link
-            href="/bookmarks"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 font-mono text-xs text-muted/60 hover:text-accent hover:bg-surface/5 transition-colors"
-          >
-            <Bookmark size={12} />
-            My Bookmarks
-          </Link>
           <button
             onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
             className="flex items-center gap-2 w-full px-3 py-2 font-mono text-xs text-muted/60 hover:text-accent hover:bg-surface/5 transition-colors"
