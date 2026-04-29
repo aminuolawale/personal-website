@@ -60,7 +60,7 @@ function compute(date: Date, lat: number, lon: number): Computed {
     return { alt, az };
   }
 
-  const stars = NAMED_STARS.flatMap((s) => {
+  const stars: Computed["stars"] = NAMED_STARS.flatMap((s) => {
     const p = skyPos(s.ra, s.dec);
     if (!p) return [];
     return [{ ...p, r: starRadius(s.mag), color: starColor(s.sp, 1), name: s.name, mag: s.mag }];
