@@ -4,8 +4,11 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { lst, raDecToAltAz, planetPosition, moonPosition, moonPhase } from "@/lib/sky-math";
 import { NAMED_STARS, BG_STARS, CONSTELLATIONS, DSO_OBJECTS, PLANET_STYLES } from "@/lib/sky-data";
 
-const DEFAULT_LAT = 47.37;
-const DEFAULT_LON = 8.54;
+const LOCATIONS = [
+  { name: "Zurich, Switzerland", lat: 47.37, lon: 8.54 },
+  { name: "Lagos, Nigeria",      lat: 6.52,  lon: 3.38 },
+] as const;
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const DEG = Math.PI / 180;
@@ -110,6 +113,7 @@ function draw(
   zoom: number,
   panX: number,
   panY: number,
+  cityName: string,
 ) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr;
@@ -321,7 +325,7 @@ function draw(
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
   const dateLabel = comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    + " · midnight · Zurich";
+    + ` · midnight · ${cityName}`;
   ctx.fillText(dateLabel, cx + R - 4, cy + R - 4);
 
   ctx.restore();
@@ -354,6 +358,7 @@ export default function NightSkyMap() {
   const [computed, setComputed] = useState<Computed | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [locationIdx, setLocationIdx] = useState(0);
   const [error, setError] = useState("");
 
   // Update ref + state together so buttons and canvas stay in sync.
@@ -380,22 +385,27 @@ export default function NightSkyMap() {
     return { W, H, cx, cy, R };
   }
 
-  // Compute sky positions once on mount
+  // Recompute sky positions when location changes; reset zoom/pan
   useEffect(() => {
+    const { lat, lon } = LOCATIONS[locationIdx];
     try {
-      setComputed(compute(midnightTonight(), DEFAULT_LAT, DEFAULT_LON));
+      setComputed(compute(midnightTonight(), lat, lon));
     } catch (e) {
       setError(String(e));
     }
-  }, []);
+    zoomRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
+    setZoomLevel(1);
+  }, [locationIdx]);
 
   // Animation loop — reads zoom/pan from refs each frame
   const animate = useCallback((tick: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
-    draw(canvas, computed, tick, zoomRef.current, panRef.current.x, panRef.current.y);
+    const cityName = LOCATIONS[locationIdx].name.split(",")[0];
+    draw(canvas, computed, tick, zoomRef.current, panRef.current.x, panRef.current.y, cityName);
     rafRef.current = requestAnimationFrame(animate);
-  }, [computed]);
+  }, [computed, locationIdx]);
 
   useEffect(() => {
     if (!computed) return;
@@ -515,6 +525,23 @@ export default function NightSkyMap() {
             <p className="font-mono text-xs text-muted/30">Computing sky…</p>
           </div>
         )}
+      </div>
+
+      {/* Location toggle */}
+      <div className="flex items-center gap-1 font-mono text-[10px] rounded border border-muted/20 overflow-hidden">
+        {LOCATIONS.map((loc, i) => (
+          <button
+            key={loc.name}
+            onClick={() => setLocationIdx(i)}
+            className={`px-3 py-1.5 transition-colors ${
+              locationIdx === i
+                ? "bg-accent/10 text-accent"
+                : "text-muted/40 hover:text-muted/70"
+            }`}
+          >
+            {loc.name}
+          </button>
+        ))}
       </div>
 
       {/* Zoom controls */}
