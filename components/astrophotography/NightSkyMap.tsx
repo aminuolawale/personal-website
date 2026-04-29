@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { DEG, compute, midnightTonight, type Computed } from "@/lib/sky-engine";
+import { DEG_TO_RAD, compute, midnightTonight, type Computed } from "@/lib/sky-engine";
 import { draw, clampPan } from "@/lib/sky-draw";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -93,9 +93,9 @@ export default function NightSkyMap() {
     const effectiveZoom = zoomRef.current;
 
     const baseR = (1 - con.centroid.alt / 90) * R;
-    const a = con.centroid.az * DEG;
-    const targetPanX = -(baseR * Math.sin(a)) * effectiveZoom;
-    const targetPanY =  (baseR * Math.cos(a)) * effectiveZoom;
+    const azimuthRad = con.centroid.az * DEG_TO_RAD;
+    const targetPanX = -(baseR * Math.sin(azimuthRad)) * effectiveZoom;
+    const targetPanY =  (baseR * Math.cos(azimuthRad)) * effectiveZoom;
     const clamped = clampPan(effectiveZoom, targetPanX, targetPanY, R);
 
     panTransitionRef.current = {

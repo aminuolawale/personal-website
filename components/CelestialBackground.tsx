@@ -3,77 +3,77 @@
 import { useEffect, useRef } from "react";
 
 import { CelestialData, CELESTIAL_CATALOG } from "./celestial/catalog";
-import { mulberry32 } from "./celestial/utils";
+import { createSeededRandom } from "./celestial/utils";
 import { drawNebula } from "./celestial/nebula";
 import { drawStarField } from "./celestial/starfield";
 import { useTheme } from "@/components/ThemeProvider";
 
-interface LayerCfg {
+interface ParallaxLayerConfig {
   speed: number;
   blur: number;
   scale: number;
-  lw: number;
+  lineWidth: number;
   objects: number;
   stars: number;
   seed: number;
 }
 
-const LAYERS: LayerCfg[] = [
-  { speed: 0.05, blur: 4.5, scale: 0.5,  lw: 0.7, objects: 0, stars: 100, seed: 1337 },
-  { speed: 0.15, blur: 1.8, scale: 0.72, lw: 1.0, objects: 0, stars: 50,  seed: 2674 },
-  { speed: 0.27, blur: 0,   scale: 1.0,  lw: 1.3, objects: 1, stars: 22,  seed: 4001 },
+const LAYERS: ParallaxLayerConfig[] = [
+  { speed: 0.05, blur: 4.5, scale: 0.5,  lineWidth: 0.7, objects: 0, stars: 100, seed: 1337 },
+  { speed: 0.15, blur: 1.8, scale: 0.72, lineWidth: 1.0, objects: 0, stars: 50,  seed: 2674 },
+  { speed: 0.27, blur: 0,   scale: 1.0,  lineWidth: 1.3, objects: 1, stars: 22,  seed: 4001 },
 ];
 
-const MOBILE_CFG: LayerCfg = {
-  speed: 0, blur: 0, scale: 0.75, lw: 1.0, objects: 1, stars: 100, seed: 7777,
+const MOBILE_LAYER_CONFIG: ParallaxLayerConfig = {
+  speed: 0, blur: 0, scale: 0.75, lineWidth: 1.0, objects: 1, stars: 100, seed: 7777,
 };
 
 function drawLayer(
   canvas: HTMLCanvasElement,
-  layer: LayerCfg,
-  VW: number,
-  H: number,
-  VH: number,
+  layer: ParallaxLayerConfig,
+  viewportWidth: number,
+  layerCanvasHeight: number,
+  viewportHeight: number,
   maxScroll: number,
-  dpr: number,
+  devicePixelRatio: number,
   showObjects: boolean,
   shuffledCatalog: CelestialData[],
   allObjects: CelestialData[],
   isDark: boolean,
 ) {
-  canvas.width  = Math.round(VW * dpr);
-  canvas.height = Math.round(H  * dpr);
-  canvas.style.width  = `${VW}px`;
-  canvas.style.height = `${H}px`;
+  canvas.width  = Math.round(viewportWidth    * devicePixelRatio);
+  canvas.height = Math.round(layerCanvasHeight * devicePixelRatio);
+  canvas.style.width  = `${viewportWidth}px`;
+  canvas.style.height = `${layerCanvasHeight}px`;
   canvas.style.top    = "0px";
   canvas.style.left   = "0";
 
   const ctx = canvas.getContext("2d")!;
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, VW, H);
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.clearRect(0, 0, viewportWidth, layerCanvasHeight);
 
-  const rand = mulberry32(layer.seed);
+  const rand = createSeededRandom(layer.seed);
 
   // Blur baked into pixels at draw time — cheaper than CSS filter during scroll.
   if (layer.blur > 0) ctx.filter = `blur(${layer.blur}px)`;
 
-  drawStarField(ctx, VW, H, layer.stars, rand, isDark);
+  drawStarField(ctx, viewportWidth, layerCanvasHeight, layer.stars, rand, isDark);
 
   if (showObjects) {
-    const min_cy  = VH * 0.2;
-    const max_cy  = VH * 0.9 + maxScroll * layer.speed;
-    const binSize = (max_cy - min_cy) / Math.max(layer.objects, 1);
+    const minObjectCenterY = viewportHeight * 0.2;
+    const maxObjectCenterY = viewportHeight * 0.9 + maxScroll * layer.speed;
+    const objectBinHeight  = (maxObjectCenterY - minObjectCenterY) / Math.max(layer.objects, 1);
 
     for (let i = 0; i < layer.objects; i++) {
-      const cy = min_cy + i * binSize + (rand() * 0.6 + 0.2) * binSize;
-      const cx = (i % 2 === 0)
-        ? VW / 2 + rand() * (VW / 2 - 100)
-        : 50      + rand() * (VW / 2 - 100);
+      const objectCenterY = minObjectCenterY + i * objectBinHeight + (rand() * 0.6 + 0.2) * objectBinHeight;
+      const objectCenterX = (i % 2 === 0)
+        ? viewportWidth / 2 + rand() * (viewportWidth / 2 - 100)
+        : 50                + rand() * (viewportWidth / 2 - 100);
 
-      const data   = shuffledCatalog.pop() || allObjects[0];
+      const celestialObject = shuffledCatalog.pop() || allObjects[0];
       const radius = (50 + rand() * 45) * layer.scale;
 
-      drawNebula(ctx, cx, cy, radius, layer.lw, rand, data.traits, isDark);
+      drawNebula(ctx, objectCenterX, objectCenterY, radius, layer.lineWidth, rand, celestialObject.traits, isDark);
     }
   }
 
@@ -93,67 +93,67 @@ export default function CelestialBackground({
 
   useEffect(() => {
     const isMobile = window.matchMedia("(hover: none)").matches;
-    const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    const devicePixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 
-    const VW = window.innerWidth;
-    const VH = window.innerHeight;
+    const viewportWidth  = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
     const allObjects: CelestialData[] = CELESTIAL_CATALOG.nebula.filter(n => n.id === "ngc3372");
     const shuffledCatalog = [...allObjects];
 
     if (isMobile) {
-      [0, 1, 2].forEach(li => {
-        const c = refs.current[li];
-        if (c) { c.width = 0; c.height = 0; }
+      [0, 1, 2].forEach(layerIndex => {
+        const canvas = refs.current[layerIndex];
+        if (canvas) { canvas.width = 0; canvas.height = 0; }
       });
 
-      const canvas = refs.current[3];
-      if (!canvas) return;
+      const mobileCanvas = refs.current[3];
+      if (!mobileCanvas) return;
 
       setTimeout(() => {
-        drawLayer(canvas, MOBILE_CFG, VW, VH, VH, 0, dpr, true, shuffledCatalog, allObjects, isDark);
+        drawLayer(mobileCanvas, MOBILE_LAYER_CONFIG, viewportWidth, viewportHeight, viewportHeight, 0, devicePixelRatio, true, shuffledCatalog, allObjects, isDark);
       }, 0);
 
       return;
     }
 
     // ── Desktop ───────────────────────────────────────────────────────────
-    const maxScroll = Math.max(VH, document.documentElement.scrollHeight - VH);
+    const maxScroll = Math.max(viewportHeight, document.documentElement.scrollHeight - viewportHeight);
 
-    const mc = refs.current[3];
-    if (mc) { mc.width = 0; mc.height = 0; }
+    const mobileCanvas = refs.current[3];
+    if (mobileCanvas) { mobileCanvas.width = 0; mobileCanvas.height = 0; }
 
-    let rafId = 0;
+    let scrollAnimFrameId = 0;
     const onScroll = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const sy = window.scrollY;
-        LAYERS.forEach((layer, li) => {
-          const el = refs.current[li];
-          if (el) el.style.transform = `translate3d(0,${-(sy * layer.speed).toFixed(2)}px,0)`;
+      cancelAnimationFrame(scrollAnimFrameId);
+      scrollAnimFrameId = requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        LAYERS.forEach((layer, layerIndex) => {
+          const el = refs.current[layerIndex];
+          if (el) el.style.transform = `translate3d(0,${-(scrollY * layer.speed).toFixed(2)}px,0)`;
         });
       });
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    const drawNext = (li: number) => {
-      if (li >= LAYERS.length) return;
+    const drawNextLayer = (layerIndex: number) => {
+      if (layerIndex >= LAYERS.length) return;
       setTimeout(() => {
-        const canvas = refs.current[li];
+        const canvas = refs.current[layerIndex];
         if (canvas) {
-          const layer = LAYERS[li];
-          const layerH = Math.round(VH + maxScroll * layer.speed + VH * 0.2);
-          drawLayer(canvas, layer, VW, layerH, VH, maxScroll, dpr, true, shuffledCatalog, allObjects, isDark);
+          const layer = LAYERS[layerIndex];
+          const layerCanvasHeight = Math.round(viewportHeight + maxScroll * layer.speed + viewportHeight * 0.2);
+          drawLayer(canvas, layer, viewportWidth, layerCanvasHeight, viewportHeight, maxScroll, devicePixelRatio, true, shuffledCatalog, allObjects, isDark);
         }
-        drawNext(li + 1);
+        drawNextLayer(layerIndex + 1);
       }, 0);
     };
-    drawNext(0);
+    drawNextLayer(0);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(scrollAnimFrameId);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDark]);
@@ -165,15 +165,15 @@ export default function CelestialBackground({
       className="fixed inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: -1, opacity }}
     >
-      {LAYERS.map((_, li) => (
+      {LAYERS.map((_, layerIndex) => (
         <canvas
-          key={li}
-          ref={(el) => { refs.current[li] = el; }}
+          key={layerIndex}
+          ref={(el) => { refs.current[layerIndex] = el; }}
           className="absolute"
           style={{
             willChange: "transform",
             transform: "translate3d(0,0,0)",
-            ...(li === 2 ? { opacity: showObjects ? 1 : 0, transition: "opacity 0.4s ease" } : {}),
+            ...(layerIndex === 2 ? { opacity: showObjects ? 1 : 0, transition: "opacity 0.4s ease" } : {}),
           }}
         />
       ))}

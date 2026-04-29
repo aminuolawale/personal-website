@@ -2,39 +2,39 @@ import { colorPalette, glow } from "./utils";
 
 export function drawStarField(
   ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
+  canvasWidth: number,
+  canvasHeight: number,
   count: number,
   rand: () => number,
   isDark: boolean = true
 ) {
   for (let i = 0; i < count; i++) {
-    const x = rand() * w;
-    const y = rand() * h;
-    const b = rand();
+    const x = rand() * canvasWidth;
+    const y = rand() * canvasHeight;
+    const brightnessTier = rand();
 
-    if (b > 0.96) {
-      const r = 1.2 + rand() * 0.8;
+    if (brightnessTier > 0.96) {
+      const starRadius = 1.2 + rand() * 0.8;
       const spikeLen = 5 + rand() * 6;
-      const starColor = isDark ? colorPalette.cream : colorPalette.navy;
+      const starColor  = isDark ? colorPalette.cream : colorPalette.navy;
       const spikeColor = isDark ? colorPalette.creamAlpha(0.6) : colorPalette.navyAlpha(0.5);
       glow(ctx, 7, starColor, () => {
         ctx.fillStyle = starColor;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.arc(x, y, starRadius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.strokeStyle = spikeColor;
         ctx.lineWidth = 0.7;
-        for (let d = 0; d < 4; d++) {
-          const dx = Math.cos((d * Math.PI) / 2);
-          const dy = Math.sin((d * Math.PI) / 2);
+        for (let spikeIndex = 0; spikeIndex < 4; spikeIndex++) {
+          const spikeDirectionX = Math.cos((spikeIndex * Math.PI) / 2);
+          const spikeDirectionY = Math.sin((spikeIndex * Math.PI) / 2);
           ctx.beginPath();
-          ctx.moveTo(x + dx * r, y + dy * r);
-          ctx.lineTo(x + dx * (r + spikeLen), y + dy * (r + spikeLen));
+          ctx.moveTo(x + spikeDirectionX * starRadius, y + spikeDirectionY * starRadius);
+          ctx.lineTo(x + spikeDirectionX * (starRadius + spikeLen), y + spikeDirectionY * (starRadius + spikeLen));
           ctx.stroke();
         }
       });
-    } else if (b > 0.82) {
+    } else if (brightnessTier > 0.82) {
       ctx.fillStyle = isDark
         ? colorPalette.creamAlpha(0.55 + rand() * 0.3)
         : colorPalette.navyAlpha(0.5 + rand() * 0.3);

@@ -1,7 +1,7 @@
-import { lst, raDecToAltAz, planetPosition, moonPosition, moonPhase } from "@/lib/sky-math";
+import { localSiderealTimeDeg, raDecToAltAz, planetPosition, moonPosition, moonPhase } from "@/lib/sky-math";
 import { NAMED_STARS, BG_STARS, CONSTELLATIONS, DSO_OBJECTS, PLANET_STYLES } from "@/lib/sky-data";
 
-export const DEG = Math.PI / 180;
+export const DEG_TO_RAD = Math.PI / 180;
 
 export interface SkyPos { alt: number; az: number }
 
@@ -29,64 +29,67 @@ export function midnightTonight(): Date {
 }
 
 const PLANET_NAMES = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"] as const;
-function starRadius(mag: number) { return Math.max(0.4, 3.2 - mag * 0.65); }
-function circularMeanAz(azimuths: number[]): number {
-  const s = azimuths.reduce((a, v) => a + Math.sin(v * DEG), 0);
-  const c = azimuths.reduce((a, v) => a + Math.cos(v * DEG), 0);
-  return ((Math.atan2(s, c) / DEG) + 360) % 360;
+function starDisplayRadius(mag: number) { return Math.max(0.4, 3.2 - mag * 0.65); }
+function circularMeanAzimuth(azimuths: number[]): number {
+  const sinSum = azimuths.reduce((acc, az) => acc + Math.sin(az * DEG_TO_RAD), 0);
+  const cosSum = azimuths.reduce((acc, az) => acc + Math.cos(az * DEG_TO_RAD), 0);
+  return ((Math.atan2(sinSum, cosSum) / DEG_TO_RAD) + 360) % 360;
 }
 
 export function compute(date: Date, lat: number, lon: number): Computed {
-  const lstDeg = lst(date, lon);
-  function skyPos(ra: number, dec: number): SkyPos | null {
+  const lstDeg = localSiderealTimeDeg(date, lon);
+  function computeSkyPosition(ra: number, dec: number): SkyPos | null {
     const { alt, az } = raDecToAltAz(ra, dec, lat, lstDeg);
     return alt < 0 ? null : { alt, az };
   }
 
-  const stars: Computed["stars"] = NAMED_STARS.flatMap((s) => {
-    const p = skyPos(s.ra, s.dec);
-    return p ? [{ ...p, r: starRadius(s.mag), sp: s.sp, name: s.name, mag: s.mag }] : [];
+  const stars: Computed["stars"] = NAMED_STARS.flatMap((star) => {
+    const pos = computeSkyPosition(star.ra, star.dec);
+    return pos ? [{ ...pos, r: starDisplayRadius(star.mag), sp: star.sp, name: star.name, mag: star.mag }] : [];
   });
   for (const [ra, dec, mag] of BG_STARS) {
-    const p = skyPos(ra, dec);
-    if (p) stars.push({ ...p, r: starRadius(mag), sp: "A", mag });
+    const pos = computeSkyPosition(ra, dec);
+    if (pos) stars.push({ ...pos, r: starDisplayRadius(mag), sp: "A", mag });
   }
 
-  const constellations: ConstellationInfo[] = CONSTELLATIONS.map((con) => {
-    const segs: [SkyPos, SkyPos][] = [];
-    const pts: SkyPos[] = [];
-    for (const poly of con.lines) {
+  const constellations: ConstellationInfo[] = CONSTELLATIONS.map((constellation) => {
+    const segments: [SkyPos, SkyPos][] = [];
+    const visiblePoints: SkyPos[] = [];
+    for (const poly of constellation.lines) {
       for (let i = 0; i < poly.length - 1; i++) {
-        const a = skyPos(poly[i][0], poly[i][1]);
-        const b = skyPos(poly[i + 1][0], poly[i + 1][1]);
-        if (a && b) { segs.push([a, b]); pts.push(a, b); }
+        const startPos = computeSkyPosition(poly[i][0],     poly[i][1]);
+        const endPos   = computeSkyPosition(poly[i + 1][0], poly[i + 1][1]);
+        if (startPos && endPos) { segments.push([startPos, endPos]); visiblePoints.push(startPos, endPos); }
       }
     }
-    const centroid: SkyPos | null = pts.length
-      ? { alt: pts.reduce((s, p) => s + p.alt, 0) / pts.length, az: circularMeanAz(pts.map((p) => p.az)) }
+    const centroid: SkyPos | null = visiblePoints.length
+      ? {
+          alt: visiblePoints.reduce((sum, pos) => sum + pos.alt, 0) / visiblePoints.length,
+          az:  circularMeanAzimuth(visiblePoints.map((pos) => pos.az)),
+        }
       : null;
-    return { name: con.name, visible: segs.length > 0, segs, centroid };
+    return { name: constellation.name, visible: segments.length > 0, segs: segments, centroid };
   });
 
-  const dso = DSO_OBJECTS.flatMap((o) => {
-    const p = skyPos(o.ra, o.dec);
-    return p ? [{ ...p, name: o.name, type: o.type, mag: o.mag }] : [];
+  const dso = DSO_OBJECTS.flatMap((object) => {
+    const pos = computeSkyPosition(object.ra, object.dec);
+    return pos ? [{ ...pos, name: object.name, type: object.type, mag: object.mag }] : [];
   });
 
   const planets = PLANET_NAMES.flatMap((name) => {
     try {
       const { ra, dec } = planetPosition(name, date);
-      const p = skyPos(ra, dec);
-      if (!p) return [];
-      return [{ ...p, name, radius: PLANET_STYLES[name].radius }];
+      const pos = computeSkyPosition(ra, dec);
+      if (!pos) return [];
+      return [{ ...pos, name, radius: PLANET_STYLES[name].radius }];
     } catch { return []; }
   });
 
-  const { ra: mRa, dec: mDec } = moonPosition(date);
-  const mp = skyPos(mRa, mDec);
+  const { ra: moonRa, dec: moonDec } = moonPosition(date);
+  const moonPos = computeSkyPosition(moonRa, moonDec);
   return {
     stars, constellations, dso, planets,
-    moon: mp ? { ...mp, phase: moonPhase(date) } : null,
+    moon: moonPos ? { ...moonPos, phase: moonPhase(date) } : null,
     date,
   };
 }
