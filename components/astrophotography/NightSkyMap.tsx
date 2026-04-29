@@ -249,6 +249,7 @@ function draw(
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr, H = canvas.height / dpr;
   const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 24;
+  if (R <= 0) return;
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save(); ctx.scale(dpr, dpr);
@@ -381,6 +382,17 @@ export default function NightSkyMap() {
   const animate = useCallback((tick: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
+
+    // The canvas HTML defaults (300×150) combined with mobile DPR (2–3) gives
+    // R ≈ 0, rendering nothing. If the buffer is still non-square (i.e. the
+    // ResizeObserver hasn't fired yet), size it from the layout rect right now.
+    if (canvas.width !== canvas.height) {
+      const { width } = canvas.getBoundingClientRect();
+      if (width < 1) { rafRef.current = requestAnimationFrame(animate); return; }
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = Math.round(width) * dpr;
+      canvas.height = Math.round(width) * dpr;
+    }
 
     let frameComp = computed;
     const tr = transitionRef.current;
@@ -547,7 +559,7 @@ export default function NightSkyMap() {
   // ── Fullscreen overlay ─────────────────────────────────────────────────
   if (isFullscreen) {
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-y-auto ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
+      <div className={`fixed inset-0 z-50 flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-hidden ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
         <div className="w-full flex items-center justify-between shrink-0">
           <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
             {nightLabel} &nbsp;·&nbsp; midnight
@@ -562,7 +574,7 @@ export default function NightSkyMap() {
           <canvas
             ref={canvasRef}
             className="block rounded-full"
-            style={{ aspectRatio: "1", height: "100%", maxWidth: "100%", width: "auto", cursor: isDragging ? "grabbing" : "grab" }}
+            style={{ aspectRatio: "1", maxHeight: "100%", maxWidth: "100%", width: "auto", height: "auto", cursor: isDragging ? "grabbing" : "grab" }}
             {...canvasEvents}
           />
           {!computed && (
