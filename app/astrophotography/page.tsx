@@ -72,6 +72,12 @@ function AstrophotographyContent() {
         title={astroTitle}
         description={astroDescription}
       >
+        <button
+          onClick={() => setActiveTabId("sky")}
+          className="mb-8 font-mono text-sm text-accent hover:text-accent/70 transition-colors"
+        >
+          See the night sky →
+        </button>
         <TabBar
           tabs={orderedTabs}
           activeId={activeTab.id}

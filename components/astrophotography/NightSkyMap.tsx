@@ -12,7 +12,7 @@ const LOCATIONS = [
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const DEG = Math.PI / 180;
-const TRANSITION_DURATION = 1400; // ms
+const TRANSITION_DURATION = 1400;
 
 function midnightTonight(): Date {
   const d = new Date();
@@ -22,23 +22,15 @@ function midnightTonight(): Date {
 }
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
+function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
 
-function easeInOut(t: number): number {
-  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-}
-
-function starRadius(mag: number): number {
-  return Math.max(0.4, 3.2 - mag * 0.65);
-}
+function starRadius(mag: number) { return Math.max(0.4, 3.2 - mag * 0.65); }
 
 function starColor(sp: string, alpha: number): string {
   const map: Record<string, string> = {
-    O: `rgba(155,180,255,${alpha})`,
-    B: `rgba(190,210,255,${alpha})`,
-    A: `rgba(255,255,255,${alpha})`,
-    F: `rgba(255,255,220,${alpha})`,
-    G: `rgba(255,240,160,${alpha})`,
-    K: `rgba(255,200,110,${alpha})`,
+    O: `rgba(155,180,255,${alpha})`, B: `rgba(190,210,255,${alpha})`,
+    A: `rgba(255,255,255,${alpha})`, F: `rgba(255,255,220,${alpha})`,
+    G: `rgba(255,240,160,${alpha})`, K: `rgba(255,200,110,${alpha})`,
     M: `rgba(255,150, 90,${alpha})`,
   };
   return map[sp] ?? `rgba(255,255,255,${alpha})`;
@@ -59,23 +51,18 @@ interface Computed {
 
 function compute(date: Date, lat: number, lon: number): Computed {
   const lstDeg = lst(date, lon);
-
   function skyPos(ra: number, dec: number): SkyPos | null {
     const { alt, az } = raDecToAltAz(ra, dec, lat, lstDeg);
-    if (alt < 0) return null;
-    return { alt, az };
+    return alt < 0 ? null : { alt, az };
   }
 
   const stars: Computed["stars"] = NAMED_STARS.flatMap((s) => {
     const p = skyPos(s.ra, s.dec);
-    if (!p) return [];
-    return [{ ...p, r: starRadius(s.mag), color: starColor(s.sp, 1), name: s.name, mag: s.mag }];
+    return p ? [{ ...p, r: starRadius(s.mag), color: starColor(s.sp, 1), name: s.name, mag: s.mag }] : [];
   });
-
   for (const [ra, dec, mag] of BG_STARS) {
     const p = skyPos(ra, dec);
-    if (!p) continue;
-    stars.push({ ...p, r: starRadius(mag), color: starColor("A", 0.8), mag });
+    if (p) stars.push({ ...p, r: starRadius(mag), color: starColor("A", 0.8), mag });
   }
 
   const constellationSegs: [SkyPos, SkyPos][] = [];
@@ -91,8 +78,7 @@ function compute(date: Date, lat: number, lon: number): Computed {
 
   const dso = DSO_OBJECTS.flatMap((o) => {
     const p = skyPos(o.ra, o.dec);
-    if (!p) return [];
-    return [{ ...p, name: o.name, type: o.type, mag: o.mag }];
+    return p ? [{ ...p, name: o.name, type: o.type, mag: o.mag }] : [];
   });
 
   const planets = PLANET_NAMES.flatMap((name) => {
@@ -107,362 +93,236 @@ function compute(date: Date, lat: number, lon: number): Computed {
 
   const { ra: mRa, dec: mDec } = moonPosition(date);
   const mp = skyPos(mRa, mDec);
-  const moon = mp ? { ...mp, phase: moonPhase(date) } : null;
-
-  return { stars, constellationSegs, dso, planets, moon, date };
+  return { stars, constellationSegs, dso, planets, moon: mp ? { ...mp, phase: moonPhase(date) } : null, date };
 }
 
 function drawSkyObjects(
   ctx: CanvasRenderingContext2D,
-  comp: Computed,
-  tick: number,
-  zoom: number,
-  panX: number,
-  panY: number,
-  cx: number,
-  cy: number,
-  R: number,
+  comp: Computed, tick: number,
+  zoom: number, panX: number, panY: number,
+  cx: number, cy: number, R: number,
 ) {
   function sc(alt: number, az: number): [number, number] {
     const baseR = (1 - alt / 90) * R;
     const a = az * DEG;
-    return [
-      cx + baseR * Math.sin(a) * zoom + panX,
-      cy - baseR * Math.cos(a) * zoom + panY,
-    ];
+    return [cx + baseR * Math.sin(a) * zoom + panX, cy - baseR * Math.cos(a) * zoom + panY];
   }
 
-  // Constellation lines
   ctx.strokeStyle = "rgba(130,160,255,0.22)";
   ctx.lineWidth = 0.8;
   for (const [a, b] of comp.constellationSegs) {
-    const [x1, y1] = sc(a.alt, a.az);
-    const [x2, y2] = sc(b.alt, b.az);
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    const [x1, y1] = sc(a.alt, a.az), [x2, y2] = sc(b.alt, b.az);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
   }
 
-  // Deep-sky objects
   for (const o of comp.dso) {
     const [ox, oy] = sc(o.alt, o.az);
     const rDso = (o.type === "galaxy" ? 9 : o.type === "cluster" ? 7 : 6) * Math.min(zoom, 2);
-    const a = Math.max(0.1, 0.55 - o.mag * 0.06);
+    const al = Math.max(0.1, 0.55 - o.mag * 0.06);
     const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, rDso);
-    glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${a * 1.5})` : `rgba(180,200,255,${a * 1.8})`);
+    glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${al * 1.5})` : `rgba(180,200,255,${al * 1.8})`);
     glow.addColorStop(1, "transparent");
-    ctx.beginPath();
-    ctx.arc(ox, oy, rDso, 0, Math.PI * 2);
-    ctx.fillStyle = glow;
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(ox, oy, rDso, 0, Math.PI * 2);
+    ctx.fillStyle = glow; ctx.fill();
     ctx.fillStyle = "rgba(180,200,255,0.5)";
-    ctx.font = `8px Space Mono, monospace`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
+    ctx.font = `8px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(o.name, ox + rDso + 3, oy);
   }
 
-  // Stars
   for (const s of comp.stars) {
     const [sx, sy] = sc(s.alt, s.az);
-    const twinkle = s.name
-      ? 0.85 + 0.15 * Math.sin(tick * 0.0018 + sx * 7.3)
-      : 0.75 + 0.25 * Math.random();
+    const twinkle = s.name ? 0.85 + 0.15 * Math.sin(tick * 0.0018 + sx * 7.3) : 0.75 + 0.25 * Math.random();
     const sr = s.r * Math.min(1 + (zoom - 1) * 0.3, 2);
-
     if (sr > 1.2) {
       const halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3.5);
       halo.addColorStop(0, s.color.replace(/[\d.]+\)$/, `${0.35 * twinkle})`));
       halo.addColorStop(1, "transparent");
-      ctx.beginPath();
-      ctx.arc(sx, sy, sr * 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = halo;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, sr * 3.5, 0, Math.PI * 2); ctx.fillStyle = halo; ctx.fill();
     }
-    ctx.beginPath();
-    ctx.arc(sx, sy, sr * twinkle, 0, Math.PI * 2);
-    ctx.fillStyle = s.color;
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(sx, sy, sr * twinkle, 0, Math.PI * 2); ctx.fillStyle = s.color; ctx.fill();
   }
 
-  // Star labels — reveal more at higher zoom
   const magThreshold = zoom >= 4 ? 4.5 : zoom >= 3 ? 3.5 : zoom >= 2 ? 2.5 : 1.4;
   ctx.textBaseline = "middle";
   for (const s of comp.stars) {
     if (!s.name || s.mag > magThreshold) continue;
     const [sx, sy] = sc(s.alt, s.az);
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = `9px Space Mono, monospace`;
-    ctx.textAlign = "left";
-    ctx.fillText(s.name, sx + s.r + 4, sy - 4);
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = `9px Space Mono, monospace`;
+    ctx.textAlign = "left"; ctx.fillText(s.name, sx + s.r + 4, sy - 4);
   }
 
-  // Moon
   if (comp.moon) {
     const [mx, my] = sc(comp.moon.alt, comp.moon.az);
     const { phase } = comp.moon;
     const mr = 10 * Math.min(1 + (zoom - 1) * 0.4, 2);
     const moonGlow = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 3);
-    moonGlow.addColorStop(0, "rgba(230,230,200,0.25)");
-    moonGlow.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2);
-    ctx.fillStyle = moonGlow; ctx.fill();
-
+    moonGlow.addColorStop(0, "rgba(230,230,200,0.25)"); moonGlow.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
     ctx.save();
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(230,225,200,0.9)"; ctx.fill();
-    const phaseRad = (phase * Math.PI) / 180;
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip();
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fillStyle = "rgba(230,225,200,0.9)"; ctx.fill();
+    const k = Math.cos((phase * Math.PI) / 180);
     ctx.fillStyle = "rgba(4,4,20,0.88)";
-    ctx.beginPath();
-    ctx.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2);
-    const k = Math.cos(phaseRad);
-    ctx.bezierCurveTo(mx + k * mr, my - mr, mx + k * mr, my + mr, mx, my + mr);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2);
+    ctx.bezierCurveTo(mx + k * mr, my - mr, mx + k * mr, my + mr, mx, my + mr); ctx.fill();
     ctx.restore();
-
     ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(230,225,200,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
-    ctx.fillStyle = "rgba(230,225,200,0.7)";
-    ctx.font = `bold 9px Space Mono, monospace`;
-    ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    ctx.fillText("Moon", mx + mr + 4, my);
+    ctx.fillStyle = "rgba(230,225,200,0.7)"; ctx.font = `bold 9px Space Mono, monospace`;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("Moon", mx + mr + 4, my);
   }
 
-  // Planets
   for (const p of comp.planets) {
     const [px, py] = sc(p.alt, p.az);
     const pr = p.radius * Math.min(1 + (zoom - 1) * 0.4, 2);
     const pg = ctx.createRadialGradient(px, py, 0, px, py, pr * 3.5);
-    pg.addColorStop(0, p.color.replace(")", ",0.4)").replace("rgb", "rgba"));
-    pg.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(px, py, pr * 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = pg; ctx.fill();
-    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2);
-    ctx.fillStyle = p.color; ctx.fill();
-    ctx.fillStyle = p.color;
-    ctx.font = `bold 9px Space Mono, monospace`;
-    ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    ctx.fillText(p.name, px + pr + 5, py);
+    pg.addColorStop(0, p.color.replace(")", ",0.4)").replace("rgb", "rgba")); pg.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.arc(px, py, pr * 3.5, 0, Math.PI * 2); ctx.fillStyle = pg; ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill();
+    ctx.fillStyle = p.color; ctx.font = `bold 9px Space Mono, monospace`;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(p.name, px + pr + 5, py);
   }
 }
 
-function altRingStep(zoom: number): number {
-  if (zoom >= 5) return 5;
-  if (zoom >= 3) return 10;
-  if (zoom >= 2) return 15;
-  return 30;
+function altRingStep(zoom: number) {
+  if (zoom >= 5) return 5; if (zoom >= 3) return 10; if (zoom >= 2) return 15; return 30;
 }
 
 function clampPan(zoom: number, panX: number, panY: number, R: number) {
-  const maxPan = R * (zoom - 1);
-  return {
-    x: Math.max(-maxPan, Math.min(maxPan, panX)),
-    y: Math.max(-maxPan, Math.min(maxPan, panY)),
-  };
+  const m = R * (zoom - 1);
+  return { x: Math.max(-m, Math.min(m, panX)), y: Math.max(-m, Math.min(m, panY)) };
 }
 
 function draw(
-  canvas: HTMLCanvasElement,
-  comp: Computed,
-  tick: number,
-  zoom: number,
-  panX: number,
-  panY: number,
-  cityName: string,
+  canvas: HTMLCanvasElement, comp: Computed, tick: number,
+  zoom: number, panX: number, panY: number, cityName: string,
 ) {
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.width / dpr;
-  const H = canvas.height / dpr;
-  const cx = W / 2;
-  const cy = H / 2;
-  const R = Math.min(W, H) / 2 - 24;
-
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 24;
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.scale(dpr, dpr);
+  ctx.save(); ctx.scale(dpr, dpr);
 
-  // ── Disc clip ─────────────────────────────────────────────────────────
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.clip();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
 
-  // Sky background
   const bg = ctx.createRadialGradient(cx + panX, cy + panY, 0, cx + panX, cy + panY, R * zoom);
-  bg.addColorStop(0,   "#0d1240");
-  bg.addColorStop(0.5, "#060c2a");
-  bg.addColorStop(1,   "#020122");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  bg.addColorStop(0, "#0d1240"); bg.addColorStop(0.5, "#060c2a"); bg.addColorStop(1, "#020122");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  // Altitude rings
   const step = altRingStep(zoom);
   for (let alt = step; alt < 90; alt += step) {
     const r = (1 - alt / 90) * R * zoom;
     const isMajor = alt % 30 === 0;
-    ctx.beginPath();
-    ctx.arc(cx + panX, cy + panY, r, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(cx + panX, cy + panY, r, 0, Math.PI * 2);
     ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)";
-    ctx.lineWidth = isMajor ? 0.7 : 0.4;
-    ctx.stroke();
-    const showLabel = isMajor || (step <= 10 && alt % (step * 2) === 0);
-    if (!showLabel) continue;
-    const labelR = (1 - alt / 90) * R * zoom;
-    const lx = cx + labelR * Math.sin(90 * DEG) + panX;
-    const ly = cy - labelR * Math.cos(90 * DEG) + panY;
+    ctx.lineWidth = isMajor ? 0.7 : 0.4; ctx.stroke();
+    if (!isMajor && !(step <= 10 && alt % (step * 2) === 0)) continue;
+    const lx = cx + r * Math.sin(90 * DEG) + panX, ly = cy - r * Math.cos(90 * DEG) + panY;
     if (lx > cx - R && lx < cx + R && ly > cy - R && ly < cy + R) {
       ctx.fillStyle = isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)";
-      ctx.font = `9px Space Mono, monospace`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
+      ctx.font = `9px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(`${alt}°`, lx + 3, ly);
     }
   }
 
   drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R);
+  ctx.restore();
 
-  ctx.restore(); // end disc clip
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(252,158,79,0.2)"; ctx.lineWidth = 1; ctx.stroke();
 
-  // ── Fixed UI ──────────────────────────────────────────────────────────
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(252,158,79,0.2)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  const cardinals: [string, number][] = [["N", 0], ["E", 90], ["S", 180], ["W", 270]];
-  ctx.font = `bold 11px Space Mono, monospace`;
-  for (const [label, az] of cardinals) {
+  for (const [label, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as [string, number][]) {
     const a = az * DEG;
-    ctx.fillStyle = "rgba(252,158,79,0.55)";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(252,158,79,0.55)"; ctx.font = `bold 11px Space Mono, monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(label, cx + (R + 14) * Math.sin(a), cy - (R + 14) * Math.cos(a));
   }
 
   if (zoom > 1.05) {
-    ctx.fillStyle = "rgba(252,158,79,0.4)";
-    ctx.font = `8px Space Mono, monospace`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(252,158,79,0.4)"; ctx.font = `8px Space Mono, monospace`;
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillText(`${zoom.toFixed(1)}×`, cx - R + 6, cy - R + 8);
   }
 
-  ctx.fillStyle = "rgba(252,158,79,0.35)";
-  ctx.font = `8px Space Mono, monospace`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "bottom";
+  ctx.fillStyle = "rgba(252,158,79,0.3)"; ctx.font = `8px Space Mono, monospace`;
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
   ctx.fillText(
-    comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-      + ` · midnight · ${cityName}`,
-    cx + R - 4,
-    cy + R - 4,
+    `${comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · midnight · ${cityName}`,
+    cx + R - 4, cy + R - 4,
   );
-
   ctx.restore();
 }
 
 export default function NightSkyMap() {
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const rafRef     = useRef<number>(0);
-  const zoomRef    = useRef(1);
-  const panRef     = useRef({ x: 0, y: 0 });
-  const dragRef    = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
-  const pinchRef   = useRef<{ dist: number; zoom: number } | null>(null);
-
-  // Transition: smoothly lerp lat/lon and recompute each frame.
-  const transitionRef = useRef<{
-    fromLat: number; fromLon: number;
-    toLat:   number; toLon:   number;
-    startTick: number;
-  } | null>(null);
-
-  const date = useRef(midnightTonight());
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const rafRef          = useRef<number>(0);
+  const zoomRef         = useRef(1);
+  const panRef          = useRef({ x: 0, y: 0 });
+  const dragRef         = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+  const pinchRef        = useRef<{ dist: number; zoom: number } | null>(null);
+  const hasDraggedRef   = useRef(false);
+  const transitionRef   = useRef<{ fromLat: number; fromLon: number; toLat: number; toLon: number; startTick: number } | null>(null);
+  const date            = useRef(midnightTonight());
 
   const [computed, setComputed]       = useState<Computed | null>(null);
   const [isDragging, setIsDragging]   = useState(false);
   const [zoomLevel, setZoomLevel]     = useState(1);
   const [locationIdx, setLocationIdx] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError]             = useState("");
+
+  // Formatted date for the UI header
+  const nightLabel = date.current.toLocaleDateString("en-GB", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+  });
 
   const applyZoom = useCallback((newZoom: number, anchorX = 0, anchorY = 0) => {
     const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
     const worldX = (anchorX - panRef.current.x) / zoomRef.current;
     const worldY = (anchorY - panRef.current.y) / zoomRef.current;
     zoomRef.current = clamped;
-    const { R } = canvasMetrics();
-    panRef.current = clamped <= 1
-      ? { x: 0, y: 0 }
-      : clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
+    const canvas = canvasRef.current;
+    const R = canvas ? Math.min(canvas.width, canvas.height) / (2 * (window.devicePixelRatio || 1)) - 24 : 200;
+    panRef.current = clamped <= 1 ? { x: 0, y: 0 } : clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
     setZoomLevel(clamped);
   }, []);
 
-  function canvasMetrics() {
-    const canvas = canvasRef.current;
-    if (!canvas) return { W: 0, H: 0, cx: 0, cy: 0, R: 0 };
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width / dpr;
-    const H = canvas.height / dpr;
-    return { W, H, cx: W / 2, cy: H / 2, R: Math.min(W, H) / 2 - 24 };
-  }
-
-  // Initial compute on mount only.
+  // Initial compute
   useEffect(() => {
-    const { lat, lon } = LOCATIONS[0];
-    try {
-      setComputed(compute(date.current, lat, lon));
-    } catch (e) {
-      setError(String(e));
-    }
+    try { setComputed(compute(date.current, LOCATIONS[0].lat, LOCATIONS[0].lon)); }
+    catch (e) { setError(String(e)); }
   }, []);
 
-  // Toggle location: start a transition instead of snapping.
+  // Toggle location — start physical sky rotation
   const handleLocationToggle = useCallback((newIdx: number) => {
     if (newIdx === locationIdx) return;
-    const from = LOCATIONS[locationIdx];
-    const to   = LOCATIONS[newIdx];
-    // transitionRef will be read by the animate loop each frame.
-    // startTick = 0 means "set on first frame".
     transitionRef.current = {
-      fromLat: from.lat, fromLon: from.lon,
-      toLat:   to.lat,   toLon:   to.lon,
+      fromLat: LOCATIONS[locationIdx].lat, fromLon: LOCATIONS[locationIdx].lon,
+      toLat:   LOCATIONS[newIdx].lat,      toLon:   LOCATIONS[newIdx].lon,
       startTick: 0,
     };
     setLocationIdx(newIdx);
   }, [locationIdx]);
 
-  // Animation loop: during a transition, recompute positions for the interpolated observer.
+  // Animation loop
   const animate = useCallback((tick: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
 
     let frameComp = computed;
     const tr = transitionRef.current;
-
     if (tr) {
-      // Latch the start tick on the first frame.
       if (tr.startTick === 0) tr.startTick = tick;
-
       const t = Math.min(1, (tick - tr.startTick) / TRANSITION_DURATION);
       const ease = easeInOut(t);
-      const lat = lerp(tr.fromLat, tr.toLat, ease);
-      const lon = lerp(tr.fromLon, tr.toLon, ease);
-
-      frameComp = compute(date.current, lat, lon);
-
-      if (t >= 1) {
-        transitionRef.current = null;
-        // Persist the final state so future frames don't recompute.
-        setComputed(frameComp);
-      }
+      frameComp = compute(date.current, lerp(tr.fromLat, tr.toLat, ease), lerp(tr.fromLon, tr.toLon, ease));
+      if (t >= 1) { transitionRef.current = null; setComputed(frameComp); }
     }
 
-    const cityName = LOCATIONS[locationIdx].name.split(",")[0];
-    draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y, cityName);
+    draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
+      LOCATIONS[locationIdx].name.split(",")[0]);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
@@ -472,22 +332,21 @@ export default function NightSkyMap() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [computed, animate]);
 
-  // Resize observer
+  // Resize: observe the canvas itself so fullscreen sizing works correctly.
+  // Re-runs on isFullscreen change because the canvas DOM element is recreated.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ro = new ResizeObserver(([entry]) => {
-      const size = entry.contentRect.width;
+      const size = Math.round(entry.contentRect.width);
       if (size < 1) return;
       const dpr = window.devicePixelRatio || 1;
       canvas.width  = size * dpr;
       canvas.height = size * dpr;
-      canvas.style.width  = `${size}px`;
-      canvas.style.height = `${size}px`;
     });
-    ro.observe(canvas.parentElement!);
+    ro.observe(canvas);
     return () => ro.disconnect();
-  }, []);
+  }, [isFullscreen]);
 
   // Wheel zoom
   useEffect(() => {
@@ -495,19 +354,17 @@ export default function NightSkyMap() {
     if (!canvas) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const { cx, cy } = canvasMetrics();
+      const dpr = window.devicePixelRatio || 1;
+      const cx = (canvas.width / dpr) / 2, cy = (canvas.height / dpr) / 2;
       const rect = canvas.getBoundingClientRect();
-      applyZoom(
-        zoomRef.current * (e.deltaY < 0 ? 1.15 : 1 / 1.15),
-        e.clientX - rect.left - cx,
-        e.clientY - rect.top  - cy,
-      );
+      applyZoom(zoomRef.current * (e.deltaY < 0 ? 1.15 : 1 / 1.15),
+        e.clientX - rect.left - cx, e.clientY - rect.top - cy);
     };
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
-  }, [applyZoom]);
+  }, [applyZoom, isFullscreen]);
 
-  // Touch pinch-to-zoom
+  // Touch pinch
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -521,10 +378,24 @@ export default function NightSkyMap() {
     };
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => canvas.removeEventListener("touchmove", onTouchMove);
-  }, [applyZoom]);
+  }, [applyZoom, isFullscreen]);
+
+  // Body scroll lock in fullscreen
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isFullscreen]);
+
+  // Escape to exit fullscreen
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "touch") return;
+    hasDraggedRef.current = false;
     dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: panRef.current.x, startPanY: panRef.current.y };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setIsDragging(true);
@@ -532,43 +403,141 @@ export default function NightSkyMap() {
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragRef.current) return;
-    const { R } = canvasMetrics();
-    panRef.current = clampPan(
-      zoomRef.current,
-      dragRef.current.startPanX + (e.clientX - dragRef.current.startX),
-      dragRef.current.startPanY + (e.clientY - dragRef.current.startY),
-      R,
-    );
+    const dx = e.clientX - dragRef.current.startX, dy = e.clientY - dragRef.current.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > 4) hasDraggedRef.current = true;
+    const canvas = canvasRef.current;
+    const R = canvas ? Math.min(canvas.width, canvas.height) / (2 * (window.devicePixelRatio || 1)) - 24 : 200;
+    panRef.current = clampPan(zoomRef.current, dragRef.current.startPanX + dx, dragRef.current.startPanY + dy, R);
   };
 
-  const onPointerUp   = () => { dragRef.current = null; setIsDragging(false); };
-  const onTouchStart  = (e: React.TouchEvent) => {
+  const onPointerUp = () => { dragRef.current = null; setIsDragging(false); };
+
+  const onCanvasClick = () => {
+    if (!hasDraggedRef.current && !isFullscreen) setIsFullscreen(true);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchRef.current = { dist: Math.sqrt(dx * dx + dy * dy), zoom: zoomRef.current };
     }
   };
-  const onTouchEnd    = () => { pinchRef.current = null; };
+
+  const onTouchEnd   = () => { pinchRef.current = null; };
   const onDoubleClick = () => { zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1); };
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
 
+  // Shared canvas props — keep onClick/pointer handlers identical in both modes
+  const canvasEvents = {
+    onClick: onCanvasClick,
+    onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
+    onTouchStart, onTouchEnd, onDoubleClick,
+  };
+
+  // Location toggle (reused in both modes)
+  const locationToggle = (
+    <div className="flex items-center gap-1 font-mono text-[10px] rounded border border-muted/20 overflow-hidden shrink-0">
+      {LOCATIONS.map((loc, i) => (
+        <button key={loc.name} onClick={() => handleLocationToggle(i)}
+          className={`px-3 py-1.5 transition-colors ${locationIdx === i ? "bg-accent/10 text-accent" : "text-muted/40 hover:text-muted/70"}`}>
+          {loc.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Zoom controls (reused in both modes)
+  const zoomControls = (
+    <div className="flex items-center gap-3 font-mono select-none shrink-0">
+      <button onClick={() => applyZoom(zoomRef.current / 1.4)} aria-label="Zoom out"
+        className="w-7 h-7 flex items-center justify-center rounded border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors text-base leading-none">−</button>
+      <div className="flex gap-1.5">
+        {[1, 2, 4, 8].map((lvl) => (
+          <button key={lvl} onClick={() => applyZoom(lvl)}
+            className={`px-2 py-0.5 rounded text-[10px] tracking-wider transition-colors border ${Math.abs(zoomLevel - lvl) < 0.15 ? "border-accent text-accent" : "border-muted/20 text-muted/40 hover:border-muted/40 hover:text-muted/70"}`}>
+            {lvl}×
+          </button>
+        ))}
+      </div>
+      <button onClick={() => applyZoom(zoomRef.current * 1.4)} aria-label="Zoom in"
+        className="w-7 h-7 flex items-center justify-center rounded border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors text-base leading-none">+</button>
+      <span className="text-[9px] text-muted/25 uppercase tracking-widest ml-1">{zoomLevel.toFixed(1)}×</span>
+    </div>
+  );
+
+  const legend = (
+    <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center font-mono text-[10px] text-muted/40 uppercase tracking-widest shrink-0">
+      {[["bg-white/80","Stars"],["w-4 h-px bg-[rgba(130,160,255,0.5)] rounded-none","Constellations"],["bg-[rgba(252,158,79,0.9)]","Planets"],["bg-[rgba(230,225,200,0.8)]","Moon"],["bg-[rgba(180,200,255,0.6)]","Deep sky"]].map(([cls,label]) => (
+        <span key={label} className="flex items-center gap-1.5">
+          <span className={`inline-block w-2 h-2 rounded-full ${cls}`} /> {label}
+        </span>
+      ))}
+    </div>
+  );
+
+  // ── Fullscreen overlay ─────────────────────────────────────────────────
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#020122] flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-y-auto">
+        {/* Top bar */}
+        <div className="w-full flex items-center justify-between shrink-0">
+          <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
+            {nightLabel} &nbsp;·&nbsp; midnight
+          </span>
+          <button onClick={() => setIsFullscreen(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors font-mono text-sm">
+            ✕
+          </button>
+        </div>
+
+        {/* Canvas — fills remaining space (same element as normal mode via React reconciliation) */}
+        <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
+          <canvas
+            ref={canvasRef}
+            className="block rounded-full"
+            style={{ aspectRatio: "1", height: "100%", maxWidth: "100%", width: "auto", cursor: isDragging ? "grabbing" : "grab" }}
+            {...canvasEvents}
+          />
+          {!computed && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="font-mono text-xs text-muted/30">Computing sky…</p>
+            </div>
+          )}
+        </div>
+
+        {locationToggle}
+        {zoomControls}
+        <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none shrink-0">
+          scroll · pinch &nbsp;·&nbsp; drag to pan &nbsp;·&nbsp; double-click to reset &nbsp;·&nbsp; esc to close
+        </p>
+        {legend}
+      </div>
+    );
+  }
+
+  // ── Normal (inline) mode ───────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="w-full max-w-2xl mx-auto relative">
+      {/* Date / time info */}
+      <div className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
+        {nightLabel} &nbsp;·&nbsp; midnight
+      </div>
+
+      {/* Canvas — click to expand */}
+      <div className="w-full max-w-2xl mx-auto relative group">
         <canvas
           ref={canvasRef}
           className="block w-full rounded-full"
           style={{ aspectRatio: "1", cursor: isDragging ? "grabbing" : "grab" }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          onDoubleClick={onDoubleClick}
+          {...canvasEvents}
         />
+        {/* Expand hint */}
+        <div className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span className="font-mono text-[10px] text-white/30 uppercase tracking-widest bg-[#020122]/60 px-3 py-1.5 rounded-full">
+            click to expand
+          </span>
+        </div>
         {!computed && (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="font-mono text-xs text-muted/30">Computing sky…</p>
@@ -576,69 +545,12 @@ export default function NightSkyMap() {
         )}
       </div>
 
-      {/* Location toggle */}
-      <div className="flex items-center gap-1 font-mono text-[10px] rounded border border-muted/20 overflow-hidden">
-        {LOCATIONS.map((loc, i) => (
-          <button
-            key={loc.name}
-            onClick={() => handleLocationToggle(i)}
-            className={`px-3 py-1.5 transition-colors ${
-              locationIdx === i
-                ? "bg-accent/10 text-accent"
-                : "text-muted/40 hover:text-muted/70"
-            }`}
-          >
-            {loc.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Zoom controls */}
-      <div className="flex items-center gap-3 font-mono select-none">
-        <button
-          onClick={() => applyZoom(zoomRef.current / 1.4)}
-          className="w-7 h-7 flex items-center justify-center rounded border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors text-base leading-none"
-          aria-label="Zoom out"
-        >−</button>
-
-        <div className="flex gap-1.5">
-          {[1, 2, 4, 8].map((lvl) => (
-            <button
-              key={lvl}
-              onClick={() => applyZoom(lvl)}
-              className={`px-2 py-0.5 rounded text-[10px] tracking-wider transition-colors border ${
-                Math.abs(zoomLevel - lvl) < 0.15
-                  ? "border-accent text-accent"
-                  : "border-muted/20 text-muted/40 hover:border-muted/40 hover:text-muted/70"
-              }`}
-            >
-              {lvl}×
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => applyZoom(zoomRef.current * 1.4)}
-          className="w-7 h-7 flex items-center justify-center rounded border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors text-base leading-none"
-          aria-label="Zoom in"
-        >+</button>
-
-        <span className="text-[9px] text-muted/25 uppercase tracking-widest ml-1">
-          {zoomLevel.toFixed(1)}×
-        </span>
-      </div>
-
+      {locationToggle}
+      {zoomControls}
       <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none -mt-2">
         scroll · pinch &nbsp;·&nbsp; drag to pan &nbsp;·&nbsp; double-click to reset
       </p>
-
-      <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center font-mono text-[10px] text-muted/40 uppercase tracking-widest">
-        <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-white/80" /> Stars</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-px bg-[rgba(130,160,255,0.5)]" /> Constellations</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[rgba(252,158,79,0.9)]" /> Planets</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-full bg-[rgba(230,225,200,0.8)]" /> Moon</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-[rgba(180,200,255,0.6)]" /> Deep sky</span>
-      </div>
+      {legend}
     </div>
   );
 }
