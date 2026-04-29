@@ -26,21 +26,26 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/config?key=tab-order-${section}`).then((r) => (r.ok ? r.json() : { value: null })),
-      fetch(`/api/config?key=tab-labels-${section}`).then((r) => (r.ok ? r.json() : { value: null })),
-      fetch(`/api/config?key=tab-visibility-${section}`).then((r) => (r.ok ? r.json() : { value: null })),
-    ])
-      .then(([orderRes, labelsRes, visRes]) => {
-        if (Array.isArray(orderRes.value) && orderRes.value.length === defaultTabs.length) {
-          const valid = defaultTabs.every((t) => orderRes.value.includes(t.id));
-          if (valid) setOrder(orderRes.value);
+    const keys = [
+      `tab-order-${section}`,
+      `tab-labels-${section}`,
+      `tab-visibility-${section}`,
+    ].join(",");
+    fetch(`/api/config?keys=${keys}`)
+      .then((r) => (r.ok ? r.json() : { values: {} }))
+      .then(({ values }: { values: Record<string, unknown> }) => {
+        const savedOrder = values[`tab-order-${section}`];
+        const savedLabels = values[`tab-labels-${section}`];
+        const savedVis = values[`tab-visibility-${section}`];
+        if (Array.isArray(savedOrder) && savedOrder.length === defaultTabs.length) {
+          const valid = defaultTabs.every((t) => (savedOrder as string[]).includes(t.id));
+          if (valid) setOrder(savedOrder as string[]);
         }
-        if (labelsRes.value && typeof labelsRes.value === "object" && !Array.isArray(labelsRes.value)) {
-          setLabels((prev) => ({ ...prev, ...labelsRes.value }));
+        if (savedLabels && typeof savedLabels === "object" && !Array.isArray(savedLabels)) {
+          setLabels((prev) => ({ ...prev, ...(savedLabels as Record<string, string>) }));
         }
-        if (visRes.value && typeof visRes.value === "object" && !Array.isArray(visRes.value)) {
-          setVisibility((prev) => ({ ...prev, ...visRes.value }));
+        if (savedVis && typeof savedVis === "object" && !Array.isArray(savedVis)) {
+          setVisibility((prev) => ({ ...prev, ...(savedVis as Record<string, boolean>) }));
         }
       })
       .catch(() => {});

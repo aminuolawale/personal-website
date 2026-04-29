@@ -10,9 +10,7 @@ import Projects from "@/components/Projects";
 import About from "@/components/About";
 import Experience from "@/components/Experience";
 import { useArticles } from "@/lib/hooks/use-articles";
-import { useTabOrder } from "@/lib/hooks/use-tab-order";
-import { useTabLabels } from "@/lib/hooks/use-tab-labels";
-import { useTabVisibility } from "@/lib/hooks/use-tab-visibility";
+import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import type { Article } from "@/lib/schema";
 
@@ -47,14 +45,12 @@ function SweContent() {
   const urlTab = searchParams.get("tab");
   const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
 
-  const tabOrder = useTabOrder("swe", SWE_TABS.map((t) => t.id));
-  const tabLabels = useTabLabels("swe", SWE_TABS);
-  const tabVisibility = useTabVisibility("swe", SWE_TABS.map((t) => t.id));
-  const orderedTabs = tabOrder
+  const { order, labels, visibility } = useTabConfig("swe", SWE_TABS);
+  const orderedTabs = order
     .map((id) => SWE_TABS.find((t) => t.id === id)!)
     .filter(Boolean)
-    .filter((t) => tabVisibility[t.id] !== false)
-    .map((t) => ({ ...t, label: tabLabels[t.id] ?? t.label }));
+    .filter((t) => visibility[t.id] !== false)
+    .map((t) => ({ ...t, label: labels[t.id] ?? t.label }));
 
   const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
   const { articles, isLoading } = useArticles("swe");

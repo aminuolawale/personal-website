@@ -9,10 +9,10 @@ import ArticlesTab from "@/components/astrophotography/ArticlesTab";
 import CalendarTab from "@/components/astrophotography/CalendarTab";
 import GalleryTab from "@/components/astrophotography/GalleryTab";
 import GearTab from "@/components/astrophotography/GearTab";
-import NightSkyMap from "@/components/astrophotography/NightSkyMap";
-import { useTabOrder } from "@/lib/hooks/use-tab-order";
-import { useTabLabels } from "@/lib/hooks/use-tab-labels";
-import { useTabVisibility } from "@/lib/hooks/use-tab-visibility";
+import dynamic from "next/dynamic";
+import { useTabConfig } from "@/lib/hooks/use-tab-config";
+
+const NightSkyMap = dynamic(() => import("@/components/astrophotography/NightSkyMap"), { ssr: false });
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import type { Article } from "@/lib/schema";
@@ -58,14 +58,12 @@ function AstrophotographyContent() {
   const urlTab = searchParams.get("tab");
   const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
 
-  const tabOrder = useTabOrder("astrophotography", ASTRO_TABS.map((t) => t.id));
-  const tabLabels = useTabLabels("astrophotography", ASTRO_TABS);
-  const tabVisibility = useTabVisibility("astrophotography", ASTRO_TABS.map((t) => t.id));
-  const orderedTabs = tabOrder
+  const { order, labels, visibility } = useTabConfig("astrophotography", ASTRO_TABS);
+  const orderedTabs = order
     .map((id) => ASTRO_TABS.find((t) => t.id === id)!)
     .filter(Boolean)
-    .filter((t) => tabVisibility[t.id] !== false)
-    .map((t) => ({ ...t, label: tabLabels[t.id] ?? t.label }));
+    .filter((t) => visibility[t.id] !== false)
+    .map((t) => ({ ...t, label: labels[t.id] ?? t.label }));
 
   const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
   const { articles, isLoading } = useArticles("astrophotography");

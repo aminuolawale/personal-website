@@ -1,8 +1,20 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useTabOrder } from "@/lib/hooks/use-tab-order";
+import { useTabConfig } from "@/lib/hooks/use-tab-config";
 
-const DEFAULT = ["articles", "projects", "about"];
+const DEFAULT_TABS = [
+  { id: "articles", label: "Articles" },
+  { id: "projects", label: "Projects" },
+  { id: "about", label: "About Me" },
+];
+const DEFAULT_ORDER = DEFAULT_TABS.map((t) => t.id);
+
+function mockValues(values: Record<string, unknown>) {
+  vi.mocked(fetch).mockResolvedValue({
+    ok: true,
+    json: async () => ({ values }),
+  } as Response);
+}
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
@@ -12,75 +24,64 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("useTabOrder", () => {
-  it("returns defaultOrder immediately before fetch resolves", () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: false } as any);
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
-    expect(result.current).toEqual(DEFAULT);
+describe("useTabConfig", () => {
+  it("returns defaults immediately before fetch resolves", () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
+    expect(result.current.order).toEqual(DEFAULT_ORDER);
+    expect(result.current.labels).toEqual({ articles: "Articles", projects: "Projects", about: "About Me" });
+    expect(result.current.visibility).toEqual({ articles: true, projects: true, about: true });
   });
 
   it("applies a valid saved order from the API", async () => {
     const reordered = ["about", "articles", "projects"];
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: reordered }),
-    } as any);
-
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
-    await waitFor(() => expect(result.current[0]).toBe("about"));
-    expect(result.current).toEqual(reordered);
+    mockValues({ "tab-order-swe": reordered });
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
+    await waitFor(() => expect(result.current.order[0]).toBe("about"));
+    expect(result.current.order).toEqual(reordered);
   });
 
-  it("falls back to default when saved order has wrong length", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: ["articles", "projects"] }), // missing "about"
-    } as any);
-
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
+  it("falls back to default order when saved order has wrong length", async () => {
+    mockValues({ "tab-order-swe": ["articles", "projects"] });
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
     await waitFor(() => {});
-    expect(result.current).toEqual(DEFAULT);
+    expect(result.current.order).toEqual(DEFAULT_ORDER);
   });
 
-  it("falls back to default when saved order has unknown tab IDs", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: ["articles", "projects", "unknown-tab"] }),
-    } as any);
-
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
+  it("falls back to default order when saved order has unknown tab IDs", async () => {
+    mockValues({ "tab-order-swe": ["articles", "projects", "unknown-tab"] });
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
     await waitFor(() => {});
-    expect(result.current).toEqual(DEFAULT);
+    expect(result.current.order).toEqual(DEFAULT_ORDER);
   });
 
-  it("falls back to default when API returns null", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: null }),
-    } as any);
-
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
-    await waitFor(() => {});
-    expect(result.current).toEqual(DEFAULT);
+  it("applies saved labels merged with defaults", async () => {
+    mockValues({ "tab-labels-swe": { articles: "Blog" } });
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
+    await waitFor(() => expect(result.current.labels.articles).toBe("Blog"));
+    expect(result.current.labels.projects).toBe("Projects");
   });
 
-  it("falls back to default when fetch throws", async () => {
+  it("applies saved visibility", async () => {
+    mockValues({ "tab-visibility-swe": { projects: false } });
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
+    await waitFor(() => expect(result.current.visibility.projects).toBe(false));
+    expect(result.current.visibility.articles).toBe(true);
+  });
+
+  it("falls back to defaults when fetch throws", async () => {
     vi.mocked(fetch).mockRejectedValue(new Error("Network error"));
-    const { result } = renderHook(() => useTabOrder("swe", DEFAULT));
+    const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
     await waitFor(() => {});
-    expect(result.current).toEqual(DEFAULT);
+    expect(result.current.order).toEqual(DEFAULT_ORDER);
   });
 
   it("includes the section in the fetch URL", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ value: null }),
-    } as any);
-
-    renderHook(() => useTabOrder("astrophotography", DEFAULT));
+    mockValues({});
+    renderHook(() => useTabConfig("astrophotography", DEFAULT_TABS));
     await waitFor(() => {});
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      expect.stringContaining("tab-order-astrophotography")
+      expect.stringContaining("astrophotography")
     );
   });
 });
