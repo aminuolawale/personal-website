@@ -365,17 +365,25 @@ function draw(
   zoom: number, panX: number, panY: number,
   darkMode: boolean, buildingAlpha: number,
   selectedConstellation: string | null,
+  fullBleed = false,
 ) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr, H = canvas.height / dpr;
-  const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 24;
+  const cx = W / 2, cy = H / 2;
+  // In portrait full-bleed mode, expand R to fill the screen height so the
+  // sky covers the whole screen rather than being contained in a circle.
+  const isPortrait = H > W;
+  const R = (fullBleed && isPortrait) ? H / 2 : Math.min(W, H) / 2 - 24;
   if (R <= 0) return;
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save(); ctx.scale(dpr, dpr);
 
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  // In fullBleed portrait mode skip the clip so the sky fills the canvas rectangle.
+  if (!fullBleed) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  }
 
   // Sky background
   const bg = ctx.createRadialGradient(cx + panX, cy + panY, 0, cx + panX, cy + panY, R * zoom);
@@ -412,7 +420,7 @@ function draw(
   drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R, darkMode, selectedConstellation);
   drawBuildings(ctx, buildingAlpha, zoom, panX, panY, cx, cy, R, darkMode);
   drawPolarisMarker(ctx, comp, zoom, panX, panY, cx, cy, R, darkMode);
-  ctx.restore();
+  if (!fullBleed) ctx.restore();
 
   // Horizon ring
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -420,16 +428,26 @@ function draw(
   ctx.lineWidth = 1; ctx.stroke();
 
   // Cardinal labels
-  for (const [label, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as [string, number][]) {
-    const a = az * DEG;
-    ctx.fillStyle = darkMode ? "rgba(252,158,79,0.55)" : "rgba(184,58,8,0.65)";
-    ctx.font = `bold 11px Space Mono, monospace`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(label, cx + (R + 14) * Math.sin(a), cy - (R + 14) * Math.cos(a));
+  ctx.fillStyle = darkMode ? "rgba(252,158,79,0.55)" : "rgba(184,58,8,0.65)";
+  ctx.font = `bold 11px Space Mono, monospace`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (fullBleed && isPortrait) {
+    // With R = H/2, the N/S/E/W horizon points land exactly at the screen edges.
+    // Draw labels just inside those edges so they're always visible.
+    const pad = 14;
+    ctx.fillText("N", cx, pad);
+    ctx.fillText("S", cx, H - pad);
+    ctx.fillText("E", W - pad, cy);
+    ctx.fillText("W", pad, cy);
+  } else {
+    for (const [label, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as [string, number][]) {
+      const a = az * DEG;
+      ctx.fillText(label, cx + (R + 14) * Math.sin(a), cy - (R + 14) * Math.cos(a));
+    }
   }
 
-  // Zoom level overlay
-  if (zoom > 1.05) {
+  // Zoom level overlay — skip in fullBleed (zoom controls are in the overlay UI)
+  if (zoom > 1.05 && !fullBleed) {
     ctx.fillStyle = darkMode ? "rgba(252,158,79,0.4)" : "rgba(184,58,8,0.45)";
     ctx.font = `8px Space Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
@@ -454,6 +472,7 @@ export default function NightSkyMap() {
   const buildingAlphaRef       = useRef(0);
   const buildingTargetRef      = useRef(0);
   const selectedConstellationRef = useRef<string | null>(null);
+  const isFullscreenRef        = useRef(false);
   const panTransitionRef       = useRef<{
     fromX: number; fromY: number; toX: number; toY: number; startTick: number;
   } | null>(null);
@@ -467,8 +486,9 @@ export default function NightSkyMap() {
   const [selectedConstellation, setSelectedConstellation] = useState<string | null>(null);
   const [error, setError]                   = useState("");
 
-  // Keep theme ref in sync so RAF callback always reads current theme
+  // Keep refs in sync so the RAF callback always reads current values
   useEffect(() => { themeRef.current = theme; }, [theme]);
+  useEffect(() => { isFullscreenRef.current = isFullscreen; }, [isFullscreen]);
 
   const nightLabel = date.current.toLocaleDateString("en-GB", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
@@ -566,7 +586,8 @@ export default function NightSkyMap() {
     }
 
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
-      themeRef.current === "dark", buildingAlphaRef.current, selectedConstellationRef.current);
+      themeRef.current === "dark", buildingAlphaRef.current, selectedConstellationRef.current,
+      isFullscreenRef.current);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
