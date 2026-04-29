@@ -12,7 +12,7 @@ const LOCATIONS = [
   { name: "South Pole",          label: "S. Pole", lat: -89.99, lon:  0    },
 ] as const;
 
-const MIN_ZOOM = 1;
+const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const DEG = Math.PI / 180;
 const TRANSITION_DURATION = 1400;
@@ -291,7 +291,7 @@ function altRingStep(zoom: number) {
 }
 
 function clampPan(zoom: number, panX: number, panY: number, R: number) {
-  const m = R * (zoom - 1);
+  const m = R * Math.max(0, zoom - 1);
   return { x: Math.max(-m, Math.min(m, panX)), y: Math.max(-m, Math.min(m, panY)) };
 }
 
@@ -467,6 +467,7 @@ export default function NightSkyMap() {
   const panRef          = useRef({ x: 0, y: 0 });
   const dragRef         = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const pinchRef        = useRef<{ dist: number; zoom: number } | null>(null);
+  const touchDragRef    = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const hasDraggedRef   = useRef(false);
   const transitionRef   = useRef<{ fromLat: number; fromLon: number; toLat: number; toLon: number; startTick: number } | null>(null);
   const buildingAlphaRef       = useRef(0);
@@ -500,8 +501,11 @@ export default function NightSkyMap() {
     const worldY = (anchorY - panRef.current.y) / zoomRef.current;
     zoomRef.current = clamped;
     const canvas = canvasRef.current;
-    const R = canvas ? Math.min(canvas.width, canvas.height) / (2 * (window.devicePixelRatio || 1)) - 24 : 200;
-    panRef.current = clamped <= 1 ? { x: 0, y: 0 } : clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
+    const dpr = window.devicePixelRatio || 1;
+    const cW = canvas ? canvas.width / dpr : 400;
+    const cH = canvas ? canvas.height / dpr : 400;
+    const R = (isFullscreenRef.current && cH > cW) ? cH / 2 : Math.min(cW, cH) / 2 - 24;
+    panRef.current = clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
     setZoomLevel(clamped);
   }, []);
 
@@ -523,21 +527,26 @@ export default function NightSkyMap() {
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     const W = canvas.width / dpr, H = canvas.height / dpr;
-    const R = Math.min(W, H) / 2 - 24;
+    const isPortrait = H > W;
+    const R = (isFullscreenRef.current && isPortrait) ? H / 2 : Math.min(W, H) / 2 - 24;
     if (R <= 0) return;
+
+    // Need zoom > 1 for pan clamp to allow movement; bump to 1.5 if below that.
+    if (zoomRef.current < 1.5) applyZoom(1.5);
+    const effectiveZoom = zoomRef.current;
 
     const baseR = (1 - con.centroid.alt / 90) * R;
     const a = con.centroid.az * DEG;
-    const targetPanX = -(baseR * Math.sin(a)) * zoomRef.current;
-    const targetPanY =  (baseR * Math.cos(a)) * zoomRef.current;
-    const clamped = clampPan(zoomRef.current, targetPanX, targetPanY, R);
+    const targetPanX = -(baseR * Math.sin(a)) * effectiveZoom;
+    const targetPanY =  (baseR * Math.cos(a)) * effectiveZoom;
+    const clamped = clampPan(effectiveZoom, targetPanX, targetPanY, R);
 
     panTransitionRef.current = {
       fromX: panRef.current.x, fromY: panRef.current.y,
       toX: clamped.x, toY: clamped.y,
       startTick: 0,
     };
-  }, [computed]);
+  }, [computed, applyZoom]);
 
   const handleLocationToggle = useCallback((newIdx: number) => {
     if (newIdx === locationIdx) return;
@@ -636,6 +645,19 @@ export default function NightSkyMap() {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         applyZoom(pinchRef.current.zoom * Math.sqrt(dx * dx + dy * dy) / pinchRef.current.dist);
+      } else if (e.touches.length === 1 && touchDragRef.current) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - touchDragRef.current.startX;
+        const dy = e.touches[0].clientY - touchDragRef.current.startY;
+        const dpr = window.devicePixelRatio || 1;
+        const cW = canvas.width / dpr, cH = canvas.height / dpr;
+        const R = (isFullscreenRef.current && cH > cW) ? cH / 2 : Math.min(cW, cH) / 2 - 24;
+        panRef.current = clampPan(
+          zoomRef.current,
+          touchDragRef.current.startPanX + dx,
+          touchDragRef.current.startPanY + dy,
+          R,
+        );
       }
     };
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -691,16 +713,22 @@ export default function NightSkyMap() {
 
   const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
+      touchDragRef.current = null;
       const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchRef.current = { dist: Math.sqrt(dx * dx + dy * dy), zoom: zoomRef.current };
+    } else if (e.touches.length === 1) {
+      touchDragRef.current = {
+        startX: e.touches[0].clientX, startY: e.touches[0].clientY,
+        startPanX: panRef.current.x,  startPanY: panRef.current.y,
+      };
     }
   };
 
-  const onTouchEnd   = () => { pinchRef.current = null; };
+  const onTouchEnd = () => { pinchRef.current = null; touchDragRef.current = null; };
   const onDoubleClick = () => {
     zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1);
     selectedConstellationRef.current = null; setSelectedConstellation(null);
-    panTransitionRef.current = null;
+    panTransitionRef.current = null; touchDragRef.current = null;
   };
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
@@ -728,7 +756,7 @@ export default function NightSkyMap() {
       <button onClick={() => applyZoom(zoomRef.current / 1.4)} aria-label="Zoom out"
         className="w-7 h-7 flex items-center justify-center rounded border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors text-base leading-none">−</button>
       <div className="flex gap-1.5">
-        {[1, 2, 4, 8].map((lvl) => (
+        {(isFullscreen ? [0.5, 1, 2, 4] : [1, 2, 4, 8]).map((lvl) => (
           <button key={lvl} onClick={() => applyZoom(lvl)}
             className={`px-2 py-0.5 rounded text-[10px] tracking-wider transition-colors border ${Math.abs(zoomLevel - lvl) < 0.15 ? "border-accent text-accent" : "border-muted/20 text-muted/40 hover:border-muted/40 hover:text-muted/70"}`}>
             {lvl}×
