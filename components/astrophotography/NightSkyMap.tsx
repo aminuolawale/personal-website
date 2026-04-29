@@ -6,14 +6,35 @@ import { NAMED_STARS, BG_STARS, CONSTELLATIONS, DSO_OBJECTS, PLANET_STYLES } fro
 import { useTheme } from "@/components/ThemeProvider";
 
 const LOCATIONS = [
-  { name: "Zurich, Switzerland", lat: 47.37, lon: 8.54 },
-  { name: "Lagos, Nigeria",      lat: 6.52,  lon: 3.38 },
+  { name: "North Pole",          label: "N. Pole", lat:  89.99, lon:  0    },
+  { name: "Zurich, Switzerland", label: "Zurich",  lat:  47.37, lon:  8.54 },
+  { name: "Lagos, Nigeria",      label: "Lagos",   lat:   6.52, lon:  3.38 },
+  { name: "South Pole",          label: "S. Pole", lat: -89.99, lon:  0    },
 ] as const;
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const DEG = Math.PI / 180;
 const TRANSITION_DURATION = 1400;
+
+// Deterministic urban horizon: altitude (°) blocked by buildings at each azimuth degree.
+// Simulates a moderate city density (6–22° blockage) — the range where buildings
+// realistically occlude stars from a rooftop or open courtyard.
+const SKYLINE_ALTS: number[] = (() => {
+  let s = 0xc0ffee;
+  const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; };
+  const alts = new Array(360).fill(0) as number[];
+  let az = Math.floor(rng() * 6);
+  while (az < 360) {
+    const w    = 2 + Math.floor(rng() * 11);    // building width: 2–12°
+    const h    = 6  + rng() * 16;               // building height: 6–22°
+    const step = rng() > 0.5 ? Math.floor(w * (0.35 + rng() * 0.3)) : w;
+    const h2   = step < w   ? h * (0.4 + rng() * 0.35) : 0;
+    for (let i = 0; i < w && az + i < 360; i++) alts[az + i] = i < step ? h : h2;
+    az += w + 1 + Math.floor(rng() * 4);        // gap: 1–4°
+  }
+  return alts;
+})();
 
 function midnightTonight(): Date {
   const d = new Date();
@@ -172,7 +193,7 @@ function drawSkyObjects(
   const magThreshold = zoom >= 4 ? 4.5 : zoom >= 3 ? 3.5 : zoom >= 2 ? 2.5 : 1.4;
   ctx.textBaseline = "middle";
   for (const s of comp.stars) {
-    if (!s.name || s.mag > magThreshold) continue;
+    if (!s.name || s.name === "Polaris" || s.mag > magThreshold) continue;
     const [sx, sy] = sc(s.alt, s.az);
     ctx.fillStyle = darkMode ? "rgba(255,255,255,0.55)" : "rgba(10,10,60,0.55)";
     ctx.font = `9px Space Mono, monospace`;
@@ -241,10 +262,75 @@ function clampPan(zoom: number, panX: number, panY: number, R: number) {
   return { x: Math.max(-m, Math.min(m, panX)), y: Math.max(-m, Math.min(m, panY)) };
 }
 
+function drawBuildings(
+  ctx: CanvasRenderingContext2D,
+  alpha: number,
+  zoom: number, panX: number, panY: number,
+  cx: number, cy: number, R: number,
+  darkMode: boolean,
+) {
+  if (alpha < 0.004) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Warm amber-brown in dark mode contrasts with the cool blue-black sky;
+  // dark charcoal in light mode stands out against the white background.
+  ctx.fillStyle = darkMode ? "rgba(45,28,6,0.93)" : "#28283c";
+
+  // Trace inner boundary (building tops, az 0→360) then outer boundary (horizon, 360→0)
+  // to form a filled ring that covers stars behind the urban horizon.
+  ctx.beginPath();
+  for (let az = 0; az <= 360; az++) {
+    const r = (1 - SKYLINE_ALTS[az % 360] / 90) * R * zoom;
+    const x = cx + r * Math.sin(az * DEG) + panX;
+    const y = cy - r * Math.cos(az * DEG) + panY;
+    az === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  for (let az = 360; az >= 0; az--) {
+    const r = R * zoom;
+    ctx.lineTo(cx + r * Math.sin(az * DEG) + panX, cy - r * Math.cos(az * DEG) + panY);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPolarisMarker(
+  ctx: CanvasRenderingContext2D,
+  comp: Computed,
+  zoom: number, panX: number, panY: number,
+  cx: number, cy: number, R: number,
+  darkMode: boolean,
+) {
+  const polaris = comp.stars.find((s) => s.name === "Polaris");
+  if (!polaris) return;
+
+  const r = (1 - polaris.alt / 90) * R;
+  const a = polaris.az * DEG;
+  const px = cx + r * Math.sin(a) * zoom + panX;
+  const py = cy - r * Math.cos(a) * zoom + panY;
+  const sr = polaris.r * Math.min(1 + (zoom - 1) * 0.3, 2);
+
+  ctx.save();
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.arc(px, py, sr * 5, 0, Math.PI * 2);
+  ctx.strokeStyle = darkMode ? "rgba(180,210,255,0.5)" : "rgba(10,40,140,0.45)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = darkMode ? "rgba(200,220,255,0.85)" : "rgba(10,40,140,0.75)";
+  ctx.font = `bold 9px Space Mono, monospace`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Polaris", px + sr * 5 + 4, py);
+  ctx.restore();
+}
+
 function draw(
   canvas: HTMLCanvasElement, comp: Computed, tick: number,
   zoom: number, panX: number, panY: number, cityName: string,
-  darkMode: boolean,
+  darkMode: boolean, buildingAlpha: number,
 ) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr, H = canvas.height / dpr;
@@ -290,6 +376,8 @@ function draw(
   }
 
   drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R, darkMode);
+  drawBuildings(ctx, buildingAlpha, zoom, panX, panY, cx, cy, R, darkMode);
+  drawPolarisMarker(ctx, comp, zoom, panX, panY, cx, cy, R, darkMode);
   ctx.restore();
 
   // Horizon ring
@@ -337,12 +425,14 @@ export default function NightSkyMap() {
   const pinchRef        = useRef<{ dist: number; zoom: number } | null>(null);
   const hasDraggedRef   = useRef(false);
   const transitionRef   = useRef<{ fromLat: number; fromLon: number; toLat: number; toLon: number; startTick: number } | null>(null);
+  const buildingAlphaRef  = useRef(0);
+  const buildingTargetRef = useRef(0);
   const date            = useRef(midnightTonight());
 
   const [computed, setComputed]       = useState<Computed | null>(null);
   const [isDragging, setIsDragging]   = useState(false);
   const [zoomLevel, setZoomLevel]     = useState(1);
-  const [locationIdx, setLocationIdx] = useState(0);
+  const [locationIdx, setLocationIdx] = useState(1); // default: Zurich
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError]             = useState("");
 
@@ -365,7 +455,7 @@ export default function NightSkyMap() {
   }, []);
 
   useEffect(() => {
-    try { setComputed(compute(date.current, LOCATIONS[0].lat, LOCATIONS[0].lon)); }
+    try { setComputed(compute(date.current, LOCATIONS[1].lat, LOCATIONS[1].lon)); }
     catch (e) { setError(String(e)); }
   }, []);
 
@@ -404,8 +494,11 @@ export default function NightSkyMap() {
       if (t >= 1) { transitionRef.current = null; setComputed(frameComp); }
     }
 
+    buildingAlphaRef.current += (buildingTargetRef.current - buildingAlphaRef.current) * 0.1;
+
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
-      LOCATIONS[locationIdx].name.split(",")[0], themeRef.current === "dark");
+      LOCATIONS[locationIdx].label, themeRef.current === "dark",
+      buildingAlphaRef.current);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
@@ -479,13 +572,26 @@ export default function NightSkyMap() {
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    const canvas = canvasRef.current;
+    // Reveal buildings when pointer is within 28 CSS-px of the horizon ring
+    if (canvas) {
+      const dpr  = window.devicePixelRatio || 1;
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const R_css = Math.min(cssW, cssH) / 2 - 24;
+      const rect  = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - cssW / 2;
+      const my = e.clientY - rect.top  - cssH / 2;
+      buildingTargetRef.current = Math.abs(Math.sqrt(mx * mx + my * my) - R_css) < 28 ? 1 : 0;
+    }
     if (!dragRef.current) return;
     const dx = e.clientX - dragRef.current.startX, dy = e.clientY - dragRef.current.startY;
     if (Math.sqrt(dx * dx + dy * dy) > 4) hasDraggedRef.current = true;
-    const canvas = canvasRef.current;
     const R = canvas ? Math.min(canvas.width, canvas.height) / (2 * (window.devicePixelRatio || 1)) - 24 : 200;
     panRef.current = clampPan(zoomRef.current, dragRef.current.startPanX + dx, dragRef.current.startPanY + dy, R);
   };
+
+  const onPointerLeave = () => { buildingTargetRef.current = 0; };
 
   const onPointerUp = () => { dragRef.current = null; setIsDragging(false); };
 
@@ -508,6 +614,7 @@ export default function NightSkyMap() {
   const canvasEvents = {
     onClick: onCanvasClick,
     onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
+    onPointerLeave,
     onTouchStart, onTouchEnd, onDoubleClick,
   };
 
@@ -516,7 +623,7 @@ export default function NightSkyMap() {
       {LOCATIONS.map((loc, i) => (
         <button key={loc.name} onClick={() => handleLocationToggle(i)}
           className={`px-3 py-1.5 transition-colors ${locationIdx === i ? "bg-accent/10 text-accent" : "text-muted/40 hover:text-muted/70"}`}>
-          {loc.name}
+          {loc.label}
         </button>
       ))}
     </div>
