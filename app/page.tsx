@@ -8,22 +8,27 @@ import Image from "next/image";
 import Hero from "@/components/Hero";
 import type { SiteUpdate } from "@/lib/schema";
 import { timeAgo } from "@/lib/utils";
+import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
+import type { SectionId } from "@/lib/section-visibility";
 
-const portals = [
+const ALL_PORTALS = [
   {
     href: "/swe",
+    section: "swe" as SectionId,
     number: "01",
     label: "Software Engineering",
     desc: "Projects, experience, and the craft of building things for the internet.",
   },
   {
     href: "/astrophotography",
+    section: "astrophotography" as SectionId,
     number: "02",
     label: "Astrophotography",
     desc: "Deep-sky imaging sessions — acquisition, capture, and processing notes.",
   },
   {
     href: "/writing",
+    section: "writing" as SectionId,
     number: "03",
     label: "Writing",
     desc: "Essays and reflections on technology, the cosmos, and life.",
@@ -32,6 +37,8 @@ const portals = [
 
 export default function Home() {
   const [updates, setUpdates] = useState<SiteUpdate[]>([]);
+  const visibility = useSectionVisibility();
+  const portals = ALL_PORTALS.filter((p) => visibility[p.section]);
 
   useEffect(() => {
     fetch("/api/updates")

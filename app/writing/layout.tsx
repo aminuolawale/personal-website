@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { SITE } from "@/lib/site";
+import { getSession } from "@/lib/auth";
+import { getSectionVisibility } from "@/lib/section-visibility";
 
 export const metadata: Metadata = {
   title: "Writing",
@@ -12,6 +15,8 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE.url}/writing` },
 };
 
-export default function WritingLayout({ children }: { children: React.ReactNode }) {
+export default async function WritingLayout({ children }: { children: React.ReactNode }) {
+  const [isAdmin, visibility] = await Promise.all([getSession(), getSectionVisibility()]);
+  if (!isAdmin && !visibility.writing) notFound();
   return <>{children}</>;
 }

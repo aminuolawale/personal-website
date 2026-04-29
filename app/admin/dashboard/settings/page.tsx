@@ -3,6 +3,7 @@ import ContentEditor from "@/components/admin/ContentEditor";
 import ExperienceEditor from "@/components/admin/ExperienceEditor";
 import ColorPaletteEditor from "@/components/admin/ColorPaletteEditor";
 import FontEditor from "@/components/admin/FontEditor";
+import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const SWE_TABS = [
@@ -25,6 +26,11 @@ export default function SettingsPage() {
       <AdminPageHeader title="Settings" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+        <div>
+          <h2 className="text-surface font-semibold mb-4">Section Visibility</h2>
+          <SectionVisibilityEditor />
+        </div>
+
         <div>
           <h2 className="text-surface font-semibold mb-4">Site Content</h2>
           <ContentEditor />

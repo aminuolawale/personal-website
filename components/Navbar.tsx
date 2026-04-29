@@ -7,17 +7,21 @@ import {AnimatePresence, m} from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import AuthButton from "./AuthButton";
+import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
+import type { SectionId } from "@/lib/section-visibility";
 
-const navItems = [
-  { label: "SWE", href: "/swe" },
-  { label: "Astrophotography", href: "/astrophotography" },
-  { label: "Writing", href: "/writing" },
+const ALL_NAV_ITEMS = [
+  { label: "SWE", href: "/swe", section: "swe" as SectionId },
+  { label: "Astrophotography", href: "/astrophotography", section: "astrophotography" as SectionId },
+  { label: "Writing", href: "/writing", section: "writing" as SectionId },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const visibility = useSectionVisibility();
+  const navItems = ALL_NAV_ITEMS.filter((item) => visibility[item.section]);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 50);
@@ -43,7 +47,8 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <ul className="hidden sm:flex items-center gap-1">
-          {navItems.map((item, i) => {
+          {navItems.map((item) => {
+            const originalIdx = ALL_NAV_ITEMS.findIndex((n) => n.section === item.section);
             const isActive = pathname === item.href;
             return (
               <li key={item.label}>
@@ -51,7 +56,7 @@ export default function Navbar() {
                   href={item.href}
                   className="relative px-4 py-2 font-mono text-sm text-surface hover:text-accent transition-colors group inline-block"
                 >
-                  <span className="text-accent/60 text-xs mr-1">0{i + 1}.</span>
+                  <span className="text-accent/60 text-xs mr-1">0{originalIdx + 1}.</span>
                   {item.label}
                   <span
                     className={`absolute bottom-1 left-4 right-4 h-px bg-accent transition-transform duration-200 origin-left ${
@@ -94,7 +99,9 @@ export default function Navbar() {
             transition={{ duration: 0.2 }}
           >
             <ul className="px-6 py-5 flex flex-col gap-4">
-              {navItems.map((item, i) => (
+              {navItems.map((item) => {
+                const originalIdx = ALL_NAV_ITEMS.findIndex((n) => n.section === item.section);
+                return (
                 <li key={item.label}>
                   <Link
                     href={item.href}
@@ -103,11 +110,12 @@ export default function Navbar() {
                     }`}
                     onClick={() => setMobileOpen(false)}
                   >
-                    <span className="text-accent/60 text-xs mr-2">0{i + 1}.</span>
+                    <span className="text-accent/60 text-xs mr-2">0{originalIdx + 1}.</span>
                     {item.label}
                   </Link>
                 </li>
-              ))}
+                );
+              })}
               <li className="pt-2 border-t border-surface/10">
                 <AuthButton inline />
               </li>
