@@ -362,7 +362,7 @@ function drawPolarisMarker(
 
 function draw(
   canvas: HTMLCanvasElement, comp: Computed, tick: number,
-  zoom: number, panX: number, panY: number, cityName: string,
+  zoom: number, panX: number, panY: number,
   darkMode: boolean, buildingAlpha: number,
   selectedConstellation: string | null,
 ) {
@@ -436,14 +436,6 @@ function draw(
     ctx.fillText(`${zoom.toFixed(1)}×`, cx - R + 6, cy - R + 8);
   }
 
-  // Date / location footer
-  ctx.fillStyle = darkMode ? "rgba(252,158,79,0.3)" : "rgba(184,58,8,0.35)";
-  ctx.font = `8px Space Mono, monospace`;
-  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-  ctx.fillText(
-    `${comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · midnight · ${cityName}`,
-    cx + R - 4, cy + R - 4,
-  );
   ctx.restore();
 }
 
@@ -575,8 +567,7 @@ export default function NightSkyMap() {
     }
 
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
-      LOCATIONS[locationIdx].label, themeRef.current === "dark",
-      buildingAlphaRef.current, selectedConstellationRef.current);
+      themeRef.current === "dark", buildingAlphaRef.current, selectedConstellationRef.current);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
