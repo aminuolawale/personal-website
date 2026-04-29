@@ -14,6 +14,7 @@ const ASTRO_TABS = [
   { id: "calendar", label: "Astro Calendar" },
   { id: "gallery", label: "Gallery" },
   { id: "gear", label: "Gear" },
+  { id: "sky", label: "Night Sky" },
 ];
 
 export default function SettingsPage() {

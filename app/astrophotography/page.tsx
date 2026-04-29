@@ -9,6 +9,7 @@ import ArticlesTab from "@/components/astrophotography/ArticlesTab";
 import CalendarTab from "@/components/astrophotography/CalendarTab";
 import GalleryTab from "@/components/astrophotography/GalleryTab";
 import GearTab from "@/components/astrophotography/GearTab";
+import NightSkyMap from "@/components/astrophotography/NightSkyMap";
 import { useTabOrder } from "@/lib/hooks/use-tab-order";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
@@ -40,6 +41,11 @@ const ASTRO_TABS: AstroTab[] = [
     id: "gear",
     label: "Gear",
     renderContent: () => <GearTab />,
+  },
+  {
+    id: "sky",
+    label: "Night Sky",
+    renderContent: () => <NightSkyMap />,
   },
 ];
 
