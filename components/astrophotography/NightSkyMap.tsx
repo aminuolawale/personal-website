@@ -77,13 +77,26 @@ const PLANET_NAMES = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus",
 
 interface SkyPos { alt: number; az: number }
 
+interface ConstellationInfo {
+  name: string;
+  visible: boolean;            // at least one segment has both endpoints above horizon
+  segs: [SkyPos, SkyPos][];
+  centroid: SkyPos | null;     // circular-mean centre of visible endpoints
+}
+
 interface Computed {
-  stars:   (SkyPos & { r: number; sp: string; name?: string; mag: number })[];
-  constellationSegs: [SkyPos, SkyPos][];
-  dso:     (SkyPos & { name: string; type: string; mag: number })[];
-  planets: (SkyPos & { name: string; radius: number })[];
-  moon:    (SkyPos & { phase: number }) | null;
-  date:    Date;
+  stars:          (SkyPos & { r: number; sp: string; name?: string; mag: number })[];
+  constellations: ConstellationInfo[];
+  dso:            (SkyPos & { name: string; type: string; mag: number })[];
+  planets:        (SkyPos & { name: string; radius: number })[];
+  moon:           (SkyPos & { phase: number }) | null;
+  date:           Date;
+}
+
+function circularMeanAz(azimuths: number[]): number {
+  const sinSum = azimuths.reduce((s, a) => s + Math.sin(a * DEG), 0);
+  const cosSum = azimuths.reduce((s, a) => s + Math.cos(a * DEG), 0);
+  return ((Math.atan2(sinSum, cosSum) / DEG) + 360) % 360;
 }
 
 function compute(date: Date, lat: number, lon: number): Computed {
@@ -102,16 +115,21 @@ function compute(date: Date, lat: number, lon: number): Computed {
     if (p) stars.push({ ...p, r: starRadius(mag), sp: "A", mag });
   }
 
-  const constellationSegs: [SkyPos, SkyPos][] = [];
-  for (const con of CONSTELLATIONS) {
+  const constellations: ConstellationInfo[] = CONSTELLATIONS.map((con) => {
+    const segs: [SkyPos, SkyPos][] = [];
+    const pts: SkyPos[] = [];
     for (const poly of con.lines) {
       for (let i = 0; i < poly.length - 1; i++) {
         const a = skyPos(poly[i][0], poly[i][1]);
         const b = skyPos(poly[i + 1][0], poly[i + 1][1]);
-        if (a && b) constellationSegs.push([a, b]);
+        if (a && b) { segs.push([a, b]); pts.push(a, b); }
       }
     }
-  }
+    const centroid: SkyPos | null = pts.length
+      ? { alt: pts.reduce((s, p) => s + p.alt, 0) / pts.length, az: circularMeanAz(pts.map((p) => p.az)) }
+      : null;
+    return { name: con.name, visible: segs.length > 0, segs, centroid };
+  });
 
   const dso = DSO_OBJECTS.flatMap((o) => {
     const p = skyPos(o.ra, o.dec);
@@ -129,7 +147,7 @@ function compute(date: Date, lat: number, lon: number): Computed {
 
   const { ra: mRa, dec: mDec } = moonPosition(date);
   const mp = skyPos(mRa, mDec);
-  return { stars, constellationSegs, dso, planets, moon: mp ? { ...mp, phase: moonPhase(date) } : null, date };
+  return { stars, constellations, dso, planets, moon: mp ? { ...mp, phase: moonPhase(date) } : null, date };
 }
 
 function drawSkyObjects(
@@ -138,6 +156,7 @@ function drawSkyObjects(
   zoom: number, panX: number, panY: number,
   cx: number, cy: number, R: number,
   darkMode: boolean,
+  selectedConstellation: string | null,
 ) {
   function sc(alt: number, az: number): [number, number] {
     const baseR = (1 - alt / 90) * R;
@@ -145,12 +164,26 @@ function drawSkyObjects(
     return [cx + baseR * Math.sin(a) * zoom + panX, cy - baseR * Math.cos(a) * zoom + panY];
   }
 
-  // Constellation lines
-  ctx.strokeStyle = darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)";
-  ctx.lineWidth = 0.8;
-  for (const [a, b] of comp.constellationSegs) {
-    const [x1, y1] = sc(a.alt, a.az), [x2, y2] = sc(b.alt, b.az);
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  // Constellation lines — only draw the selected one when one is active
+  for (const con of comp.constellations) {
+    const isSelected = selectedConstellation === con.name;
+    if (selectedConstellation !== null && !isSelected) continue;
+    ctx.strokeStyle = isSelected
+      ? (darkMode ? "rgba(130,160,255,0.65)" : "rgba(40,60,180,0.5)")
+      : (darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)");
+    ctx.lineWidth = isSelected ? 1.2 : 0.8;
+    for (const [a, b] of con.segs) {
+      const [x1, y1] = sc(a.alt, a.az), [x2, y2] = sc(b.alt, b.az);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    // Draw constellation name label near centroid when selected
+    if (isSelected && con.centroid) {
+      const [lx, ly] = sc(con.centroid.alt, con.centroid.az);
+      ctx.fillStyle = darkMode ? "rgba(160,185,255,0.85)" : "rgba(40,60,180,0.75)";
+      ctx.font = `bold 10px Space Mono, monospace`;
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillText(con.name, lx, ly - 6);
+    }
   }
 
   // DSO
@@ -331,6 +364,7 @@ function draw(
   canvas: HTMLCanvasElement, comp: Computed, tick: number,
   zoom: number, panX: number, panY: number, cityName: string,
   darkMode: boolean, buildingAlpha: number,
+  selectedConstellation: string | null,
 ) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr, H = canvas.height / dpr;
@@ -375,7 +409,7 @@ function draw(
     }
   }
 
-  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R, darkMode);
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R, darkMode, selectedConstellation);
   drawBuildings(ctx, buildingAlpha, zoom, panX, panY, cx, cy, R, darkMode);
   drawPolarisMarker(ctx, comp, zoom, panX, panY, cx, cy, R, darkMode);
   ctx.restore();
@@ -425,16 +459,21 @@ export default function NightSkyMap() {
   const pinchRef        = useRef<{ dist: number; zoom: number } | null>(null);
   const hasDraggedRef   = useRef(false);
   const transitionRef   = useRef<{ fromLat: number; fromLon: number; toLat: number; toLon: number; startTick: number } | null>(null);
-  const buildingAlphaRef  = useRef(0);
-  const buildingTargetRef = useRef(0);
+  const buildingAlphaRef       = useRef(0);
+  const buildingTargetRef      = useRef(0);
+  const selectedConstellationRef = useRef<string | null>(null);
+  const panTransitionRef       = useRef<{
+    fromX: number; fromY: number; toX: number; toY: number; startTick: number;
+  } | null>(null);
   const date            = useRef(midnightTonight());
 
-  const [computed, setComputed]       = useState<Computed | null>(null);
-  const [isDragging, setIsDragging]   = useState(false);
-  const [zoomLevel, setZoomLevel]     = useState(1);
-  const [locationIdx, setLocationIdx] = useState(1); // default: Zurich
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [error, setError]             = useState("");
+  const [computed, setComputed]             = useState<Computed | null>(null);
+  const [isDragging, setIsDragging]         = useState(false);
+  const [zoomLevel, setZoomLevel]           = useState(1);
+  const [locationIdx, setLocationIdx]       = useState(1); // default: Zurich
+  const [isFullscreen, setIsFullscreen]     = useState(false);
+  const [selectedConstellation, setSelectedConstellation] = useState<string | null>(null);
+  const [error, setError]                   = useState("");
 
   // Keep theme ref in sync so RAF callback always reads current theme
   useEffect(() => { themeRef.current = theme; }, [theme]);
@@ -458,6 +497,35 @@ export default function NightSkyMap() {
     try { setComputed(compute(date.current, LOCATIONS[1].lat, LOCATIONS[1].lon)); }
     catch (e) { setError(String(e)); }
   }, []);
+
+  const handleConstellationSelect = useCallback((name: string | null) => {
+    const next = selectedConstellationRef.current === name ? null : name;
+    selectedConstellationRef.current = next;
+    setSelectedConstellation(next);
+
+    if (!next || !computed) return;
+    const con = computed.constellations.find((c) => c.name === next);
+    if (!con?.visible || !con.centroid) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.width / dpr, H = canvas.height / dpr;
+    const R = Math.min(W, H) / 2 - 24;
+    if (R <= 0) return;
+
+    const baseR = (1 - con.centroid.alt / 90) * R;
+    const a = con.centroid.az * DEG;
+    const targetPanX = -(baseR * Math.sin(a)) * zoomRef.current;
+    const targetPanY =  (baseR * Math.cos(a)) * zoomRef.current;
+    const clamped = clampPan(zoomRef.current, targetPanX, targetPanY, R);
+
+    panTransitionRef.current = {
+      fromX: panRef.current.x, fromY: panRef.current.y,
+      toX: clamped.x, toY: clamped.y,
+      startTick: 0,
+    };
+  }, [computed]);
 
   const handleLocationToggle = useCallback((newIdx: number) => {
     if (newIdx === locationIdx) return;
@@ -496,9 +564,19 @@ export default function NightSkyMap() {
 
     buildingAlphaRef.current += (buildingTargetRef.current - buildingAlphaRef.current) * 0.1;
 
+    // Smooth pan-to-constellation animation
+    const pt = panTransitionRef.current;
+    if (pt) {
+      if (pt.startTick === 0) pt.startTick = tick;
+      const t = Math.min(1, (tick - pt.startTick) / 700);
+      const ease = easeInOut(t);
+      panRef.current = { x: lerp(pt.fromX, pt.toX, ease), y: lerp(pt.fromY, pt.toY, ease) };
+      if (t >= 1) panTransitionRef.current = null;
+    }
+
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
       LOCATIONS[locationIdx].label, themeRef.current === "dark",
-      buildingAlphaRef.current);
+      buildingAlphaRef.current, selectedConstellationRef.current);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
@@ -607,7 +685,11 @@ export default function NightSkyMap() {
   };
 
   const onTouchEnd   = () => { pinchRef.current = null; };
-  const onDoubleClick = () => { zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1); };
+  const onDoubleClick = () => {
+    zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1);
+    selectedConstellationRef.current = null; setSelectedConstellation(null);
+    panTransitionRef.current = null;
+  };
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
 
@@ -665,8 +747,12 @@ export default function NightSkyMap() {
 
   // ── Fullscreen overlay ─────────────────────────────────────────────────
   if (isFullscreen) {
+    const constellationList = computed?.constellations ?? [];
+    const visibleCount = constellationList.filter((c) => c.visible).length;
+
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-hidden ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
+      <div className={`fixed inset-0 z-50 flex flex-col px-4 pt-3 pb-4 gap-2 overflow-hidden ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
+        {/* Header */}
         <div className="w-full flex items-center justify-between shrink-0">
           <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
             {nightLabel} &nbsp;·&nbsp; midnight
@@ -677,23 +763,100 @@ export default function NightSkyMap() {
           </button>
         </div>
 
-        <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
-          <canvas
-            ref={canvasRef}
-            className="block rounded-full"
-            style={{ aspectRatio: "1", maxHeight: "100%", maxWidth: "100%", width: "auto", height: "auto", cursor: isDragging ? "grabbing" : "grab" }}
-            {...canvasEvents}
-          />
-          {!computed && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="font-mono text-xs text-muted/30">Computing sky…</p>
+        {/* Main: canvas + desktop sidebar */}
+        <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-3 overflow-hidden w-full">
+          {/* Canvas */}
+          <div className="relative flex-1 min-h-0 min-w-0 flex items-center justify-center">
+            <canvas
+              ref={canvasRef}
+              className="block rounded-full"
+              style={{ aspectRatio: "1", maxHeight: "100%", maxWidth: "100%", width: "auto", height: "auto", cursor: isDragging ? "grabbing" : "grab" }}
+              {...canvasEvents}
+            />
+            {!computed && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="font-mono text-xs text-muted/30">Computing sky…</p>
+              </div>
+            )}
+          </div>
+
+          {/* Constellation sidebar — desktop only */}
+          <div className="hidden sm:flex flex-col w-44 shrink-0 overflow-hidden border-l border-surface/[0.06]">
+            <div className="flex items-center justify-between px-3 py-2 shrink-0 border-b border-surface/[0.06]">
+              <span className="font-mono text-[9px] text-muted/30 uppercase tracking-widest">Constellations</span>
+              <span className="font-mono text-[9px] text-muted/25">{visibleCount}/{constellationList.length}</span>
             </div>
-          )}
+            <div className="overflow-y-auto flex-1">
+              {constellationList.map((con) => {
+                const isActive = selectedConstellation === con.name;
+                return (
+                  <button
+                    key={con.name}
+                    onClick={() => con.visible ? handleConstellationSelect(con.name) : undefined}
+                    disabled={!con.visible}
+                    className={`w-full text-left px-3 py-1.5 font-mono text-[11px] transition-colors flex items-center gap-1.5 ${
+                      !con.visible
+                        ? "text-muted/18 cursor-default"
+                        : isActive
+                          ? "text-accent bg-accent/8"
+                          : "text-muted/50 hover:text-muted/80 hover:bg-surface/[0.04]"
+                    }`}
+                  >
+                    {isActive && <span className="text-accent text-[8px]">●</span>}
+                    {!isActive && con.visible && <span className="w-[10px]" />}
+                    {!isActive && !con.visible && <span className="text-muted/15 text-[8px]">○</span>}
+                    {con.name}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedConstellation && (
+              <button
+                onClick={() => handleConstellationSelect(null)}
+                className="shrink-0 px-3 py-2 font-mono text-[10px] text-muted/30 hover:text-muted/60 transition-colors border-t border-surface/[0.06] text-left"
+              >
+                Show all
+              </button>
+            )}
+          </div>
         </div>
 
-        {locationToggle}
-        {zoomControls}
-        <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none shrink-0">
+        {/* Constellation strip — mobile only */}
+        <div className="sm:hidden flex flex-row overflow-x-auto gap-1.5 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {selectedConstellation && (
+            <button
+              onClick={() => handleConstellationSelect(null)}
+              className="shrink-0 font-mono text-[10px] px-2.5 py-1 border border-accent/40 text-accent/60 hover:text-accent transition-colors"
+            >
+              All
+            </button>
+          )}
+          {constellationList.map((con) => {
+            const isActive = selectedConstellation === con.name;
+            return (
+              <button
+                key={con.name}
+                onClick={() => con.visible ? handleConstellationSelect(con.name) : undefined}
+                disabled={!con.visible}
+                className={`shrink-0 font-mono text-[10px] px-2.5 py-1 border transition-colors ${
+                  !con.visible
+                    ? "text-muted/15 border-muted/10 cursor-default"
+                    : isActive
+                      ? "text-accent border-accent bg-accent/10"
+                      : "text-muted/45 border-muted/20 hover:text-muted/75 hover:border-muted/40"
+                }`}
+              >
+                {con.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
+          {locationToggle}
+          {zoomControls}
+        </div>
+        <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none shrink-0 text-center">
           scroll · pinch &nbsp;·&nbsp; drag to pan &nbsp;·&nbsp; double-click to reset &nbsp;·&nbsp; esc to close
         </p>
         {legend}
