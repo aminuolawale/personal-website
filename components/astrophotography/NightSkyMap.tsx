@@ -533,15 +533,14 @@ export default function NightSkyMap() {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
 
-    // The canvas HTML defaults (300×150) combined with mobile DPR (2–3) gives
-    // R ≈ 0, rendering nothing. If the buffer is still non-square (i.e. the
-    // ResizeObserver hasn't fired yet), size it from the layout rect right now.
-    if (canvas.width !== canvas.height) {
-      const { width } = canvas.getBoundingClientRect();
-      if (width < 1) { rafRef.current = requestAnimationFrame(animate); return; }
+    // Before ResizeObserver fires, the canvas defaults to 300×150.
+    // Size it from the layout rect on the first frame.
+    if (canvas.width === 300 || canvas.height === 150) {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 1) { rafRef.current = requestAnimationFrame(animate); return; }
       const dpr = window.devicePixelRatio || 1;
-      canvas.width  = Math.round(width) * dpr;
-      canvas.height = Math.round(width) * dpr;
+      canvas.width  = Math.round(rect.width) * dpr;
+      canvas.height = Math.round(rect.height || rect.width) * dpr;
     }
 
     let frameComp = computed;
@@ -581,11 +580,12 @@ export default function NightSkyMap() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ro = new ResizeObserver(([entry]) => {
-      const size = Math.round(entry.contentRect.width);
-      if (size < 1) return;
+      const w = Math.round(entry.contentRect.width);
+      const h = Math.round(entry.contentRect.height);
+      if (w < 1 || h < 1) return;
       const dpr = window.devicePixelRatio || 1;
-      canvas.width  = size * dpr;
-      canvas.height = size * dpr;
+      canvas.width  = w * dpr;
+      canvas.height = (h || w) * dpr;
     });
     ro.observe(canvas);
     return () => ro.disconnect();
@@ -740,32 +740,80 @@ export default function NightSkyMap() {
   if (isFullscreen) {
     const constellationList = computed?.constellations ?? [];
     const visibleCount = constellationList.filter((c) => c.visible).length;
+    const bgClass = theme === "dark" ? "bg-[#020122]" : "bg-white";
+    const topGradient = theme === "dark"
+      ? "linear-gradient(to bottom, rgba(2,1,34,0.88) 0%, transparent 100%)"
+      : "linear-gradient(to bottom, rgba(255,255,255,0.88) 0%, transparent 100%)";
+    const bottomGradient = theme === "dark"
+      ? "linear-gradient(to top, rgba(2,1,34,0.95) 0%, transparent 100%)"
+      : "linear-gradient(to top, rgba(255,255,255,0.95) 0%, transparent 100%)";
+
+    const closeButton = (
+      <button onClick={() => setIsFullscreen(false)}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors font-mono text-sm shrink-0">
+        ✕
+      </button>
+    );
+
+    const constellationStrip = (
+      <div className="flex flex-row overflow-x-auto gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {selectedConstellation && (
+          <button onClick={() => handleConstellationSelect(null)}
+            className="shrink-0 font-mono text-[10px] px-2.5 py-1 border border-accent/40 text-accent/60 hover:text-accent transition-colors">
+            All
+          </button>
+        )}
+        {constellationList.map((con) => {
+          const isActive = selectedConstellation === con.name;
+          return (
+            <button key={con.name}
+              onClick={() => con.visible ? handleConstellationSelect(con.name) : undefined}
+              disabled={!con.visible}
+              className={`shrink-0 font-mono text-[10px] px-2.5 py-1 border transition-colors ${
+                !con.visible
+                  ? "text-muted/15 border-muted/10 cursor-default"
+                  : isActive
+                    ? "text-accent border-accent bg-accent/10"
+                    : "text-muted/45 border-muted/20 hover:text-muted/75 hover:border-muted/40"
+              }`}>
+              {con.name}
+            </button>
+          );
+        })}
+      </div>
+    );
 
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col px-4 pt-3 pb-4 gap-2 overflow-hidden ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
-        {/* Header */}
-        <div className="w-full flex items-center justify-between shrink-0">
+      <div className={`fixed inset-0 z-50 overflow-hidden flex flex-col ${bgClass}`}>
+
+        {/* Desktop header */}
+        <div className="hidden sm:flex w-full items-center justify-between shrink-0 px-4 pt-3 pb-2">
           <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
             {nightLabel} &nbsp;·&nbsp; midnight
           </span>
-          <button onClick={() => setIsFullscreen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-full border border-muted/20 text-muted/50 hover:text-muted/80 hover:border-muted/40 transition-colors font-mono text-sm">
-            ✕
-          </button>
+          {closeButton}
         </div>
 
-        {/* Main: canvas + desktop sidebar */}
-        <div className="flex-1 min-h-0 flex flex-col sm:flex-row gap-3 overflow-hidden w-full">
-          {/* Canvas */}
-          <div className="relative flex-1 min-h-0 min-w-0 flex items-center justify-center">
+        {/* Middle: canvas area + desktop sidebar. `relative` anchors mobile absolute children. */}
+        <div className="flex-1 min-h-0 relative sm:flex sm:flex-row sm:gap-3 sm:px-4 sm:pb-2 sm:overflow-hidden">
+
+          {/* Canvas wrapper:
+              Mobile  — absolute inset-0, canvas fills the full screen
+              Desktop — flex-1 static container, canvas is a centred square */}
+          <div className="absolute inset-0 sm:relative sm:flex-1 sm:min-h-0 sm:min-w-0 sm:flex sm:items-center sm:justify-center">
             <canvas
               ref={canvasRef}
-              className="block rounded-full"
-              style={{ aspectRatio: "1", maxHeight: "100%", maxWidth: "100%", width: "auto", height: "auto", cursor: isDragging ? "grabbing" : "grab" }}
+              className="block w-full h-full sm:w-auto sm:h-auto sm:rounded-full"
+              style={{
+                aspectRatio: "1",
+                maxHeight: "100%",
+                maxWidth: "100%",
+                cursor: isDragging ? "grabbing" : "grab",
+              }}
               {...canvasEvents}
             />
             {!computed && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="font-mono text-xs text-muted/30">Computing sky…</p>
               </div>
             )}
@@ -781,8 +829,7 @@ export default function NightSkyMap() {
               {constellationList.map((con) => {
                 const isActive = selectedConstellation === con.name;
                 return (
-                  <button
-                    key={con.name}
+                  <button key={con.name}
                     onClick={() => con.visible ? handleConstellationSelect(con.name) : undefined}
                     disabled={!con.visible}
                     className={`w-full text-left px-3 py-1.5 font-mono text-[11px] transition-colors flex items-center gap-1.5 ${
@@ -791,8 +838,7 @@ export default function NightSkyMap() {
                         : isActive
                           ? "text-accent bg-accent/8"
                           : "text-muted/50 hover:text-muted/80 hover:bg-surface/[0.04]"
-                    }`}
-                  >
+                    }`}>
                     {isActive && <span className="text-accent text-[8px]">●</span>}
                     {!isActive && con.visible && <span className="w-[10px]" />}
                     {!isActive && !con.visible && <span className="text-muted/15 text-[8px]">○</span>}
@@ -802,56 +848,47 @@ export default function NightSkyMap() {
               })}
             </div>
             {selectedConstellation && (
-              <button
-                onClick={() => handleConstellationSelect(null)}
-                className="shrink-0 px-3 py-2 font-mono text-[10px] text-muted/30 hover:text-muted/60 transition-colors border-t border-surface/[0.06] text-left"
-              >
+              <button onClick={() => handleConstellationSelect(null)}
+                className="shrink-0 px-3 py-2 font-mono text-[10px] text-muted/30 hover:text-muted/60 transition-colors border-t border-surface/[0.06] text-left">
                 Show all
               </button>
             )}
           </div>
+
+          {/* Mobile control overlays — layered on top of the full-bleed canvas */}
+          <div className="sm:hidden absolute inset-0 pointer-events-none">
+            {/* Top: date + close */}
+            <div className="absolute top-0 inset-x-0 flex items-start justify-between px-4 pt-3 pb-14 pointer-events-auto"
+              style={{ background: topGradient }}>
+              <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase pt-0.5">{nightLabel}</span>
+              {closeButton}
+            </div>
+            {/* Bottom: constellation strip + location + zoom + hint */}
+            <div className="absolute bottom-0 inset-x-0 flex flex-col gap-2.5 px-4 pt-12 pb-5 pointer-events-auto"
+              style={{ background: bottomGradient }}>
+              {constellationStrip}
+              <div className="flex flex-col items-center gap-2">
+                {locationToggle}
+                {zoomControls}
+              </div>
+              <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none text-center">
+                pinch&nbsp;·&nbsp;drag&nbsp;·&nbsp;double-tap to reset
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Constellation strip — mobile only */}
-        <div className="sm:hidden flex flex-row overflow-x-auto gap-1.5 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {selectedConstellation && (
-            <button
-              onClick={() => handleConstellationSelect(null)}
-              className="shrink-0 font-mono text-[10px] px-2.5 py-1 border border-accent/40 text-accent/60 hover:text-accent transition-colors"
-            >
-              All
-            </button>
-          )}
-          {constellationList.map((con) => {
-            const isActive = selectedConstellation === con.name;
-            return (
-              <button
-                key={con.name}
-                onClick={() => con.visible ? handleConstellationSelect(con.name) : undefined}
-                disabled={!con.visible}
-                className={`shrink-0 font-mono text-[10px] px-2.5 py-1 border transition-colors ${
-                  !con.visible
-                    ? "text-muted/15 border-muted/10 cursor-default"
-                    : isActive
-                      ? "text-accent border-accent bg-accent/10"
-                      : "text-muted/45 border-muted/20 hover:text-muted/75 hover:border-muted/40"
-                }`}
-              >
-                {con.name}
-              </button>
-            );
-          })}
+        {/* Desktop controls */}
+        <div className="hidden sm:flex flex-col shrink-0 px-4 pb-4 pt-1 gap-2 items-center">
+          <div className="flex flex-row items-center justify-center gap-3">
+            {locationToggle}
+            {zoomControls}
+          </div>
+          <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none text-center">
+            scroll&nbsp;·&nbsp;pinch&nbsp;·&nbsp;drag to pan&nbsp;·&nbsp;double-click to reset&nbsp;·&nbsp;esc to close
+          </p>
+          {legend}
         </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 shrink-0">
-          {locationToggle}
-          {zoomControls}
-        </div>
-        <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none shrink-0 text-center">
-          <span className="sm:hidden">pinch&nbsp;·&nbsp;drag&nbsp;·&nbsp;double-tap to reset</span>
-          <span className="hidden sm:inline">scroll&nbsp;·&nbsp;pinch&nbsp;·&nbsp;drag to pan&nbsp;·&nbsp;double-click to reset&nbsp;·&nbsp;esc to close</span>
-        </p>
-        <div className="hidden sm:block shrink-0">{legend}</div>
       </div>
     );
   }
