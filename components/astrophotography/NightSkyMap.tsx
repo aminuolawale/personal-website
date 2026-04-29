@@ -6,10 +6,11 @@ import { draw, clampPan } from "@/lib/sky-draw";
 import { useTheme } from "@/components/ThemeProvider";
 
 const LOCATIONS = [
-  { name: "North Pole",          label: "N. Pole", lat:  89.99, lon:  0    },
-  { name: "Zurich, Switzerland", label: "Zurich",  lat:  47.37, lon:  8.54 },
-  { name: "Lagos, Nigeria",      label: "Lagos",   lat:   6.52, lon:  3.38 },
-  { name: "South Pole",          label: "S. Pole", lat: -89.99, lon:  0    },
+  { name: "North Pole",          label: "N. Pole", lat:  89.99, lon:   0    },
+  { name: "Zurich, Switzerland", label: "Zurich",  lat:  47.37, lon:   8.54 },
+  { name: "Lagos, Nigeria",      label: "Lagos",   lat:   6.52, lon:   3.38 },
+  { name: "Kyiv, Ukraine",       label: "Kyiv",    lat:  50.45, lon:  30.52 },
+  { name: "South Pole",          label: "S. Pole", lat: -89.99, lon:   0    },
 ] as const;
 
 const MIN_ZOOM = 0.5;
