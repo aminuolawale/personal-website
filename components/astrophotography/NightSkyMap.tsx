@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { lst, raDecToAltAz, planetPosition, moonPosition, moonPhase } from "@/lib/sky-math";
 import { NAMED_STARS, BG_STARS, CONSTELLATIONS, DSO_OBJECTS, PLANET_STYLES } from "@/lib/sky-data";
+import { useTheme } from "@/components/ThemeProvider";
 
 const LOCATIONS = [
   { name: "Zurich, Switzerland", lat: 47.37, lon: 8.54 },
@@ -26,7 +27,7 @@ function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * 
 
 function starRadius(mag: number) { return Math.max(0.4, 3.2 - mag * 0.65); }
 
-function starColor(sp: string, alpha: number): string {
+function starColorDark(sp: string, alpha: number): string {
   const map: Record<string, string> = {
     O: `rgba(155,180,255,${alpha})`, B: `rgba(190,210,255,${alpha})`,
     A: `rgba(255,255,255,${alpha})`, F: `rgba(255,255,220,${alpha})`,
@@ -36,15 +37,30 @@ function starColor(sp: string, alpha: number): string {
   return map[sp] ?? `rgba(255,255,255,${alpha})`;
 }
 
+function starColorLight(sp: string, alpha: number): string {
+  const map: Record<string, string> = {
+    O: `rgba(10,30,130,${alpha})`,  B: `rgba(20,50,150,${alpha})`,
+    A: `rgba(10,10,60,${alpha})`,   F: `rgba(60,45,0,${alpha})`,
+    G: `rgba(80,55,0,${alpha})`,    K: `rgba(100,30,0,${alpha})`,
+    M: `rgba(110,10,0,${alpha})`,
+  };
+  return map[sp] ?? `rgba(10,10,60,${alpha})`;
+}
+
+const LIGHT_PLANET_COLORS: Record<string, string> = {
+  Mercury: "#5a5a6a", Venus: "#8a6a00", Mars: "#cc3311",
+  Jupiter: "#9a7030", Saturn: "#8a6820", Uranus: "#006070", Neptune: "#2030b0",
+};
+
 const PLANET_NAMES = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"] as const;
 
 interface SkyPos { alt: number; az: number }
 
 interface Computed {
-  stars:   (SkyPos & { r: number; color: string; name?: string; mag: number })[];
+  stars:   (SkyPos & { r: number; sp: string; name?: string; mag: number })[];
   constellationSegs: [SkyPos, SkyPos][];
   dso:     (SkyPos & { name: string; type: string; mag: number })[];
-  planets: (SkyPos & { name: string; color: string; radius: number })[];
+  planets: (SkyPos & { name: string; radius: number })[];
   moon:    (SkyPos & { phase: number }) | null;
   date:    Date;
 }
@@ -58,11 +74,11 @@ function compute(date: Date, lat: number, lon: number): Computed {
 
   const stars: Computed["stars"] = NAMED_STARS.flatMap((s) => {
     const p = skyPos(s.ra, s.dec);
-    return p ? [{ ...p, r: starRadius(s.mag), color: starColor(s.sp, 1), name: s.name, mag: s.mag }] : [];
+    return p ? [{ ...p, r: starRadius(s.mag), sp: s.sp, name: s.name, mag: s.mag }] : [];
   });
   for (const [ra, dec, mag] of BG_STARS) {
     const p = skyPos(ra, dec);
-    if (p) stars.push({ ...p, r: starRadius(mag), color: starColor("A", 0.8), mag });
+    if (p) stars.push({ ...p, r: starRadius(mag), sp: "A", mag });
   }
 
   const constellationSegs: [SkyPos, SkyPos][] = [];
@@ -86,8 +102,7 @@ function compute(date: Date, lat: number, lon: number): Computed {
       const { ra, dec } = planetPosition(name, date);
       const p = skyPos(ra, dec);
       if (!p) return [];
-      const style = PLANET_STYLES[name];
-      return [{ ...p, name, color: style.color, radius: style.radius }];
+      return [{ ...p, name, radius: PLANET_STYLES[name].radius }];
     } catch { return []; }
   });
 
@@ -101,6 +116,7 @@ function drawSkyObjects(
   comp: Computed, tick: number,
   zoom: number, panX: number, panY: number,
   cx: number, cy: number, R: number,
+  darkMode: boolean,
 ) {
   function sc(alt: number, az: number): [number, number] {
     const baseR = (1 - alt / 90) * R;
@@ -108,78 +124,110 @@ function drawSkyObjects(
     return [cx + baseR * Math.sin(a) * zoom + panX, cy - baseR * Math.cos(a) * zoom + panY];
   }
 
-  ctx.strokeStyle = "rgba(130,160,255,0.22)";
+  // Constellation lines
+  ctx.strokeStyle = darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)";
   ctx.lineWidth = 0.8;
   for (const [a, b] of comp.constellationSegs) {
     const [x1, y1] = sc(a.alt, a.az), [x2, y2] = sc(b.alt, b.az);
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
   }
 
+  // DSO
   for (const o of comp.dso) {
     const [ox, oy] = sc(o.alt, o.az);
     const rDso = (o.type === "galaxy" ? 9 : o.type === "cluster" ? 7 : 6) * Math.min(zoom, 2);
     const al = Math.max(0.1, 0.55 - o.mag * 0.06);
     const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, rDso);
-    glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${al * 1.5})` : `rgba(180,200,255,${al * 1.8})`);
+    if (darkMode) {
+      glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${al * 1.5})` : `rgba(180,200,255,${al * 1.8})`);
+    } else {
+      glow.addColorStop(0, o.type === "nebula" ? `rgba(120,0,160,${al * 1.2})` : `rgba(10,40,140,${al * 1.5})`);
+    }
     glow.addColorStop(1, "transparent");
     ctx.beginPath(); ctx.arc(ox, oy, rDso, 0, Math.PI * 2);
     ctx.fillStyle = glow; ctx.fill();
-    ctx.fillStyle = "rgba(180,200,255,0.5)";
+    ctx.fillStyle = darkMode ? "rgba(180,200,255,0.5)" : "rgba(10,40,140,0.5)";
     ctx.font = `8px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(o.name, ox + rDso + 3, oy);
   }
 
+  // Stars
   for (const s of comp.stars) {
     const [sx, sy] = sc(s.alt, s.az);
+    const color = darkMode ? starColorDark(s.sp, 1) : starColorLight(s.sp, 1);
+    const bgAlpha = darkMode ? 0.8 : 0.7;
+    const bgColor = darkMode ? starColorDark(s.sp, bgAlpha) : starColorLight(s.sp, bgAlpha);
     const twinkle = s.name ? 0.85 + 0.15 * Math.sin(tick * 0.0018 + sx * 7.3) : 0.75 + 0.25 * Math.random();
     const sr = s.r * Math.min(1 + (zoom - 1) * 0.3, 2);
     if (sr > 1.2) {
       const halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3.5);
-      halo.addColorStop(0, s.color.replace(/[\d.]+\)$/, `${0.35 * twinkle})`));
+      halo.addColorStop(0, bgColor.replace(/[\d.]+\)$/, `${0.35 * twinkle})`));
       halo.addColorStop(1, "transparent");
       ctx.beginPath(); ctx.arc(sx, sy, sr * 3.5, 0, Math.PI * 2); ctx.fillStyle = halo; ctx.fill();
     }
-    ctx.beginPath(); ctx.arc(sx, sy, sr * twinkle, 0, Math.PI * 2); ctx.fillStyle = s.color; ctx.fill();
+    ctx.beginPath(); ctx.arc(sx, sy, sr * twinkle, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
   }
 
+  // Star name labels
   const magThreshold = zoom >= 4 ? 4.5 : zoom >= 3 ? 3.5 : zoom >= 2 ? 2.5 : 1.4;
   ctx.textBaseline = "middle";
   for (const s of comp.stars) {
     if (!s.name || s.mag > magThreshold) continue;
     const [sx, sy] = sc(s.alt, s.az);
-    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = `9px Space Mono, monospace`;
+    ctx.fillStyle = darkMode ? "rgba(255,255,255,0.55)" : "rgba(10,10,60,0.55)";
+    ctx.font = `9px Space Mono, monospace`;
     ctx.textAlign = "left"; ctx.fillText(s.name, sx + s.r + 4, sy - 4);
   }
 
+  // Moon
   if (comp.moon) {
     const [mx, my] = sc(comp.moon.alt, comp.moon.az);
     const { phase } = comp.moon;
     const mr = 10 * Math.min(1 + (zoom - 1) * 0.4, 2);
     const moonGlow = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 3);
-    moonGlow.addColorStop(0, "rgba(230,230,200,0.25)"); moonGlow.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
-    ctx.save();
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip();
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fillStyle = "rgba(230,225,200,0.9)"; ctx.fill();
-    const k = Math.cos((phase * Math.PI) / 180);
-    ctx.fillStyle = "rgba(4,4,20,0.88)";
-    ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2);
-    ctx.bezierCurveTo(mx + k * mr, my - mr, mx + k * mr, my + mr, mx, my + mr); ctx.fill();
-    ctx.restore();
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(230,225,200,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
-    ctx.fillStyle = "rgba(230,225,200,0.7)"; ctx.font = `bold 9px Space Mono, monospace`;
+    if (darkMode) {
+      moonGlow.addColorStop(0, "rgba(230,230,200,0.25)"); moonGlow.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fillStyle = "rgba(230,225,200,0.9)"; ctx.fill();
+      const k = Math.cos((phase * Math.PI) / 180);
+      ctx.fillStyle = "rgba(4,4,20,0.88)";
+      ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2);
+      ctx.bezierCurveTo(mx + k * mr, my - mr, mx + k * mr, my + mr, mx, my + mr); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(230,225,200,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.fillStyle = "rgba(230,225,200,0.7)";
+    } else {
+      moonGlow.addColorStop(0, "rgba(50,55,70,0.12)"); moonGlow.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.arc(mx, my, mr * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fillStyle = "rgba(50,55,70,0.85)"; ctx.fill();
+      const k = Math.cos((phase * Math.PI) / 180);
+      ctx.fillStyle = "rgba(225,228,240,0.92)";
+      ctx.beginPath(); ctx.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2);
+      ctx.bezierCurveTo(mx + k * mr, my - mr, mx + k * mr, my + mr, mx, my + mr); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(50,55,70,0.35)"; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.fillStyle = "rgba(50,55,70,0.7)";
+    }
+    ctx.font = `bold 9px Space Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("Moon", mx + mr + 4, my);
   }
 
+  // Planets
   for (const p of comp.planets) {
     const [px, py] = sc(p.alt, p.az);
     const pr = p.radius * Math.min(1 + (zoom - 1) * 0.4, 2);
+    const pColor = darkMode ? PLANET_STYLES[p.name].color : (LIGHT_PLANET_COLORS[p.name] ?? "#333");
     const pg = ctx.createRadialGradient(px, py, 0, px, py, pr * 3.5);
-    pg.addColorStop(0, p.color.replace(")", ",0.4)").replace("rgb", "rgba")); pg.addColorStop(1, "transparent");
+    pg.addColorStop(0, pColor + "66"); pg.addColorStop(1, "transparent");
     ctx.beginPath(); ctx.arc(px, py, pr * 3.5, 0, Math.PI * 2); ctx.fillStyle = pg; ctx.fill();
-    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill();
-    ctx.fillStyle = p.color; ctx.font = `bold 9px Space Mono, monospace`;
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = pColor; ctx.fill();
+    ctx.fillStyle = pColor; ctx.font = `bold 9px Space Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(p.name, px + pr + 5, py);
   }
 }
@@ -196,6 +244,7 @@ function clampPan(zoom: number, panX: number, panY: number, R: number) {
 function draw(
   canvas: HTMLCanvasElement, comp: Computed, tick: number,
   zoom: number, panX: number, panY: number, cityName: string,
+  darkMode: boolean,
 ) {
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.width / dpr, H = canvas.height / dpr;
@@ -207,46 +256,66 @@ function draw(
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
 
+  // Sky background
   const bg = ctx.createRadialGradient(cx + panX, cy + panY, 0, cx + panX, cy + panY, R * zoom);
-  bg.addColorStop(0, "#0d1240"); bg.addColorStop(0.5, "#060c2a"); bg.addColorStop(1, "#020122");
+  if (darkMode) {
+    bg.addColorStop(0, "#0d1240"); bg.addColorStop(0.5, "#060c2a"); bg.addColorStop(1, "#020122");
+  } else {
+    bg.addColorStop(0, "#ffffff"); bg.addColorStop(0.5, "#fafafa"); bg.addColorStop(1, "#f5f5f5");
+  }
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
+  // Altitude rings
   const step = altRingStep(zoom);
   for (let alt = step; alt < 90; alt += step) {
     const r = (1 - alt / 90) * R * zoom;
     const isMajor = alt % 30 === 0;
     ctx.beginPath(); ctx.arc(cx + panX, cy + panY, r, 0, Math.PI * 2);
-    ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)";
+    if (darkMode) {
+      ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)";
+    } else {
+      ctx.strokeStyle = isMajor ? "rgba(0,0,60,0.08)" : "rgba(0,0,60,0.04)";
+    }
     ctx.lineWidth = isMajor ? 0.7 : 0.4; ctx.stroke();
     if (!isMajor && !(step <= 10 && alt % (step * 2) === 0)) continue;
     const lx = cx + r * Math.sin(90 * DEG) + panX, ly = cy - r * Math.cos(90 * DEG) + panY;
     if (lx > cx - R && lx < cx + R && ly > cy - R && ly < cy + R) {
-      ctx.fillStyle = isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)";
+      ctx.fillStyle = darkMode
+        ? (isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)")
+        : (isMajor ? "rgba(0,0,60,0.30)" : "rgba(0,0,60,0.18)");
       ctx.font = `9px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(`${alt}°`, lx + 3, ly);
     }
   }
 
-  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R);
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R, darkMode);
   ctx.restore();
 
+  // Horizon ring
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(252,158,79,0.2)"; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = darkMode ? "rgba(252,158,79,0.2)" : "rgba(184,58,8,0.25)";
+  ctx.lineWidth = 1; ctx.stroke();
 
+  // Cardinal labels
   for (const [label, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as [string, number][]) {
     const a = az * DEG;
-    ctx.fillStyle = "rgba(252,158,79,0.55)"; ctx.font = `bold 11px Space Mono, monospace`;
+    ctx.fillStyle = darkMode ? "rgba(252,158,79,0.55)" : "rgba(184,58,8,0.65)";
+    ctx.font = `bold 11px Space Mono, monospace`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(label, cx + (R + 14) * Math.sin(a), cy - (R + 14) * Math.cos(a));
   }
 
+  // Zoom level overlay
   if (zoom > 1.05) {
-    ctx.fillStyle = "rgba(252,158,79,0.4)"; ctx.font = `8px Space Mono, monospace`;
+    ctx.fillStyle = darkMode ? "rgba(252,158,79,0.4)" : "rgba(184,58,8,0.45)";
+    ctx.font = `8px Space Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillText(`${zoom.toFixed(1)}×`, cx - R + 6, cy - R + 8);
   }
 
-  ctx.fillStyle = "rgba(252,158,79,0.3)"; ctx.font = `8px Space Mono, monospace`;
+  // Date / location footer
+  ctx.fillStyle = darkMode ? "rgba(252,158,79,0.3)" : "rgba(184,58,8,0.35)";
+  ctx.font = `8px Space Mono, monospace`;
   ctx.textAlign = "right"; ctx.textBaseline = "bottom";
   ctx.fillText(
     `${comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · midnight · ${cityName}`,
@@ -256,6 +325,9 @@ function draw(
 }
 
 export default function NightSkyMap() {
+  const { theme } = useTheme();
+  const themeRef = useRef<"dark" | "light">("dark");
+
   const canvasRef       = useRef<HTMLCanvasElement>(null);
   const rafRef          = useRef<number>(0);
   const zoomRef         = useRef(1);
@@ -273,7 +345,9 @@ export default function NightSkyMap() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError]             = useState("");
 
-  // Formatted date for the UI header
+  // Keep theme ref in sync so RAF callback always reads current theme
+  useEffect(() => { themeRef.current = theme; }, [theme]);
+
   const nightLabel = date.current.toLocaleDateString("en-GB", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
@@ -289,13 +363,11 @@ export default function NightSkyMap() {
     setZoomLevel(clamped);
   }, []);
 
-  // Initial compute
   useEffect(() => {
     try { setComputed(compute(date.current, LOCATIONS[0].lat, LOCATIONS[0].lon)); }
     catch (e) { setError(String(e)); }
   }, []);
 
-  // Toggle location — start physical sky rotation
   const handleLocationToggle = useCallback((newIdx: number) => {
     if (newIdx === locationIdx) return;
     transitionRef.current = {
@@ -306,7 +378,6 @@ export default function NightSkyMap() {
     setLocationIdx(newIdx);
   }, [locationIdx]);
 
-  // Animation loop
   const animate = useCallback((tick: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
@@ -322,7 +393,7 @@ export default function NightSkyMap() {
     }
 
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
-      LOCATIONS[locationIdx].name.split(",")[0]);
+      LOCATIONS[locationIdx].name.split(",")[0], themeRef.current === "dark");
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
@@ -332,8 +403,6 @@ export default function NightSkyMap() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [computed, animate]);
 
-  // Resize: observe the canvas itself so fullscreen sizing works correctly.
-  // Re-runs on isFullscreen change because the canvas DOM element is recreated.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -348,7 +417,6 @@ export default function NightSkyMap() {
     return () => ro.disconnect();
   }, [isFullscreen]);
 
-  // Wheel zoom
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -364,7 +432,6 @@ export default function NightSkyMap() {
     return () => canvas.removeEventListener("wheel", onWheel);
   }, [applyZoom, isFullscreen]);
 
-  // Touch pinch
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -380,13 +447,11 @@ export default function NightSkyMap() {
     return () => canvas.removeEventListener("touchmove", onTouchMove);
   }, [applyZoom, isFullscreen]);
 
-  // Body scroll lock in fullscreen
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isFullscreen]);
 
-  // Escape to exit fullscreen
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFullscreen(false); };
     window.addEventListener("keydown", onKey);
@@ -428,14 +493,12 @@ export default function NightSkyMap() {
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
 
-  // Shared canvas props — keep onClick/pointer handlers identical in both modes
   const canvasEvents = {
     onClick: onCanvasClick,
     onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
     onTouchStart, onTouchEnd, onDoubleClick,
   };
 
-  // Location toggle (reused in both modes)
   const locationToggle = (
     <div className="flex items-center gap-1 font-mono text-[10px] rounded border border-muted/20 overflow-hidden shrink-0">
       {LOCATIONS.map((loc, i) => (
@@ -447,7 +510,6 @@ export default function NightSkyMap() {
     </div>
   );
 
-  // Zoom controls (reused in both modes)
   const zoomControls = (
     <div className="flex items-center gap-3 font-mono select-none shrink-0">
       <button onClick={() => applyZoom(zoomRef.current / 1.4)} aria-label="Zoom out"
@@ -468,7 +530,13 @@ export default function NightSkyMap() {
 
   const legend = (
     <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center font-mono text-[10px] text-muted/40 uppercase tracking-widest shrink-0">
-      {[["bg-white/80","Stars"],["w-4 h-px bg-[rgba(130,160,255,0.5)] rounded-none","Constellations"],["bg-[rgba(252,158,79,0.9)]","Planets"],["bg-[rgba(230,225,200,0.8)]","Moon"],["bg-[rgba(180,200,255,0.6)]","Deep sky"]].map(([cls,label]) => (
+      {([
+        [theme === "dark" ? "bg-white/80" : "bg-[rgba(10,10,60,0.7)]", "Stars"],
+        ["w-4 h-px bg-[rgba(130,160,255,0.5)] rounded-none", "Constellations"],
+        [theme === "dark" ? "bg-[rgba(252,158,79,0.9)]" : "bg-[rgba(184,58,8,0.8)]", "Planets"],
+        [theme === "dark" ? "bg-[rgba(230,225,200,0.8)]" : "bg-[rgba(50,55,70,0.7)]", "Moon"],
+        [theme === "dark" ? "bg-[rgba(180,200,255,0.6)]" : "bg-[rgba(10,40,140,0.5)]", "Deep sky"],
+      ] as [string, string][]).map(([cls, label]) => (
         <span key={label} className="flex items-center gap-1.5">
           <span className={`inline-block w-2 h-2 rounded-full ${cls}`} /> {label}
         </span>
@@ -479,8 +547,7 @@ export default function NightSkyMap() {
   // ── Fullscreen overlay ─────────────────────────────────────────────────
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#020122] flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-y-auto">
-        {/* Top bar */}
+      <div className={`fixed inset-0 z-50 flex flex-col items-center px-4 pt-3 pb-4 gap-3 overflow-y-auto ${theme === "dark" ? "bg-[#020122]" : "bg-white"}`}>
         <div className="w-full flex items-center justify-between shrink-0">
           <span className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
             {nightLabel} &nbsp;·&nbsp; midnight
@@ -491,7 +558,6 @@ export default function NightSkyMap() {
           </button>
         </div>
 
-        {/* Canvas — fills remaining space (same element as normal mode via React reconciliation) */}
         <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
           <canvas
             ref={canvasRef}
@@ -519,12 +585,10 @@ export default function NightSkyMap() {
   // ── Normal (inline) mode ───────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Date / time info */}
       <div className="font-mono text-[10px] text-muted/35 tracking-widest uppercase">
         {nightLabel} &nbsp;·&nbsp; midnight
       </div>
 
-      {/* Canvas — click to expand */}
       <div className="w-full max-w-2xl mx-auto relative group">
         <canvas
           ref={canvasRef}
@@ -532,9 +596,8 @@ export default function NightSkyMap() {
           style={{ aspectRatio: "1", cursor: isDragging ? "grabbing" : "grab" }}
           {...canvasEvents}
         />
-        {/* Expand hint */}
         <div className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <span className="font-mono text-[10px] text-white/30 uppercase tracking-widest bg-[#020122]/60 px-3 py-1.5 rounded-full">
+          <span className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full ${theme === "dark" ? "text-white/30 bg-[#020122]/60" : "text-black/30 bg-white/70"}`}>
             click to expand
           </span>
         </div>
