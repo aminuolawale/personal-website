@@ -12,12 +12,19 @@ const LOCATIONS = [
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const DEG = Math.PI / 180;
+const TRANSITION_DURATION = 1400; // ms
 
 function midnightTonight(): Date {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
+
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
 function starRadius(mag: number): number {
@@ -50,7 +57,6 @@ interface Computed {
   date:    Date;
 }
 
-// Compute sky positions (alt/az) — independent of canvas size.
 function compute(date: Date, lat: number, lon: number): Computed {
   const lstDeg = lst(date, lon);
 
@@ -106,28 +112,17 @@ function compute(date: Date, lat: number, lon: number): Computed {
   return { stars, constellationSegs, dso, planets, moon, date };
 }
 
-function draw(
-  canvas: HTMLCanvasElement,
+function drawSkyObjects(
+  ctx: CanvasRenderingContext2D,
   comp: Computed,
   tick: number,
   zoom: number,
   panX: number,
   panY: number,
-  cityName: string,
+  cx: number,
+  cy: number,
+  R: number,
 ) {
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.width / dpr;
-  const H = canvas.height / dpr;
-  const cx = W / 2;
-  const cy = H / 2;
-  const R = Math.min(W, H) / 2 - 24;
-
-  const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.scale(dpr, dpr);
-
-  // Project alt/az → canvas pixel using current zoom & pan.
   function sc(alt: number, az: number): [number, number] {
     const baseR = (1 - alt / 90) * R;
     const a = az * DEG;
@@ -135,43 +130,6 @@ function draw(
       cx + baseR * Math.sin(a) * zoom + panX,
       cy - baseR * Math.cos(a) * zoom + panY,
     ];
-  }
-
-  // ── Clip everything sky-content to the disc ───────────────────────────
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.clip();
-
-  // Sky background — gradient follows pan
-  const bg = ctx.createRadialGradient(cx + panX, cy + panY, 0, cx + panX, cy + panY, R * zoom);
-  bg.addColorStop(0,   "#0d1240");
-  bg.addColorStop(0.5, "#060c2a");
-  bg.addColorStop(1,   "#020122");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Altitude rings — density grows with zoom
-  const step = altRingStep(zoom);
-  for (let alt = step; alt < 90; alt += step) {
-    const r = (1 - alt / 90) * R * zoom;
-    const isMajor = alt % 30 === 0;
-    ctx.beginPath();
-    ctx.arc(cx + panX, cy + panY, r, 0, Math.PI * 2);
-    ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)";
-    ctx.lineWidth = isMajor ? 0.7 : 0.4;
-    ctx.stroke();
-    // Label on east side — only major rings, or every 2nd minor ring at fine steps
-    const showLabel = isMajor || (step <= 10 && alt % (step * 2) === 0);
-    if (!showLabel) continue;
-    const [lx, ly] = sc(alt, 90);
-    if (lx > cx - R && lx < cx + R && ly > cy - R && ly < cy + R) {
-      ctx.fillStyle = isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)";
-      ctx.font = `9px Space Mono, monospace`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`${alt}°`, lx + 3, ly);
-    }
   }
 
   // Constellation lines
@@ -190,9 +148,9 @@ function draw(
   for (const o of comp.dso) {
     const [ox, oy] = sc(o.alt, o.az);
     const rDso = (o.type === "galaxy" ? 9 : o.type === "cluster" ? 7 : 6) * Math.min(zoom, 2);
-    const alpha = Math.max(0.1, 0.55 - o.mag * 0.06);
+    const a = Math.max(0.1, 0.55 - o.mag * 0.06);
     const glow = ctx.createRadialGradient(ox, oy, 0, ox, oy, rDso);
-    glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${alpha * 1.5})` : `rgba(180,200,255,${alpha * 1.8})`);
+    glow.addColorStop(0, o.type === "nebula" ? `rgba(180,100,200,${a * 1.5})` : `rgba(180,200,255,${a * 1.8})`);
     glow.addColorStop(1, "transparent");
     ctx.beginPath();
     ctx.arc(ox, oy, rDso, 0, Math.PI * 2);
@@ -289,11 +247,87 @@ function draw(
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(p.name, px + pr + 5, py);
   }
+}
+
+function altRingStep(zoom: number): number {
+  if (zoom >= 5) return 5;
+  if (zoom >= 3) return 10;
+  if (zoom >= 2) return 15;
+  return 30;
+}
+
+function clampPan(zoom: number, panX: number, panY: number, R: number) {
+  const maxPan = R * (zoom - 1);
+  return {
+    x: Math.max(-maxPan, Math.min(maxPan, panX)),
+    y: Math.max(-maxPan, Math.min(maxPan, panY)),
+  };
+}
+
+function draw(
+  canvas: HTMLCanvasElement,
+  comp: Computed,
+  tick: number,
+  zoom: number,
+  panX: number,
+  panY: number,
+  cityName: string,
+) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = Math.min(W, H) / 2 - 24;
+
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  // ── Disc clip ─────────────────────────────────────────────────────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Sky background
+  const bg = ctx.createRadialGradient(cx + panX, cy + panY, 0, cx + panX, cy + panY, R * zoom);
+  bg.addColorStop(0,   "#0d1240");
+  bg.addColorStop(0.5, "#060c2a");
+  bg.addColorStop(1,   "#020122");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Altitude rings
+  const step = altRingStep(zoom);
+  for (let alt = step; alt < 90; alt += step) {
+    const r = (1 - alt / 90) * R * zoom;
+    const isMajor = alt % 30 === 0;
+    ctx.beginPath();
+    ctx.arc(cx + panX, cy + panY, r, 0, Math.PI * 2);
+    ctx.strokeStyle = isMajor ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)";
+    ctx.lineWidth = isMajor ? 0.7 : 0.4;
+    ctx.stroke();
+    const showLabel = isMajor || (step <= 10 && alt % (step * 2) === 0);
+    if (!showLabel) continue;
+    const labelR = (1 - alt / 90) * R * zoom;
+    const lx = cx + labelR * Math.sin(90 * DEG) + panX;
+    const ly = cy - labelR * Math.cos(90 * DEG) + panY;
+    if (lx > cx - R && lx < cx + R && ly > cy - R && ly < cy + R) {
+      ctx.fillStyle = isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)";
+      ctx.font = `9px Space Mono, monospace`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${alt}°`, lx + 3, ly);
+    }
+  }
+
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, cx, cy, R);
 
   ctx.restore(); // end disc clip
 
-  // ── Fixed UI (no zoom): horizon ring, cardinal labels, stamps ─────────
-
+  // ── Fixed UI ──────────────────────────────────────────────────────────
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
   ctx.strokeStyle = "rgba(252,158,79,0.2)";
@@ -304,12 +338,10 @@ function draw(
   ctx.font = `bold 11px Space Mono, monospace`;
   for (const [label, az] of cardinals) {
     const a = az * DEG;
-    const lx = cx + (R + 14) * Math.sin(a);
-    const ly = cy - (R + 14) * Math.cos(a);
     ctx.fillStyle = "rgba(252,158,79,0.55)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, lx, ly);
+    ctx.fillText(label, cx + (R + 14) * Math.sin(a), cy - (R + 14) * Math.cos(a));
   }
 
   if (zoom > 1.05) {
@@ -324,53 +356,48 @@ function draw(
   ctx.font = `8px Space Mono, monospace`;
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
-  const dateLabel = comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    + ` · midnight · ${cityName}`;
-  ctx.fillText(dateLabel, cx + R - 4, cy + R - 4);
+  ctx.fillText(
+    comp.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+      + ` · midnight · ${cityName}`,
+    cx + R - 4,
+    cy + R - 4,
+  );
 
   ctx.restore();
 }
 
-function clampPan(zoom: number, panX: number, panY: number, R: number) {
-  const maxPan = R * (zoom - 1);
-  return {
-    x: Math.max(-maxPan, Math.min(maxPan, panX)),
-    y: Math.max(-maxPan, Math.min(maxPan, panY)),
-  };
-}
-
-// Returns the altitude ring step (°) for a given zoom level.
-function altRingStep(zoom: number): number {
-  if (zoom >= 5) return 5;
-  if (zoom >= 3) return 10;
-  if (zoom >= 2) return 15;
-  return 30;
-}
-
 export default function NightSkyMap() {
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const rafRef      = useRef<number>(0);
-  const zoomRef     = useRef(1);
-  const panRef      = useRef({ x: 0, y: 0 });
-  const dragRef     = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
-  const pinchRef    = useRef<{ dist: number; zoom: number } | null>(null);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const rafRef     = useRef<number>(0);
+  const zoomRef    = useRef(1);
+  const panRef     = useRef({ x: 0, y: 0 });
+  const dragRef    = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
+  const pinchRef   = useRef<{ dist: number; zoom: number } | null>(null);
 
-  const [computed, setComputed] = useState<Computed | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  // Transition: smoothly lerp lat/lon and recompute each frame.
+  const transitionRef = useRef<{
+    fromLat: number; fromLon: number;
+    toLat:   number; toLon:   number;
+    startTick: number;
+  } | null>(null);
+
+  const date = useRef(midnightTonight());
+
+  const [computed, setComputed]       = useState<Computed | null>(null);
+  const [isDragging, setIsDragging]   = useState(false);
+  const [zoomLevel, setZoomLevel]     = useState(1);
   const [locationIdx, setLocationIdx] = useState(0);
-  const [error, setError] = useState("");
+  const [error, setError]             = useState("");
 
-  // Update ref + state together so buttons and canvas stay in sync.
   const applyZoom = useCallback((newZoom: number, anchorX = 0, anchorY = 0) => {
     const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
     const worldX = (anchorX - panRef.current.x) / zoomRef.current;
     const worldY = (anchorY - panRef.current.y) / zoomRef.current;
-    const newPanX = anchorX - worldX * clamped;
-    const newPanY = anchorY - worldY * clamped;
     zoomRef.current = clamped;
     const { R } = canvasMetrics();
-    panRef.current = clamped <= 1 ? { x: 0, y: 0 } : clampPan(clamped, newPanX, newPanY, R);
+    panRef.current = clamped <= 1
+      ? { x: 0, y: 0 }
+      : clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
     setZoomLevel(clamped);
   }, []);
 
@@ -380,30 +407,62 @@ export default function NightSkyMap() {
     const dpr = window.devicePixelRatio || 1;
     const W = canvas.width / dpr;
     const H = canvas.height / dpr;
-    const cx = W / 2, cy = H / 2;
-    const R = Math.min(W, H) / 2 - 24;
-    return { W, H, cx, cy, R };
+    return { W, H, cx: W / 2, cy: H / 2, R: Math.min(W, H) / 2 - 24 };
   }
 
-  // Recompute sky positions when location changes; reset zoom/pan
+  // Initial compute on mount only.
   useEffect(() => {
-    const { lat, lon } = LOCATIONS[locationIdx];
+    const { lat, lon } = LOCATIONS[0];
     try {
-      setComputed(compute(midnightTonight(), lat, lon));
+      setComputed(compute(date.current, lat, lon));
     } catch (e) {
       setError(String(e));
     }
-    zoomRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
-    setZoomLevel(1);
+  }, []);
+
+  // Toggle location: start a transition instead of snapping.
+  const handleLocationToggle = useCallback((newIdx: number) => {
+    if (newIdx === locationIdx) return;
+    const from = LOCATIONS[locationIdx];
+    const to   = LOCATIONS[newIdx];
+    // transitionRef will be read by the animate loop each frame.
+    // startTick = 0 means "set on first frame".
+    transitionRef.current = {
+      fromLat: from.lat, fromLon: from.lon,
+      toLat:   to.lat,   toLon:   to.lon,
+      startTick: 0,
+    };
+    setLocationIdx(newIdx);
   }, [locationIdx]);
 
-  // Animation loop — reads zoom/pan from refs each frame
+  // Animation loop: during a transition, recompute positions for the interpolated observer.
   const animate = useCallback((tick: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !computed) return;
+
+    let frameComp = computed;
+    const tr = transitionRef.current;
+
+    if (tr) {
+      // Latch the start tick on the first frame.
+      if (tr.startTick === 0) tr.startTick = tick;
+
+      const t = Math.min(1, (tick - tr.startTick) / TRANSITION_DURATION);
+      const ease = easeInOut(t);
+      const lat = lerp(tr.fromLat, tr.toLat, ease);
+      const lon = lerp(tr.fromLon, tr.toLon, ease);
+
+      frameComp = compute(date.current, lat, lon);
+
+      if (t >= 1) {
+        transitionRef.current = null;
+        // Persist the final state so future frames don't recompute.
+        setComputed(frameComp);
+      }
+    }
+
     const cityName = LOCATIONS[locationIdx].name.split(",")[0];
-    draw(canvas, computed, tick, zoomRef.current, panRef.current.x, panRef.current.y, cityName);
+    draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y, cityName);
     rafRef.current = requestAnimationFrame(animate);
   }, [computed, locationIdx]);
 
@@ -413,7 +472,7 @@ export default function NightSkyMap() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [computed, animate]);
 
-  // Resize observer — update canvas dimensions only (positions don't depend on canvas size)
+  // Resize observer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -430,7 +489,7 @@ export default function NightSkyMap() {
     return () => ro.disconnect();
   }, []);
 
-  // Wheel zoom — needs passive:false to call preventDefault
+  // Wheel zoom
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -438,16 +497,17 @@ export default function NightSkyMap() {
       e.preventDefault();
       const { cx, cy } = canvasMetrics();
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left - cx;
-      const my = e.clientY - rect.top - cy;
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      applyZoom(zoomRef.current * factor, mx, my);
+      applyZoom(
+        zoomRef.current * (e.deltaY < 0 ? 1.15 : 1 / 1.15),
+        e.clientX - rect.left - cx,
+        e.clientY - rect.top  - cy,
+      );
     };
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
   }, [applyZoom]);
 
-  // Touch pinch-to-zoom — needs passive:false on touchmove
+  // Touch pinch-to-zoom
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -456,8 +516,7 @@ export default function NightSkyMap() {
         e.preventDefault();
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        applyZoom(pinchRef.current.zoom * dist / pinchRef.current.dist);
+        applyZoom(pinchRef.current.zoom * Math.sqrt(dx * dx + dy * dy) / pinchRef.current.dist);
       }
     };
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -466,10 +525,7 @@ export default function NightSkyMap() {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "touch") return;
-    dragRef.current = {
-      startX: e.clientX, startY: e.clientY,
-      startPanX: panRef.current.x, startPanY: panRef.current.y,
-    };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startPanX: panRef.current.x, startPanY: panRef.current.y };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setIsDragging(true);
   };
@@ -477,31 +533,24 @@ export default function NightSkyMap() {
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragRef.current) return;
     const { R } = canvasMetrics();
-    const newPanX = dragRef.current.startPanX + (e.clientX - dragRef.current.startX);
-    const newPanY = dragRef.current.startPanY + (e.clientY - dragRef.current.startY);
-    panRef.current = clampPan(zoomRef.current, newPanX, newPanY, R);
+    panRef.current = clampPan(
+      zoomRef.current,
+      dragRef.current.startPanX + (e.clientX - dragRef.current.startX),
+      dragRef.current.startPanY + (e.clientY - dragRef.current.startY),
+      R,
+    );
   };
 
-  const onPointerUp = () => {
-    dragRef.current = null;
-    setIsDragging(false);
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
+  const onPointerUp   = () => { dragRef.current = null; setIsDragging(false); };
+  const onTouchStart  = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchRef.current = { dist: Math.sqrt(dx * dx + dy * dy), zoom: zoomRef.current };
     }
   };
-
-  const onTouchEnd = () => { pinchRef.current = null; };
-
-  const onDoubleClick = () => {
-    zoomRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
-    setZoomLevel(1);
-  };
+  const onTouchEnd    = () => { pinchRef.current = null; };
+  const onDoubleClick = () => { zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1); };
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
 
@@ -532,7 +581,7 @@ export default function NightSkyMap() {
         {LOCATIONS.map((loc, i) => (
           <button
             key={loc.name}
-            onClick={() => setLocationIdx(i)}
+            onClick={() => handleLocationToggle(i)}
             className={`px-3 py-1.5 transition-colors ${
               locationIdx === i
                 ? "bg-accent/10 text-accent"
@@ -584,21 +633,11 @@ export default function NightSkyMap() {
       </p>
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center font-mono text-[10px] text-muted/40 uppercase tracking-widest">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2 h-2 rounded-full bg-white/80" /> Stars
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-4 h-px bg-[rgba(130,160,255,0.5)]" /> Constellations
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[rgba(252,158,79,0.9)]" /> Planets
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full bg-[rgba(230,225,200,0.8)]" /> Moon
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2 h-2 rounded-full bg-[rgba(180,200,255,0.6)]" /> Deep sky
-        </span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-white/80" /> Stars</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-px bg-[rgba(130,160,255,0.5)]" /> Constellations</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[rgba(252,158,79,0.9)]" /> Planets</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-full bg-[rgba(230,225,200,0.8)]" /> Moon</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-[rgba(180,200,255,0.6)]" /> Deep sky</span>
       </div>
     </div>
   );
