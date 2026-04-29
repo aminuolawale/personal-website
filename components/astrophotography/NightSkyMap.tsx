@@ -852,14 +852,15 @@ export default function NightSkyMap() {
           })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 shrink-0">
           {locationToggle}
           {zoomControls}
         </div>
         <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none shrink-0 text-center">
-          scroll · pinch &nbsp;·&nbsp; drag to pan &nbsp;·&nbsp; double-click to reset &nbsp;·&nbsp; esc to close
+          <span className="sm:hidden">pinch&nbsp;·&nbsp;drag&nbsp;·&nbsp;double-tap to reset</span>
+          <span className="hidden sm:inline">scroll&nbsp;·&nbsp;pinch&nbsp;·&nbsp;drag to pan&nbsp;·&nbsp;double-click to reset&nbsp;·&nbsp;esc to close</span>
         </p>
-        {legend}
+        <div className="hidden sm:block shrink-0">{legend}</div>
       </div>
     );
   }
