@@ -78,6 +78,22 @@ export default function AdminDashboard() {
             >
               Settings
             </Link>
+            <a
+              href="https://console.neon.tech/app/projects/still-sunset-47533321"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-1 hover:border-accent/30"
+            >
+              DB
+            </a>
+            <a
+              href="https://vercel.com/aminuolawalekan-9083s-projects/personal-website/stores/blob/store_u8XcLf82nOIjWtR6/browser"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-1 hover:border-accent/30"
+            >
+              Blob
+            </a>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
