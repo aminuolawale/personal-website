@@ -7,6 +7,7 @@ export const SETTINGS_SECTIONS = [
   { id: "palette",    label: "Color Palette" },
   { id: "typography", label: "Typography" },
   { id: "tabs",       label: "Tab Order" },
+  { id: "configs",    label: "Configs" },
 ] as const;
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];

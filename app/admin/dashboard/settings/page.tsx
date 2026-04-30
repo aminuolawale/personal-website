@@ -71,6 +71,29 @@ function SectionContent({ active }: { active: SettingsSectionId }) {
           </div>
         </>
       );
+    case "configs":
+      return (
+        <>
+          <h2 className="text-surface font-semibold mb-4">Configs</h2>
+          <div className="space-y-2">
+            {[
+              { label: "Database (Neon)", href: "https://console.neon.tech/app/projects/still-sunset-47533321" },
+              { label: "Blob Storage (Vercel)", href: "https://vercel.com/aminuolawalekan-9083s-projects/personal-website/stores/blob/store_u8XcLf82nOIjWtR6/browser" },
+            ].map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between w-full border border-surface/10 px-4 py-3 font-mono text-xs text-muted/50 hover:text-accent hover:border-accent/30 transition-colors"
+              >
+                {label}
+                <span className="text-muted/25">↗</span>
+              </a>
+            ))}
+          </div>
+        </>
+      );
   }
 }
 
