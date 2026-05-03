@@ -434,10 +434,15 @@ function GearImagePanel({ gearId }: { gearId: number }) {
     } finally { setUploading(false); }
   }
 
-  function handleDelete(imageId: number) {
+  async function handleDelete(imageId: number) {
     if (!confirm("Remove this image?")) return;
-    fetch(`/api/astro-gear/${gearId}/images/${imageId}`, { method: "DELETE" });
     setImages(prev => prev.filter(i => i.id !== imageId));
+    try {
+      const res = await fetch(`/api/astro-gear/${gearId}/images/${imageId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+    } catch {
+      loadImages();
+    }
   }
 
   function handleUpdate(imageId: number, patch: Partial<GearImage>) {
@@ -715,26 +720,39 @@ export default function AstroGearPage() {
       const newItem: AstroGear = await res.json();
 
       // 3. Upload and link staged images (equipment only)
+      let imgError = "";
       for (let i = 0; i < stagedImages.length; i++) {
         const staged = stagedImages[i];
         setAddProgress(`Uploading image ${i + 1} of ${stagedImages.length}…`);
-        const blob = await upload(staged.file.name, staged.file, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
-        await fetch(`/api/astro-gear/${newItem.id}/images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageUrl: blob.url,
-            description: staged.description,
-            marquee: staged.marquee ? JSON.stringify(staged.marquee) : null,
-            position: i,
-          }),
-        });
+        try {
+          const blob = await upload(staged.file.name, staged.file, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+          const imgRes = await fetch(`/api/astro-gear/${newItem.id}/images`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imageUrl: blob.url,
+              description: staged.description,
+              marquee: staged.marquee ? JSON.stringify(staged.marquee) : null,
+              position: i,
+            }),
+          });
+          if (!imgRes.ok) {
+            const d = await imgRes.json().catch(() => ({}));
+            imgError = d.error ?? `Failed to save image ${i + 1}`;
+            break;
+          }
+        } catch {
+          imgError = `Failed to upload image ${i + 1}`;
+          break;
+        }
       }
 
       resetCreateForm();
       load();
+      if (imgError) setError(`Item saved, but: ${imgError}. Add images via the expand panel below.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add");
+      load();
     } finally {
       setAdding(false); setAddProgress("");
     }

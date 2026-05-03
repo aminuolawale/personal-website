@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Cpu, Wrench, Layers, ExternalLink, X } from "lucide-react";
+import { Cpu, Wrench, Layers, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import type { AstroGear, GearImage } from "@/lib/schema";
 
@@ -23,13 +23,7 @@ const TYPE_ORDER = ["equipment", "software", "technique"];
 
 // ── Corner marks ─────────────────────────────────────────────────────────────
 
-function CornerMarks({
-  color = "rgba(255,200,100,0.95)",
-  size = 12,
-}: {
-  color?: string;
-  size?: number;
-}) {
+function CornerMarks({ color = "rgba(255,200,100,0.95)", size = 12 }: { color?: string; size?: number }) {
   const s = `${size}px`;
   const t = "2px";
   return (
@@ -45,41 +39,43 @@ function CornerMarks({
 // ── Equipment modal ───────────────────────────────────────────────────────────
 
 function EquipmentModal({ item, onClose }: { item: AstroGear; onClose: () => void }) {
-  const [images, setImages]       = useState<GearImage[]>([]);
-  const [imgIdx, setImgIdx]       = useState(0);
-  const [loadingImgs, setLoading] = useState(true);
+  const [images, setImages]   = useState<GearImage[]>([]);
+  const [imgIdx, setImgIdx]   = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`/api/astro-gear/${item.id}/images`)
-      .then(r => r.ok ? r.json() : [])
+      .then(r => {
+        if (!r.ok) { console.warn("gear images fetch failed", r.status); return []; }
+        return r.json();
+      })
       .then(data => setImages(Array.isArray(data) ? data : []))
-      .catch(() => setImages([]))
+      .catch(err => { console.warn("gear images fetch error", err); setImages([]); })
       .finally(() => setLoading(false));
   }, [item.id]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { onClose(); return; }
-      if (e.key === "ArrowRight") setImgIdx(i => Math.min(i + 1, images.length - 1));
-      if (e.key === "ArrowLeft")  setImgIdx(i => Math.max(i - 1, 0));
+      if (e.key === "Escape")      { onClose(); return; }
+      if (e.key === "ArrowRight")  setImgIdx(i => Math.min(i + 1, images.length - 1));
+      if (e.key === "ArrowLeft")   setImgIdx(i => Math.max(i - 1, 0));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, images.length]);
 
-  const current  = images[imgIdx] ?? null;
-  const marquee  = current ? parseMarquee(current.marquee) : null;
-  const hasMulti = images.length > 1;
+  const current    = images[imgIdx] ?? null;
+  const marquee    = current ? parseMarquee(current.marquee) : null;
+  const hasMulti   = images.length > 1;
+  const legacyImg  = !loading && images.length === 0 ? item.imageUrl : null;
 
-  // Fall back to the legacy single imageUrl if no gearImages exist
-  const legacyImage = !loadingImgs && images.length === 0 ? item.imageUrl : null;
+  function prev() { setImgIdx(i => Math.max(i - 1, 0)); }
+  function next() { setImgIdx(i => Math.min(i + 1, images.length - 1)); }
 
   return (
     <m.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
       {/* Backdrop */}
@@ -87,107 +83,123 @@ function EquipmentModal({ item, onClose }: { item: AstroGear; onClose: () => voi
 
       {/* Panel */}
       <m.div
-        className="relative z-10 bg-base border border-surface/15 max-w-sm w-full shadow-2xl"
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        className="relative z-10 bg-base border border-surface/15 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[92vh]"
+        initial={{ opacity: 0, scale: 0.97, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
         transition={{ duration: 0.2 }}
       >
+        {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-1.5 text-muted/40 hover:text-muted transition-colors z-10"
+          className="absolute top-3 right-3 p-1.5 text-muted/40 hover:text-muted transition-colors z-20"
         >
           <X size={16} />
         </button>
 
-        {/* Image area */}
-        {loadingImgs && (
-          <div className="w-full aspect-square bg-surface/5 flex items-center justify-center">
-            <p className="font-mono text-xs text-muted/30">Loading…</p>
-          </div>
-        )}
+        {/* ── Image area ── */}
+        <div className="relative w-full bg-surface/[0.04] overflow-hidden" style={{ aspectRatio: "4/3" }}>
 
-        {!loadingImgs && images.length > 0 && (
-          <>
-            {/* Current image with marquee overlay */}
-            <div className="relative w-full aspect-square bg-surface/5 overflow-hidden">
-              <Image
-                src={current!.imageUrl}
-                alt={item.name}
-                fill
-                className="object-contain"
-              />
-              {marquee && (
-                <div
-                  className="absolute pointer-events-none"
-                  style={{
-                    left:   `${marquee.x}%`,
-                    top:    `${marquee.y}%`,
-                    width:  `${marquee.w}%`,
-                    height: `${marquee.h}%`,
-                  }}
-                >
-                  <CornerMarks color="rgba(255,200,100,0.95)" size={14} />
-                </div>
-              )}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="font-mono text-xs text-muted/30">Loading…</p>
             </div>
+          )}
 
-            {/* Carousel nav */}
-            {hasMulti && (
-              <div className="flex items-center justify-between px-5 pt-3">
-                <button
-                  onClick={() => setImgIdx(i => Math.max(i - 1, 0))}
-                  disabled={imgIdx === 0}
-                  className="font-mono text-lg text-muted/40 hover:text-muted disabled:opacity-20 transition-colors leading-none"
-                  aria-label="Previous image"
-                >
-                  ←
-                </button>
-                <span className="font-mono text-[10px] text-muted/30">
-                  {imgIdx + 1} / {images.length}
-                </span>
-                <button
-                  onClick={() => setImgIdx(i => Math.min(i + 1, images.length - 1))}
-                  disabled={imgIdx === images.length - 1}
-                  className="font-mono text-lg text-muted/40 hover:text-muted disabled:opacity-20 transition-colors leading-none"
-                  aria-label="Next image"
-                >
-                  →
-                </button>
-              </div>
+          {/* Cross-fade between images */}
+          <AnimatePresence mode="wait" initial={false}>
+            {current && (
+              <m.div
+                key={imgIdx}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Image
+                  src={current.imageUrl}
+                  alt={item.name}
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 640px) 100vw, 512px"
+                />
+                {marquee && (
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{ left:`${marquee.x}%`, top:`${marquee.y}%`, width:`${marquee.w}%`, height:`${marquee.h}%` }}
+                  >
+                    <CornerMarks color="rgba(255,200,100,0.95)" size={14} />
+                  </div>
+                )}
+              </m.div>
             )}
+          </AnimatePresence>
 
-            {/* Per-image description */}
-            {current?.description && (
-              <p className="px-5 pt-2 text-muted/60 text-sm leading-relaxed">
-                {current.description}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Legacy single image fallback */}
-        {legacyImage && (
-          <div className="w-full aspect-square bg-surface/5 overflow-hidden">
+          {/* Legacy single image (no gearImages) */}
+          {legacyImg && (
             <Image
-              src={legacyImage}
+              src={legacyImg}
               alt={item.name}
-              width={400}
-              height={400}
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
+              sizes="(max-width: 640px) 100vw, 512px"
             />
+          )}
+
+          {/* Prev / Next buttons overlaid on image */}
+          {hasMulti && (
+            <>
+              <button
+                onClick={prev}
+                disabled={imgIdx === 0}
+                aria-label="Previous image"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-base/60 backdrop-blur-sm text-surface/70 hover:text-surface hover:bg-base/80 disabled:opacity-0 disabled:pointer-events-none transition-all"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={next}
+                disabled={imgIdx === images.length - 1}
+                aria-label="Next image"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full bg-base/60 backdrop-blur-sm text-surface/70 hover:text-surface hover:bg-base/80 disabled:opacity-0 disabled:pointer-events-none transition-all"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* ── Dot indicators ── */}
+        {hasMulti && (
+          <div className="flex items-center justify-center gap-1.5 pt-3 px-5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setImgIdx(i)}
+                aria-label={`Image ${i + 1}`}
+                className={`rounded-full transition-all ${
+                  i === imgIdx
+                    ? "w-4 h-1.5 bg-accent"
+                    : "w-1.5 h-1.5 bg-surface/30 hover:bg-surface/50"
+                }`}
+              />
+            ))}
           </div>
         )}
 
-        {/* Item metadata */}
+        {/* ── Per-image description ── */}
+        {current?.description && (
+          <p className="px-5 pt-3 text-muted/70 text-sm leading-relaxed">
+            {current.description}
+          </p>
+        )}
+
+        {/* ── Item metadata ── */}
         <div className="p-5 space-y-4">
           <div>
-            <span className="font-mono text-[10px] text-accent/50 uppercase tracking-widest">
-              Equipment
-            </span>
-            <h2 className="text-surface text-lg font-semibold mt-1 leading-snug">
-              {item.name}
-            </h2>
+            <span className="font-mono text-[10px] text-accent/50 uppercase tracking-widest">Equipment</span>
+            <h2 className="text-surface text-lg font-semibold mt-1 leading-snug">{item.name}</h2>
           </div>
 
           {item.link && (
@@ -221,13 +233,7 @@ function EquipmentModal({ item, onClose }: { item: AstroGear; onClose: () => voi
 
 // ── Gear item (list row) ──────────────────────────────────────────────────────
 
-function GearItem({
-  item,
-  onSelect,
-}: {
-  item: AstroGear;
-  onSelect?: (item: AstroGear) => void;
-}) {
+function GearItem({ item, onSelect }: { item: AstroGear; onSelect?: (item: AstroGear) => void }) {
   const isEquipment = item.type === "equipment";
 
   const inner = (
@@ -251,10 +257,8 @@ function GearItem({
   if (isEquipment) {
     return (
       <li className="border-b border-surface/[0.05] last:border-0">
-        <button
-          onClick={() => onSelect?.(item)}
-          className="w-full text-left hover:bg-surface/[0.03] -mx-2 px-2 rounded transition-colors cursor-pointer"
-        >
+        <button onClick={() => onSelect?.(item)}
+          className="w-full text-left hover:bg-surface/[0.03] -mx-2 px-2 rounded transition-colors cursor-pointer">
           {inner}
         </button>
       </li>
@@ -264,59 +268,47 @@ function GearItem({
   if (item.link) {
     return (
       <li className="border-b border-surface/[0.05] last:border-0">
-        <a
-          href={item.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block hover:bg-surface/[0.03] -mx-2 px-2 rounded transition-colors"
-        >
+        <a href={item.link} target="_blank" rel="noopener noreferrer"
+          className="block hover:bg-surface/[0.03] -mx-2 px-2 rounded transition-colors">
           {inner}
         </a>
       </li>
     );
   }
 
-  return (
-    <li className="border-b border-surface/[0.05] last:border-0">{inner}</li>
-  );
+  return <li className="border-b border-surface/[0.05] last:border-0">{inner}</li>;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function GearTab() {
-  const [gear, setGear]       = useState<AstroGear[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [gear, setGear]         = useState<AstroGear[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<AstroGear | null>(null);
 
   useEffect(() => {
     fetch("/api/astro-gear")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setGear(Array.isArray(data) ? data : []))
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setGear(Array.isArray(data) ? data : []))
       .catch(() => setGear([]))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return <p className="font-mono text-xs text-muted/30 py-16 text-center">Loading…</p>;
-  }
+  if (loading) return <p className="font-mono text-xs text-muted/30 py-16 text-center">Loading…</p>;
 
   const grouped = TYPE_ORDER.reduce<Record<string, AstroGear[]>>((acc, t) => {
-    acc[t] = gear.filter((g) => g.type === t);
+    acc[t] = gear.filter(g => g.type === t);
     return acc;
   }, {});
 
   if (gear.length === 0) {
-    return (
-      <p className="font-mono text-sm text-muted/30 py-16 text-center">
-        No gear listed yet.
-      </p>
-    );
+    return <p className="font-mono text-sm text-muted/30 py-16 text-center">No gear listed yet.</p>;
   }
 
   return (
     <>
       <div className="grid sm:grid-cols-3 gap-8 sm:gap-12">
-        {TYPE_ORDER.map((type) => {
+        {TYPE_ORDER.map(type => {
           const items = grouped[type];
           if (items.length === 0) return null;
           const { label, icon } = TYPE_CONFIG[type];
@@ -327,7 +319,7 @@ export default function GearTab() {
                 <h3 className="font-mono text-xs uppercase tracking-widest text-muted/50">{label}</h3>
               </div>
               <ul>
-                {items.map((item) => (
+                {items.map(item => (
                   <GearItem key={item.id} item={item} onSelect={setSelected} />
                 ))}
               </ul>
