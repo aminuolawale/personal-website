@@ -63,7 +63,9 @@ function resizeThumbnail(file: File, maxPx = 300): Promise<File> {
       const ch = Math.round(h * scale);
       const canvas = document.createElement("canvas");
       canvas.width = cw; canvas.height = ch;
-      canvas.getContext("2d")!.drawImage(img, 0, 0, cw, ch);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, cw, ch);
       canvas.toBlob(
         blob => {
           if (!blob) { resolve(file); return; }
@@ -418,7 +420,7 @@ function GearImagePanel({ gearId }: { gearId: number }) {
     if (!newFile) return;
     setUploading(true); setAddError("");
     try {
-      const blob = await upload(newFile.name, newFile, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+      const blob = await upload(`gear/${gearId}/${Date.now()}-${newFile.name}`, newFile, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
       const res  = await fetch(`/api/astro-gear/${gearId}/images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -554,7 +556,7 @@ function EditGearModal({
       if (item.type === "equipment") {
         if (thumbFile) {
           const resized = await resizeThumbnail(thumbFile);
-          const blob  = await upload(resized.name, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+          const blob  = await upload(`gear/thumbs/${Date.now()}-${resized.name}`, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
           body.imageUrl = blob.url;
         } else if (!thumbPreview && item.imageUrl) {
           // user cleared the thumbnail
@@ -702,7 +704,7 @@ export default function AstroGearPage() {
       if (tab === "equipment" && thumbFile) {
         setAddProgress("Uploading thumbnail…");
         const resized = await resizeThumbnail(thumbFile);
-        const blob = await upload(resized.name, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+        const blob = await upload(`gear/thumbs/${Date.now()}-${resized.name}`, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
         imageUrl = blob.url;
       }
 
@@ -725,7 +727,7 @@ export default function AstroGearPage() {
         const staged = stagedImages[i];
         setAddProgress(`Uploading image ${i + 1} of ${stagedImages.length}…`);
         try {
-          const blob = await upload(staged.file.name, staged.file, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+          const blob = await upload(`gear/${newItem.id}/${Date.now()}-${staged.file.name}`, staged.file, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
           const imgRes = await fetch(`/api/astro-gear/${newItem.id}/images`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

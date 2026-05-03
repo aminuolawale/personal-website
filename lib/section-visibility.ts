@@ -1,4 +1,4 @@
-export const SECTION_IDS = ["swe", "astrophotography", "writing"] as const;
+export const SECTION_IDS = ["swe", "astrophotography", "writing", "misc"] as const;
 export type SectionId = (typeof SECTION_IDS)[number];
 export type SectionVisibility = Record<SectionId, boolean>;
 
@@ -6,6 +6,7 @@ export const DEFAULT_VISIBILITY: SectionVisibility = {
   swe: true,
   astrophotography: true,
   writing: true,
+  misc: true,
 };
 
 export async function getSectionVisibility(): Promise<SectionVisibility> {

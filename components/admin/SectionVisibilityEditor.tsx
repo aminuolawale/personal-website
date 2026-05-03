@@ -7,6 +7,7 @@ const SECTION_LABELS: Record<SectionId, string> = {
   swe: "Software Engineering",
   astrophotography: "Astrophotography",
   writing: "Writing",
+  misc: "Miscellaneous",
 };
 
 export default function SectionVisibilityEditor() {

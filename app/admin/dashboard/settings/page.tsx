@@ -9,6 +9,7 @@ import FontEditor from "@/components/admin/FontEditor";
 import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor";
 import SettingsNav, { SETTINGS_SECTIONS, type SettingsSectionId } from "@/components/admin/SettingsNav";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { useArticles } from "@/lib/hooks/use-articles";
 
 const SWE_TABS = [
   { id: "articles", label: "Articles" },
@@ -25,6 +26,9 @@ const ASTRO_TABS = [
 ];
 
 function SectionContent({ active }: { active: SettingsSectionId }) {
+  const { articles: miscArticles } = useArticles("misc", true);
+  const MISC_TABS = miscArticles.map(a => ({ id: a.slug, label: a.title }));
+
   switch (active) {
     case "visibility":
       return (
@@ -68,6 +72,9 @@ function SectionContent({ active }: { active: SettingsSectionId }) {
           <div className="space-y-4">
             <TabOrderEditor section="swe" defaultTabs={SWE_TABS} />
             <TabOrderEditor section="astrophotography" defaultTabs={ASTRO_TABS} />
+            {MISC_TABS.length > 0 && (
+              <TabOrderEditor section="misc" defaultTabs={MISC_TABS} />
+            )}
           </div>
         </>
       );

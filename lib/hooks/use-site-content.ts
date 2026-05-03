@@ -16,6 +16,8 @@ export const DEFAULT_CONTENT = {
   astroDescription:   "Session logs from Zurich and the Swiss Alps — acquisition planning, capture notes, and post-processing walkthroughs.",
   writingTitle:       "Essays & Reflections",
   writingDescription: "On technology, the cosmos, and the occasional personal dispatch from life in Zurich.",
+  miscTitle:          "Miscellaneous",
+  miscDescription:    "Various documents, legal notices, and other bits and pieces.",
   aboutBio:           "Hi, I’m Aminu Olawale — a Software Engineer based in Zurich, Switzerland. I enjoy building things that live on the internet, from high-throughput APIs to polished user interfaces.",
   aboutSkills:        "Python\nJavaScript / TypeScript\nNode.js\nReact / React Native\nGo\nDocker\nPostgreSQL\nRedis\nMicroservices",
 };

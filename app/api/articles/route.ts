@@ -39,6 +39,7 @@ const SECTION_LABEL: Record<string, string> = {
   writing: "Writing",
   astrophotography: "Astrophotography",
   swe: "SWE",
+  misc: "Misc",
 };
 
 export async function POST(req: NextRequest) {
@@ -55,7 +56,10 @@ export async function POST(req: NextRequest) {
       .returning();
     if (publishAsUpdate) {
       const section = SECTION_LABEL[article.type] ?? article.type;
-      const linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
+      let linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
+      if (article.type === "misc") {
+        linkUrl = `/misc?tab=${article.slug}`;
+      }
       await createUpdate({ text: `Aminu published a new article — ${article.title} — in ${section}`, linkUrl });
     }
     return NextResponse.json(article, { status: 201 });

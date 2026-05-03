@@ -14,6 +14,7 @@ const ALL_NAV_ITEMS = [
   { label: "SWE", href: "/swe", section: "swe" as SectionId },
   { label: "Astrophotography", href: "/astrophotography", section: "astrophotography" as SectionId },
   { label: "Writing", href: "/writing", section: "writing" as SectionId },
+  { label: "Misc", href: "/misc", section: "misc" as SectionId },
 ];
 
 export default function Navbar() {

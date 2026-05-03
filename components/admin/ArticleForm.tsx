@@ -13,7 +13,7 @@ const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: f
 
 interface ArticleFormProps {
   article?: Article;
-  defaultType?: "writing" | "astrophotography" | "swe";
+  defaultType?: "writing" | "astrophotography" | "swe" | "misc";
 }
 
 const INPUT =
@@ -25,8 +25,8 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const router = useRouter();
   const isNew = !article;
 
-  const [type, setType] = useState<"writing" | "astrophotography" | "swe">(
-    (article?.type as "writing" | "astrophotography" | "swe") ?? defaultType
+  const [type, setType] = useState<"writing" | "astrophotography" | "swe" | "misc">(
+    (article?.type as "writing" | "astrophotography" | "swe" | "misc") ?? defaultType
   );
   const [title, setTitle] = useState(article?.title ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
@@ -150,7 +150,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
           <div>
             <label className={LABEL}>Article type</label>
             <div className="flex gap-2">
-              {(["writing", "astrophotography", "swe"] as const).map((t) => (
+              {(["writing", "astrophotography", "swe", "misc"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"

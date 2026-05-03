@@ -29,6 +29,13 @@ const PAGE_SECTIONS = [
     titlePlaceholder:  "Essays & Reflections",
     descPlaceholder:   "On technology, the cosmos…",
   },
+  {
+    label:             "Misc",
+    titleKey:          "miscTitle",
+    descKey:           "miscDescription",
+    titlePlaceholder:  "Miscellaneous",
+    descPlaceholder:   "Various documents, legal notices…",
+  },
 ] as const;
 
 export default function ContentEditor() {

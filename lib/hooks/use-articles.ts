@@ -9,13 +9,15 @@ interface UseArticlesResult {
 }
 
 export function useArticles(
-  type: "writing" | "astrophotography" | "swe"
+  type: "writing" | "astrophotography" | "swe" | "misc",
+  admin = false
 ): UseArticlesResult {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/articles?type=${type}`)
+    const url = `/api/articles?type=${type}${admin ? "&admin=true" : ""}`;
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         if (Array.isArray(data)) setArticles(data);

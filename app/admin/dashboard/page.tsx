@@ -12,15 +12,17 @@ const TYPE_LABEL: Record<string, string> = {
   writing: "Writing",
   astrophotography: "Astro",
   swe: "SWE",
+  misc: "Misc",
 };
 
 const TYPE_COLOR: Record<string, string> = {
   writing: "text-accent bg-accent/10 border-accent/25",
   astrophotography: "text-muted bg-muted/10 border-muted/25",
   swe: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
+  misc: "text-surface bg-surface/10 border-surface/25",
 };
 
-type Section = "writing" | "swe" | "astrophotography";
+type Section = "writing" | "swe" | "astrophotography" | "misc";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -96,7 +98,7 @@ export default function AdminDashboard() {
         {/* Section tabs + context actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex flex-wrap items-center gap-2">
-            {(["writing", "swe", "astrophotography"] as const).map((s) => (
+            {(["writing", "swe", "astrophotography", "misc"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSection(s)}
