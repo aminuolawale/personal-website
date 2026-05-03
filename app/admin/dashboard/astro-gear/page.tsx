@@ -48,6 +48,37 @@ function linkLabel(type: GearType) {
   return "Reference Link";
 }
 
+// Resize an image file to fit within maxPx × maxPx and re-encode as WebP.
+// Used for thumbnails only — gear detail images are uploaded at full resolution.
+function resizeThumbnail(file: File, maxPx = 300): Promise<File> {
+  return new Promise(resolve => {
+    const img = new window.Image();
+    const src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(src);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (w <= maxPx && h <= maxPx) { resolve(file); return; }
+      const scale = maxPx / Math.max(w, h);
+      const cw = Math.round(w * scale);
+      const ch = Math.round(h * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, cw, ch);
+      canvas.toBlob(
+        blob => {
+          if (!blob) { resolve(file); return; }
+          const name = file.name.replace(/\.[^.]+$/, "") + ".webp";
+          resolve(new File([blob], name, { type: "image/webp" }));
+        },
+        "image/webp",
+        0.85,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(src); resolve(file); };
+    img.src = src;
+  });
+}
+
 // ── Corner marks ──────────────────────────────────────────────────────────────
 
 function CornerMarks({
@@ -517,7 +548,8 @@ function EditGearModal({
 
       if (item.type === "equipment") {
         if (thumbFile) {
-          const blob  = await upload(thumbFile.name, thumbFile, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+          const resized = await resizeThumbnail(thumbFile);
+          const blob  = await upload(resized.name, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
           body.imageUrl = blob.url;
         } else if (!thumbPreview && item.imageUrl) {
           // user cleared the thumbnail
@@ -660,11 +692,12 @@ export default function AstroGearPage() {
     if (!newName.trim()) return;
     setAdding(true); setError("");
     try {
-      // 1. Upload thumbnail
+      // 1. Upload thumbnail (resized to ≤300 px before upload)
       let imageUrl: string | null = null;
       if (tab === "equipment" && thumbFile) {
         setAddProgress("Uploading thumbnail…");
-        const blob = await upload(thumbFile.name, thumbFile, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
+        const resized = await resizeThumbnail(thumbFile);
+        const blob = await upload(resized.name, resized, { access: "public", handleUploadUrl: "/api/astro-gear/upload" });
         imageUrl = blob.url;
       }
 
