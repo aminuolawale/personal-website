@@ -9,6 +9,19 @@ export const DEFAULT_VISIBILITY: SectionVisibility = {
   misc: true,
 };
 
+export function getVisibleSectionIds(visibility: SectionVisibility): SectionId[] {
+  return SECTION_IDS.filter((id) => visibility[id]);
+}
+
+export function getVisibleSectionNumber(
+  section: SectionId,
+  visibility: SectionVisibility
+): string | null {
+  const sectionIndex = getVisibleSectionIds(visibility).indexOf(section);
+  if (sectionIndex === -1) return null;
+  return String(sectionIndex + 1).padStart(2, "0");
+}
+
 export async function getSectionVisibility(): Promise<SectionVisibility> {
   const { getDb } = await import("@/lib/db");
   const { siteConfig } = await import("@/lib/schema");

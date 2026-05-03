@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {m, AnimatePresence} from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
@@ -15,6 +15,8 @@ import { useTabConfig } from "@/lib/hooks/use-tab-config";
 const NightSkyMap = dynamic(() => import("@/components/astrophotography/NightSkyMap"), { ssr: false });
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
+import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
+import { getVisibleSectionNumber } from "@/lib/section-visibility";
 import type { Article } from "@/lib/schema";
 
 type AstroTab = TabConfig & {
@@ -58,6 +60,10 @@ function AstrophotographyContent() {
   const urlTab = searchParams.get("tab");
   const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
 
+  const visibilityConfig = useSectionVisibility();
+  const sectionNumber = getVisibleSectionNumber("astrophotography", visibilityConfig);
+  const eyebrow = sectionNumber ? `${sectionNumber}. Astrophotography` : "Astrophotography";
+
   const { order, labels, visibility } = useTabConfig("astrophotography", ASTRO_TABS);
   const orderedTabs = order
     .map((id) => ASTRO_TABS.find((t) => t.id === id)!)
@@ -74,7 +80,7 @@ function AstrophotographyContent() {
   return (
     <main>
       <PageHeader
-        eyebrow="02. Astrophotography"
+        eyebrow={eyebrow}
         title={astroTitle}
         description={astroDescription}
       >

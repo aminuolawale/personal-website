@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {m, AnimatePresence} from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
@@ -12,6 +12,8 @@ import Experience from "@/components/Experience";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
+import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
+import { getVisibleSectionNumber } from "@/lib/section-visibility";
 import type { Article } from "@/lib/schema";
 
 type SweTab = TabConfig & {
@@ -45,6 +47,10 @@ function SweContent() {
   const urlTab = searchParams.get("tab");
   const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
 
+  const visibilityConfig = useSectionVisibility();
+  const sectionNumber = getVisibleSectionNumber("swe", visibilityConfig);
+  const eyebrow = sectionNumber ? `${sectionNumber}. Engineering` : "Engineering";
+
   const { order, labels, visibility } = useTabConfig("swe", SWE_TABS);
   const orderedTabs = order
     .map((id) => SWE_TABS.find((t) => t.id === id)!)
@@ -61,7 +67,7 @@ function SweContent() {
   return (
     <main>
       <PageHeader
-        eyebrow="01. Engineering"
+        eyebrow={eyebrow}
         title={sweTitle}
         description={sweDescription}
       >
