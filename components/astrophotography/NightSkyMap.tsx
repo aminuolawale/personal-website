@@ -389,7 +389,7 @@ export default function NightSkyMap() {
           <div className="absolute inset-0 sm:relative sm:flex-1 sm:min-h-0 sm:min-w-0 sm:flex sm:items-center sm:justify-center">
             <canvas
               ref={canvasRef}
-              className="block w-full h-full sm:w-auto sm:h-auto sm:rounded-full"
+              className="block w-full h-full sm:w-auto sm:h-full sm:rounded-full"
               style={{
                 aspectRatio: "1",
                 maxHeight: "100%",
