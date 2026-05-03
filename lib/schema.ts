@@ -78,6 +78,21 @@ export const astroGear = pgTable("astro_gear", {
 export type AstroGear = typeof astroGear.$inferSelect;
 export type NewAstroGear = typeof astroGear.$inferInsert;
 
+// Images attached to a gear item. Each image has its own description and an
+// optional marquee (bounding box stored as {x,y,w,h} in 0-100 percentages).
+export const gearImages = pgTable("gear_images", {
+  id: serial("id").primaryKey(),
+  gearId: integer("gear_id").notNull(),
+  imageUrl: text("image_url").notNull(),
+  description: text("description").notNull().default(""),
+  marquee: text("marquee"),            // JSON "{x,y,w,h}" or null
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type GearImage = typeof gearImages.$inferSelect;
+export type NewGearImage = typeof gearImages.$inferInsert;
+
 // Homepage and /updates feed entries. Rows are auto-created by API routes when
 // content is saved with publishAsUpdate=true. thumbnailUrl is populated when
 // the content has an associated image (e.g. equipment with a photo).
