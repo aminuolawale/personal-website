@@ -1,6 +1,6 @@
 # Personal Website CMS
 
-A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing, misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
+A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
 
 **Live site:** https://mohamedall.com  
 **Hosting:** Vercel
@@ -17,7 +17,7 @@ A full-stack personal website and content management system built with Next.js. 
 | ORM | Drizzle ORM | `lib/schema.ts` is the source of truth |
 | Auth | NextAuth v5 beta | Google OAuth; single configured admin email |
 | Blob Storage | Vercel Blob | Gallery and gear image uploads |
-| Rich Text | Tiptap | Article body editor |
+| Rich Text | Tiptap | Article and reading-note body editor |
 | Animation | Framer Motion | Page/tab transitions and visual polish |
 | Icons | Lucide React | UI icons |
 | Testing | Vitest + Testing Library | API, hooks, components, utilities |
@@ -32,7 +32,7 @@ app/
   page.tsx                         Homepage: hero, updates, section portals
   swe/                             Software engineering section and article pages
   astrophotography/                Astro section, including gallery, gear, sky map
-  writing/                         Writing section and article pages
+  writing/                         Book reviews, reading notes, and article pages
   misc/                            Misc section with configurable article tabs
   updates/                         Public updates feed
   admin/
@@ -45,6 +45,7 @@ app/
       gallery/                     Astrophotography gallery CRUD
       astro-gear/                  Gear library CRUD
       astro-sessions/              Schedule astrophotography sessions
+      reading-notes/               Book entries and rich-text reading notes
       updates/                     Updates feed CRUD
       settings/                    Site settings, visibility, theme, tab order
   api/
@@ -53,6 +54,9 @@ app/
     gallery/                       Gallery photo CRUD and upload token route
     astro-gear/                    Gear CRUD, image CRUD, upload token route
     astro-sessions/                Astro session CRUD
+    book-categories/               Book category API
+    books/                         Book entry API
+    reading-notes/                 Reading note API
     comments/                      Reader comments
     updates/                       Site updates
     config/                        JSON key-value config store
@@ -100,7 +104,7 @@ vitest.config.ts                   Vitest config
 | Home | `/` | Hero, recent updates, visible section portals |
 | Software Engineering | `/swe` | Articles, projects, about/experience |
 | Astrophotography | `/astrophotography` | Articles, astro calendar, gallery, gear, night-sky map |
-| Writing | `/writing` | Articles |
+| Writing | `/writing` | Book reviews and reading notes |
 | Misc | `/misc` | Article-backed configurable tabs |
 | Updates | `/updates` | Full updates feed |
 
@@ -147,6 +151,17 @@ Target options come from `lib/sky-targets.ts`, which is derived from constellati
 
 ---
 
+## Writing
+
+The Writing section is split into:
+
+- Book reviews: existing `type="writing"` articles, managed through the article editor.
+- Reading notes: rich-text notes grouped under book entries.
+
+Book entries store a title, author, year published, and category. Categories can be created while creating a book, and the public Reading Notes tab can be filtered by category. Reading notes map many-to-one to a book entry and are shown publicly as a horizontal book carousel; selecting a book lists its notes newest to oldest. In the admin panel, a reading note's book assignment is fixed after creation. Only the note text is editable.
+
+---
+
 ## Admin Panel
 
 Navigate to `/admin` and sign in with Google. Only the configured admin email can access `/admin/dashboard/*` and write APIs.
@@ -160,6 +175,7 @@ Navigate to `/admin` and sign in with Google. Only the configured admin email ca
 | Gallery | `/admin/dashboard/gallery` | Astro photo management |
 | Gear Library | `/admin/dashboard/astro-gear` | Equipment, software, technique management |
 | Astro Sessions | `/admin/dashboard/astro-sessions` | Schedule sky-map sessions |
+| Reading Notes | `/admin/dashboard/reading-notes` | Create books and rich-text reading notes |
 | Updates | `/admin/dashboard/updates` | Edit/delete updates |
 | Settings | `/admin/dashboard/settings` | Section visibility, site content, experience, palette, typography, tab order, config links |
 
@@ -194,6 +210,9 @@ Several admin create flows include a “Publish as Update” toggle. When enable
 | `astro_gear` | Equipment, software, and technique entries |
 | `gear_images` | Additional images attached to gear |
 | `astro_sessions` | Scheduled astro sessions for the night-sky map |
+| `book_categories` | Categories for filtering reading-note books |
+| `books` | Book entries used by reading notes |
+| `reading_notes` | Rich-text notes mapped to books |
 | `site_updates` | Homepage and `/updates` feed |
 | `site_config` | JSON config values for tabs/content/settings |
 | `comments` | Reader comments on articles |
@@ -205,7 +224,7 @@ npm run db:push        # push to the dev database in .env.local
 npm run db:push --prod # temporarily use .env.prod.forsync, push, then restore .env.local
 ```
 
-The current session feature requires the `astro_sessions` table to exist in the target database.
+The current astro session and reading-notes features require the `astro_sessions`, `book_categories`, `books`, and `reading_notes` tables to exist in the target database.
 
 ---
 
@@ -302,6 +321,7 @@ Current coverage includes:
 - comments API
 - updates API
 - astro sessions API
+- book categories, books, and reading notes API
 - auth/comment components
 - data hooks
 - section visibility helpers

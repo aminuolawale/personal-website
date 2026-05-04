@@ -111,6 +111,43 @@ export const astroSessions = pgTable("astro_sessions", {
 export type AstroSession = typeof astroSessions.$inferSelect;
 export type NewAstroSession = typeof astroSessions.$inferInsert;
 
+// Book categories group reading-note books for filtering.
+export const bookCategories = pgTable("book_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type BookCategory = typeof bookCategories.$inferSelect;
+export type NewBookCategory = typeof bookCategories.$inferInsert;
+
+// Book entries are used to group public reading notes. Book reviews remain
+// writing articles; these rows are the library index for note-taking.
+export const books = pgTable("books", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  yearPublished: integer("year_published").notNull(),
+  categoryId: integer("category_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Book = typeof books.$inferSelect;
+export type NewBook = typeof books.$inferInsert;
+
+// Rich-text reading notes belong to a book. The book mapping is intentionally
+// immutable through the edit API; only the note content can be changed later.
+export const readingNotes = pgTable("reading_notes", {
+  id: serial("id").primaryKey(),
+  bookId: integer("book_id").notNull(),
+  content: text("content").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type ReadingNote = typeof readingNotes.$inferSelect;
+export type NewReadingNote = typeof readingNotes.$inferInsert;
+
 // Homepage and /updates feed entries. Rows are auto-created by API routes when
 // content is saved with publishAsUpdate=true. thumbnailUrl is populated when
 // the content has an associated image (e.g. equipment with a photo).

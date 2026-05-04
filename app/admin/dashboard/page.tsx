@@ -9,7 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import type { Article } from "@/lib/schema";
 
 const TYPE_LABEL: Record<string, string> = {
-  writing: "Writing",
+  writing: "Book Review",
   astrophotography: "Astro",
   swe: "SWE",
   misc: "Misc",
@@ -161,12 +161,20 @@ export default function AdminDashboard() {
                 </Link>
               </>
             )}
+            {section === "writing" && (
+              <Link
+                href="/admin/dashboard/reading-notes"
+                className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
+              >
+                Reading Notes
+              </Link>
+            )}
             <Link
               href={`/admin/dashboard/new?type=${section}`}
               className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-1.5 hover:bg-accent/10 transition-all"
             >
               <Plus size={13} />
-              New Article
+              {section === "writing" ? "New Book Review" : "New Article"}
             </Link>
           </div>
         </div>
@@ -181,7 +189,7 @@ export default function AdminDashboard() {
               href={`/admin/dashboard/new?type=${section}`}
               className="inline-flex items-center gap-2 mt-4 font-mono text-xs text-accent hover:underline"
             >
-              <Plus size={12} /> Create your first article
+              <Plus size={12} /> Create your first {section === "writing" ? "book review" : "article"}
             </Link>
           </div>
         ) : (
