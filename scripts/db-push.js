@@ -19,15 +19,21 @@
  *   modifying that file, so we do the swap-and-revert approach instead.
  *
  * Detection of --prod:
- *   npm sets npm_config_prod=true in the environment when you pass --prod to
- *   any script, so we read process.env.npm_config_prod rather than argv.
+ *   npm may expose --prod as npm_config_production=true. We also support
+ *   npm_config_prod=true and argv flags so this works whether you run:
+ *   npm run db:push --prod
+ *   npm run db:push -- --prod
  */
 
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const isProd = process.env.npm_config_prod === "true";
+const isProd =
+  process.env.npm_config_production === "true" ||
+  process.env.npm_config_prod === "true" ||
+  process.argv.includes("--prod") ||
+  process.argv.includes("--production");
 const root = path.resolve(__dirname, "..");
 const envLocal = path.join(root, ".env.local");
 const envProd = path.join(root, ".env.prod.forsync");

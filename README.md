@@ -1,6 +1,6 @@
 # Personal Website CMS
 
-A full-stack personal portfolio and content management system built with Next.js. The site covers three areas — **software engineering**, **astrophotography**, and **writing** — each with its own section, tab layout, and article system. A password-free admin panel (Google OAuth) handles all content creation.
+A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing, misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
 
 **Live site:** https://mohamedall.com  
 **Hosting:** Vercel
@@ -11,296 +11,306 @@ A full-stack personal portfolio and content management system built with Next.js
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Framework | [Next.js 16](https://nextjs.org) App Router | TypeScript throughout |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) | Theme via `@theme` CSS variables, not `tailwind.config.js` |
-| Database | [Neon](https://neon.tech) | Serverless Postgres, connects over HTTP (no persistent pool) |
-| ORM | [Drizzle ORM](https://orm.drizzle.team) | Schema-first, schema changes via `drizzle-kit push` |
-| Auth | [NextAuth v5 beta](https://authjs.dev) | Google OAuth; one hardcoded admin email |
-| Blob Storage | [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) | Stores all uploaded images |
-| Rich Text | [Tiptap](https://tiptap.dev) | Used for article bodies in the admin editor |
-| Animations | [Framer Motion](https://www.framer.com/motion/) | Page transitions and scroll reveals |
-| Icons | [Lucide React](https://lucide.dev) | |
-| Analytics | [Vercel Analytics](https://vercel.com/analytics) | Injected in `app/layout.tsx` |
+| Framework | Next.js 16 App Router | TypeScript, React 19 |
+| Styling | Tailwind CSS v4 | Theme values in CSS variables |
+| Database | Neon Postgres | Serverless HTTP driver |
+| ORM | Drizzle ORM | `lib/schema.ts` is the source of truth |
+| Auth | NextAuth v5 beta | Google OAuth; single configured admin email |
+| Blob Storage | Vercel Blob | Gallery and gear image uploads |
+| Rich Text | Tiptap | Article body editor |
+| Animation | Framer Motion | Page/tab transitions and visual polish |
+| Icons | Lucide React | UI icons |
+| Testing | Vitest + Testing Library | API, hooks, components, utilities |
+| Analytics | Vercel Analytics | Injected in `app/layout.tsx` |
 
 ---
 
 ## Project Structure
 
-```
-app/                        Next.js App Router pages and API routes
-  (public pages)
-    page.tsx                Landing page — hero, updates feed, section portals
-    swe/                    Software engineering section
-    astrophotography/       Astrophotography section
-    writing/                Writing section
-    updates/                All-updates feed page
-
+```text
+app/
+  page.tsx                         Homepage: hero, updates, section portals
+  swe/                             Software engineering section and article pages
+  astrophotography/                Astro section, including gallery, gear, sky map
+  writing/                         Writing section and article pages
+  misc/                            Misc section with configurable article tabs
+  updates/                         Public updates feed
   admin/
-    page.tsx                Login page (Google OAuth button)
+    page.tsx                       Google OAuth login
     dashboard/
-      page.tsx              Main CMS dashboard — article list, section tabs
-      new/                  Create new article
-      [id]/                 Edit existing article
-      projects/             Projects CRUD
-      gallery/              Gallery photos CRUD + image upload
-      astro-gear/           Gear library (equipment / software / technique)
-      updates/              Manage site update entries
-      settings/             Tab order configuration
-
-  api/                      REST API — public reads, authenticated writes
-    articles/               Article CRUD + filter by type or slug
-    projects/               Project CRUD + GitHub metadata fetch
-    gallery/                Gallery photo CRUD
-    gallery/upload/         Vercel Blob token endpoint for gallery images
-    astro-gear/             Gear library CRUD
-    astro-gear/upload/      Vercel Blob token endpoint for gear images
-    updates/                Site updates CRUD
-    config/                 Key-value config store (used for tab order)
+      page.tsx                     CMS dashboard and section-specific actions
+      new/                         Create article
+      [id]/                        Edit article
+      projects/                    SWE projects CRUD
+      gallery/                     Astrophotography gallery CRUD
+      astro-gear/                  Gear library CRUD
+      astro-sessions/              Schedule astrophotography sessions
+      updates/                     Updates feed CRUD
+      settings/                    Site settings, visibility, theme, tab order
+  api/
+    articles/                      Article CRUD and slug lookup
+    projects/                      Project CRUD and GitHub metadata
+    gallery/                       Gallery photo CRUD and upload token route
+    astro-gear/                    Gear CRUD, image CRUD, upload token route
+    astro-sessions/                Astro session CRUD
+    comments/                      Reader comments
+    updates/                       Site updates
+    config/                        JSON key-value config store
 
 components/
-  admin/                    Forms used only inside the admin panel
-    ArticleForm.tsx         Full article editor (title, body, tags, publish)
-    GalleryPhotoForm.tsx    Photo upload form with gear multiselects
-    ProjectForm.tsx         Project form with GitHub auto-fill
-    TabOrderEditor.tsx      Tab reordering UI (up/down arrows)
-
-  astrophotography/         Public astrophotography tab components
-  swe/                      Public SWE tab components
-  celestial/                Animated star/nebula background
-  (shared UI)
-    Hero.tsx, Navbar.tsx, Footer.tsx, PageHeader.tsx, TabBar.tsx, etc.
+  admin/                           Admin forms and settings editors
+  astrophotography/                Astro public tabs, gallery, gear, sky map
+  swe/                             SWE article tab
+  celestial/                       Decorative celestial background helpers
+  *.tsx                            Shared UI: Navbar, Hero, PageHeader, TabBar, etc.
 
 lib/
-  schema.ts                 Single source of truth for all DB table definitions
-  db.ts                     Drizzle client factory (getDb)
-  auth.ts                   Admin session helper (getSession)
-  site.ts                   Site-wide constants (name, URL, social links)
-  tag-colors.ts             Tag → Tailwind class mappings per section
-  hooks/
-    use-articles.ts         Fetch published articles by section
-    use-tab-order.ts        Fetch and apply saved tab order from config API
-
-scripts/
-  db-push.js                Schema push helper — supports --prod flag
+  schema.ts                        Drizzle table definitions and inferred types
+  db.ts                            Neon/Drizzle client factory
+  auth.ts                          Admin and reader session helpers
+  api.ts                           Shared API response helpers
+  hooks/                           Client data/config hooks
+  section-visibility.ts            Section visibility and numbering helpers
+  sky-*.ts                         Night-sky data, math, engine, drawing, targets
+  updates.ts                       Site update helper
+  utils.ts                         Shared utilities
 
 tests/
-  lib/                      Tests for shared utility functions (api helpers)
-  api/                      Route handler tests (comments, bookmarks, analytics)
-  components/               React component tests (AuthButton, CommentSection)
-  setup.ts                  Vitest global setup — imports @testing-library/jest-dom matchers
+  api/                             Route handler tests
+  components/                      React component tests
+  hooks/                           Hook tests
+  lib/                             Utility/helper tests
 
-auth.ts                     NextAuth configuration (root file, not inside lib/)
-proxy.ts                    Route proxy — protects /admin/dashboard/* (Next.js 16 replaces middleware.ts)
-drizzle.config.ts           Drizzle Kit config — reads DATABASE_URL from .env.local
-next.config.ts              Next.js config — allows Vercel Blob image hostnames
-vitest.config.ts            Vitest config — jsdom for components, node for API tests
+scripts/
+  db-push.js                       Drizzle schema push wrapper
+
+middleware.ts                      Protects `/admin/dashboard/*`
+auth.ts                            NextAuth root config
+drizzle.config.ts                  Drizzle Kit config
+next.config.ts                     Next.js image/domain config
+vitest.config.ts                   Vitest config
 ```
 
 ---
 
-## Database
+## Public Site
 
-**Provider:** [Neon](https://neon.tech) — serverless Postgres. Connections go over HTTP so there is no persistent connection pool. Each request opens and closes a connection, which is fine for a low-traffic personal site.
+| Section | URL | Main features |
+|---|---|---|
+| Home | `/` | Hero, recent updates, visible section portals |
+| Software Engineering | `/swe` | Articles, projects, about/experience |
+| Astrophotography | `/astrophotography` | Articles, astro calendar, gallery, gear, night-sky map |
+| Writing | `/writing` | Articles |
+| Misc | `/misc` | Article-backed configurable tabs |
+| Updates | `/updates` | Full updates feed |
 
-**ORM:** [Drizzle ORM](https://orm.drizzle.team) — `lib/schema.ts` is the single source of truth for all table definitions. Never alter tables directly in Neon; always update the schema file and run `npm run db:push`.
+Deep-linking to a tab works via `?tab=<tab-id>`, for example:
 
-### Tables
-
-| Table | Purpose |
-|---|---|
-| `articles` | Posts for all three sections — `type` field is `swe`, `astrophotography`, or `writing` |
-| `projects` | SWE projects shown on the projects tab |
-| `gallery_photos` | Astrophotography images with equipment, software, technique, and capture time metadata |
-| `astro_gear` | Equipment (with optional image and link), software, and technique entries for the gear library |
-| `site_updates` | Homepage/updates-page feed entries — auto-created when content is published with the "Publish as Update" toggle |
-| `site_config` | Arbitrary key-value store — currently holds tab order for each section as a JSON array |
-
-### Applying schema changes
-
-Edit `lib/schema.ts`, then run:
-
-```bash
-npm run db:push        # push to dev database (reads DATABASE_URL from .env.local)
-npm run db:push --prod # push to production database (reads from .env.prod.forsync)
+```text
+/astrophotography?tab=gear
+/astrophotography?tab=sky
+/swe?tab=projects
 ```
+
+Gear links can also deep-link to an equipment modal:
+
+```text
+/astrophotography?tab=gear&gear=<gear-id>
+```
+
+The navbar and section headers respect section visibility. When sections are hidden, visible section numbers are recalculated consistently across navigation, home cards, and page headers.
+
+There is also a hidden admin shortcut: tapping/clicking the spacer between `AO.` and the nav controls four times within a short window routes to `/admin`.
 
 ---
 
-## Blob Storage
+## Night-Sky Map
 
-**Provider:** [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)
+The `NightSkyMap` component is a custom canvas-based sky visualization backed by local astronomy data and math:
 
-Used for all uploaded images — gallery photos and equipment images in the gear library.
+- bright stars, background stars, constellation linework, deep-sky objects, planets, and Moon
+- pan, zoom, touch gestures, fullscreen mode, location transitions
+- constellation selection and target framing
+- session callouts with target rings, witness lines, and expandable details
 
-**Why client-side upload?** Vercel serverless functions have a ~4.5 MB request body limit. To handle large images, the browser uploads directly to Vercel Blob using a two-step flow:
+Astro sessions are scheduled in the admin panel. Each session stores:
 
-1. The browser calls `/api/gallery/upload` (or `/api/astro-gear/upload`) to get a short-lived signed token. This step checks admin authentication.
-2. The browser sends the file directly to Vercel Blob using that token, bypassing the function body limit entirely.
+- title
+- scheduled date/time
+- sky target
+- planned equipment
+- notes
 
-Uploaded image URLs are stored in the database and rendered via `next/image`. All Vercel Blob hostnames are allowed in `next.config.ts` via the `*.public.blob.vercel-storage.com` wildcard.
+Session targets can be constellations, deep-sky objects, planets, or Moon. Upcoming sessions show as accent callouts. Old sessions can be toggled on and render muted gray but remain clickable. Clicking a session frames the target and expands the card. Witness lines and target rings are only shown when the target ring is fully visible in the map frame.
 
----
-
-## Authentication
-
-**Provider:** [NextAuth v5 beta](https://authjs.dev) with Google OAuth.
-
-There is exactly **one admin** — the email address hardcoded in two files:
-
-- `proxy.ts` — route-level protection before the page renders
-- `lib/auth.ts` — API-level session check
-
-To change the admin, update `ADMIN_EMAIL` in both files.
-
-**How protection is layered:**
-
-1. `proxy.ts` runs on the Node.js runtime and redirects any non-admin away from `/admin/dashboard/*` before the page renders.
-2. Every API write route additionally calls `getSession()` as a second check, so the API cannot be bypassed even if the proxy were somehow circumvented.
-3. Public GET routes have no auth requirement — content is public by design.
-
----
-
-## Environment Variables
-
-Create `.env.local` at the project root:
-
-```env
-# Neon Postgres connection string (from Neon dashboard)
-DATABASE_URL=
-
-# NextAuth secret — generate with: openssl rand -base64 32
-AUTH_SECRET=
-
-# Google OAuth app credentials (from Google Cloud Console → APIs & Services → Credentials)
-AUTH_GOOGLE_ID=
-AUTH_GOOGLE_SECRET=
-
-# Vercel Blob token (from Vercel dashboard → Storage → Blob → your store)
-BLOB_READ_WRITE_TOKEN=
-
-# Used for OG images and sitemap — no trailing slash
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-For production, add these as environment variables in the Vercel project dashboard. Change `NEXT_PUBLIC_SITE_URL` to the live domain.
-
----
-
-## Custom Scripts
-
-### `scripts/db-push.js`
-
-Wraps `drizzle-kit push` with optional production database support.
-
-```bash
-npm run db:push           # push using DATABASE_URL in .env.local
-npm run db:push --prod    # temporarily swap in the URL from .env.prod.forsync, push, revert
-```
-
-`.env.prod.forsync` is gitignored and must contain at minimum:
-
-```env
-DATABASE_URL=<production neon connection string>
-```
-
-The `--prod` path is detected via `npm_config_prod=true`, which npm automatically injects when you pass `--prod` to any script. The revert runs in a `finally` block, so `.env.local` is always restored even if the push fails.
+Target options come from `lib/sky-targets.ts`, which is derived from constellation data, DSO data, and solar-system targets.
 
 ---
 
 ## Admin Panel
 
-Navigate to `/admin` to sign in with Google. Only the configured admin email can access the dashboard.
+Navigate to `/admin` and sign in with Google. Only the configured admin email can access `/admin/dashboard/*` and write APIs.
 
-| Page | URL | What it does |
+| Page | URL | Purpose |
 |---|---|---|
-| Dashboard | `/admin/dashboard` | Article list; switch between writing / SWE / astrophotography |
-| New article | `/admin/dashboard/new` | Create article with rich-text body, tags, date, read time |
-| Edit article | `/admin/dashboard/[id]` | Update, publish, or delete an article |
-| Projects | `/admin/dashboard/projects` | Add SWE projects; auto-fills title and description from GitHub |
-| Gallery | `/admin/dashboard/gallery` | Upload photos; attach equipment, software, technique metadata |
-| Gear library | `/admin/dashboard/astro-gear` | Add equipment (with image + product link), software, and technique |
-| Updates | `/admin/dashboard/updates` | Edit or delete entries in the updates feed |
-| Settings | `/admin/dashboard/settings` | Reorder tabs in the SWE and Astrophotography sections |
+| Dashboard | `/admin/dashboard` | Articles by section, section-specific actions |
+| New Article | `/admin/dashboard/new` | Create article with rich-text body |
+| Edit Article | `/admin/dashboard/[id]` | Edit/publish/delete article |
+| Projects | `/admin/dashboard/projects` | SWE project management |
+| Gallery | `/admin/dashboard/gallery` | Astro photo management |
+| Gear Library | `/admin/dashboard/astro-gear` | Equipment, software, technique management |
+| Astro Sessions | `/admin/dashboard/astro-sessions` | Schedule sky-map sessions |
+| Updates | `/admin/dashboard/updates` | Edit/delete updates |
+| Settings | `/admin/dashboard/settings` | Section visibility, site content, experience, palette, typography, tab order, config links |
 
-### "Publish as Update" toggle
+The Astrophotography dashboard actions include:
 
-Most create forms include a **Publish as Update** toggle. When enabled, creating the item also inserts a row in `site_updates` with a descriptive message and a deep link back to that content. If the item has an image (e.g. equipment), the update also stores a thumbnail URL. These entries surface on the homepage and on `/updates`.
+- Gear Library
+- All Photos
+- New Photo
+- New Session
+- New Article
+
+### Publish as Update
+
+Several admin create flows include a “Publish as Update” toggle. When enabled, the create action also inserts a row in `site_updates`, optionally with a thumbnail and a deep link back to the content.
 
 ---
 
-## Public Site Sections
+## Database
 
-| Section | URL | Tabs |
-|---|---|---|
-| Software Engineering | `/swe` | Articles · Projects · About Me |
-| Astrophotography | `/astrophotography` | Articles · Astro Calendar · Gallery · Gear |
-| Writing | `/writing` | Articles |
+**Provider:** Neon serverless Postgres  
+**ORM:** Drizzle ORM
 
-Tab order for SWE and Astrophotography is configurable from the admin Settings page. The order is stored as a JSON array in `site_config` and fetched on the client via the `useTabOrder` hook.
+`lib/schema.ts` is the single source of truth. Update that file and run `npm run db:push`; do not manually alter tables in Neon.
 
-Deep-linking to a specific tab works via `?tab=<tab-id>` — for example, a site update about a new gear item links to `/astrophotography?tab=gear`.
+### Tables
+
+| Table | Purpose |
+|---|---|
+| `articles` | Articles for SWE, astrophotography, writing, and misc |
+| `projects` | SWE project entries |
+| `gallery_photos` | Astro gallery photos and acquisition metadata |
+| `astro_gear` | Equipment, software, and technique entries |
+| `gear_images` | Additional images attached to gear |
+| `astro_sessions` | Scheduled astro sessions for the night-sky map |
+| `site_updates` | Homepage and `/updates` feed |
+| `site_config` | JSON config values for tabs/content/settings |
+| `comments` | Reader comments on articles |
+
+### Applying Schema Changes
+
+```bash
+npm run db:push        # push to the dev database in .env.local
+npm run db:push --prod # temporarily use .env.prod.forsync, push, then restore .env.local
+```
+
+The current session feature requires the `astro_sessions` table to exist in the target database.
+
+---
+
+## Blob Storage
+
+Images are uploaded to Vercel Blob:
+
+- gallery photos
+- gear thumbnails/detail images
+
+The app uses direct browser-to-Blob upload flows to avoid serverless request body limits. Authenticated upload token routes live under:
+
+```text
+/api/gallery/upload
+/api/astro-gear/upload
+```
+
+Blob URLs are stored in Postgres and rendered with `next/image`. Vercel Blob hostnames are allowed in `next.config.ts`.
+
+---
+
+## Authentication
+
+Auth uses NextAuth v5 beta with Google OAuth.
+
+There is one admin email, currently duplicated by design:
+
+- `middleware.ts` protects `/admin/dashboard/*`
+- `lib/auth.ts` protects API writes and exposes reader session helpers
+
+If the admin changes, update both files.
+
+Protection layers:
+
+1. `middleware.ts` redirects non-admins away from `/admin/dashboard/*`.
+2. API write routes call `getSession()` from `lib/auth.ts`.
+3. Public GET routes are generally unauthenticated.
+4. Reader comments can use any signed-in Google account; comment approval remains admin-controlled.
+
+---
+
+## Environment Variables
+
+Create `.env.local`:
+
+```env
+DATABASE_URL=
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+BLOB_READ_WRITE_TOKEN=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+For production, configure the same variables in Vercel. Use the production domain for `NEXT_PUBLIC_SITE_URL`.
+
+For production schema pushes, `.env.prod.forsync` must contain:
+
+```env
+DATABASE_URL=<production neon connection string>
+```
+
+---
+
+## Scripts
+
+```bash
+npm run dev          # start local Next dev server
+npm run build        # production build and type check
+npm run start        # start production server after build
+npm run lint         # run ESLint
+npm run test         # run Vitest once
+npm run test:watch   # Vitest watch mode
+npm run test:ui      # Vitest UI
+npm run db:push      # push Drizzle schema
+```
+
+Known note: `npm run lint` currently surfaces broader existing React compiler and test typing issues in older files. `npm run build` and `npm run test` are the reliable verification commands used during recent work.
 
 ---
 
 ## Testing
 
-Tests are written with [Vitest](https://vitest.dev) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/). All external dependencies (database, auth, fetch) are mocked so the suite runs without a live database or Google OAuth credentials.
+Tests use Vitest and Testing Library. DB/auth/fetch dependencies are mocked where needed.
 
 ```bash
-npm run test          # run all tests once (CI mode)
-npm run test:watch    # watch mode — re-runs on file changes
-npm run test:ui       # open Vitest's browser UI
+npm run test
 ```
 
-To run a single test file:
+Current coverage includes:
+
+- article APIs
+- config API
+- comments API
+- updates API
+- astro sessions API
+- auth/comment components
+- data hooks
+- section visibility helpers
+- sky target catalog
+- shared utilities
+
+Run a single file:
 
 ```bash
-npx vitest run tests/api/comments.test.ts
-npx vitest run tests/components/AuthButton.test.tsx
+npx vitest run tests/api/astro-sessions.test.ts
+npx vitest run tests/lib/sky-targets.test.ts
 ```
-
-### Coverage
-
-| File | What's tested |
-|---|---|
-| `tests/lib/api-helpers.test.ts` | `unauthorized`, `notFound`, `badRequest`, `serverError` response shapes and status codes |
-| `tests/api/comments.test.ts` | `GET /api/comments` — auth, articleId validation, approved filter; `POST /api/comments` — auth, field validation, successful insert |
-| `tests/api/bookmarks.test.ts` | `GET`, `POST`, `DELETE /api/bookmarks` — auth on every verb, missing-param validation, happy paths |
-| `tests/api/analytics.test.ts` | `GET /api/admin/analytics` — admin-only gate, reader aggregation from bookmarks + comments, empty state |
-| `tests/components/AuthButton.test.tsx` | Loading / unauthenticated / authenticated states; dropdown toggle; `inline` mode for mobile drawer |
-| `tests/components/CommentSection.test.tsx` | Sign-in prompt when logged out; textarea form when logged in; comment list rendering; pending-approval notice after submit; empty state |
-
-### Test environment
-
-API tests run in the `node` environment (no DOM). Component tests run in `jsdom`. The split is configured in `vitest.config.ts` via `environmentMatchGlobs`.
-
----
-
-## Local Development
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Create .env.local with the variables listed above
-
-# 3. Push the database schema to your dev Neon database
-npm run db:push
-
-# 4. Start the dev server
-npm run dev
-```
-
-The site will be at http://localhost:3000 and the admin panel at http://localhost:3000/admin.
-
----
-
-## Deployment
-
-The project deploys to [Vercel](https://vercel.com) automatically on every push to `main`. Vercel builds the Next.js app and serves it globally via its edge network.
-
-**Pre-deployment checklist:**
-- All environment variables are set in the Vercel project dashboard
-- `NEXT_PUBLIC_SITE_URL` is set to the production domain (no trailing slash)
-- Schema has been pushed to the production database (`npm run db:push --prod`)
-- Google OAuth redirect URI includes the production domain (in Google Cloud Console)
