@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
@@ -31,6 +32,7 @@ export default function WritingPage() {
   const [notes, setNotes] = useState<ReadingNote[]>([]);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [notesLoading, setNotesLoading] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +101,120 @@ export default function WritingPage() {
 
   const selectedBook = booksWithNotes.find((book) => book.id === selectedBookId) ?? null;
   const selectedNotes = notes.filter((note) => note.bookId === selectedBookId);
+  const selectedCategoryLabel =
+    selectedCategoryId === "all"
+      ? "All"
+      : categoriesById.get(selectedCategoryId)?.name ?? "Category";
+  const filterSummary = selectedBook
+    ? `${selectedCategoryLabel} · ${selectedBook.title}`
+    : selectedCategoryLabel;
+
+  const readingNotesFilter = (visibleCategories.length > 0 || booksWithNotes.length > 0) && (
+    <div className="border border-surface/10 bg-surface/[0.015]">
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((open) => !open)}
+        aria-expanded={filtersOpen}
+        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-surface/[0.025] transition-colors"
+      >
+        <span className="inline-flex items-center gap-2 min-w-0">
+          <SlidersHorizontal size={14} className="text-accent shrink-0" />
+          <span className="font-mono text-xs text-muted/45 uppercase tracking-widest shrink-0">
+            Filters
+          </span>
+          <span className="font-mono text-xs text-surface/70 truncate">
+            {filterSummary}
+          </span>
+        </span>
+        <ChevronDown
+          size={15}
+          className={`text-muted/40 shrink-0 transition-transform duration-200 ${filtersOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {filtersOpen && (
+        <m.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.18 }}
+          className="overflow-hidden border-t border-surface/[0.06]"
+        >
+          <div className="space-y-4 p-3">
+            {visibleCategories.length > 0 && (
+              <div>
+                <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2">
+                  Category
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryId("all")}
+                    className={`font-mono text-xs px-3 py-1.5 border transition-all ${
+                      selectedCategoryId === "all"
+                        ? "bg-accent text-base border-accent"
+                        : "text-muted/50 border-surface/15 hover:border-accent/40"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {visibleCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryId(category.id)}
+                      className={`font-mono text-xs px-3 py-1.5 border transition-all ${
+                        selectedCategoryId === category.id
+                          ? "bg-accent text-base border-accent"
+                          : "text-muted/50 border-surface/15 hover:border-accent/40"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {booksWithNotes.length > 0 && (
+              <div>
+                <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2">
+                  Book
+                </p>
+                <div className="relative -mx-3 sm:mx-0">
+                  <div
+                    ref={carouselRef}
+                    className="flex gap-3 overflow-x-auto px-3 sm:px-0 pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  >
+                    {booksWithNotes.map((book) => {
+                      const selected = book.id === selectedBookId;
+                      return (
+                        <button
+                          key={book.id}
+                          data-book-id={book.id}
+                          type="button"
+                          onClick={() => setSelectedBookId(book.id)}
+                          className={`shrink-0 max-w-[16rem] text-left border px-3 py-2 transition-all duration-200 ${
+                            selected
+                              ? "border-accent bg-accent/10"
+                              : "border-surface/10 bg-surface/[0.025] hover:border-accent/30"
+                          }`}
+                        >
+                          <span className="block text-surface text-sm font-semibold leading-snug truncate">
+                            {book.title}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </m.div>
+      )}
+    </div>
+  );
 
   return (
     <main>
@@ -143,105 +259,14 @@ export default function WritingPage() {
                 <p className="font-mono text-xs text-muted/30">Loading…</p>
               ) : booksWithNotes.length === 0 ? (
                 <div className="space-y-4">
-                  {visibleCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategoryId("all")}
-                        className={`font-mono text-xs px-3 py-1.5 border transition-all ${
-                          selectedCategoryId === "all"
-                            ? "bg-accent text-base border-accent"
-                            : "text-muted/50 border-surface/15 hover:border-accent/40"
-                        }`}
-                      >
-                        All
-                      </button>
-                      {visibleCategories.map((category) => (
-                        <button
-                          key={category.id}
-                          type="button"
-                          onClick={() => setSelectedCategoryId(category.id)}
-                          className={`font-mono text-xs px-3 py-1.5 border transition-all ${
-                            selectedCategoryId === category.id
-                              ? "bg-accent text-base border-accent"
-                              : "text-muted/50 border-surface/15 hover:border-accent/40"
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {readingNotesFilter}
                   <p className="font-mono text-sm text-muted/30 py-16 text-center">
                     No reading notes in this category.
                   </p>
                 </div>
               ) : (
                 <>
-                  {visibleCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategoryId("all")}
-                        className={`font-mono text-xs px-3 py-1.5 border transition-all ${
-                          selectedCategoryId === "all"
-                            ? "bg-accent text-base border-accent"
-                            : "text-muted/50 border-surface/15 hover:border-accent/40"
-                        }`}
-                      >
-                        All
-                      </button>
-                      {visibleCategories.map((category) => (
-                        <button
-                          key={category.id}
-                          type="button"
-                          onClick={() => setSelectedCategoryId(category.id)}
-                          className={`font-mono text-xs px-3 py-1.5 border transition-all ${
-                            selectedCategoryId === category.id
-                              ? "bg-accent text-base border-accent"
-                              : "text-muted/50 border-surface/15 hover:border-accent/40"
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="relative -mx-6 sm:mx-0">
-                    <div
-                      ref={carouselRef}
-                      className="flex gap-3 overflow-x-auto px-5 sm:px-0 pb-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                    >
-                      {booksWithNotes.map((book) => {
-                        const selected = book.id === selectedBookId;
-                        return (
-                          <button
-                            key={book.id}
-                            data-book-id={book.id}
-                            type="button"
-                            onClick={() => setSelectedBookId(book.id)}
-                            className={`shrink-0 w-[78vw] max-w-[20rem] sm:w-72 text-left border p-4 transition-all duration-200 ${
-                              selected
-                                ? "border-accent bg-accent/10"
-                                : "border-surface/10 bg-surface/[0.025] hover:border-accent/30"
-                            }`}
-                          >
-                            <span className="block text-surface font-semibold leading-snug">
-                              {book.title}
-                            </span>
-                            <span className="mt-2 block font-mono text-xs text-muted/40">
-                              {book.author} · {book.yearPublished}
-                            </span>
-                            {book.categoryId && categoriesById.has(book.categoryId) && (
-                              <span className="mt-3 inline-block font-mono text-[10px] uppercase tracking-widest text-accent/70">
-                                {categoriesById.get(book.categoryId)?.name}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  {readingNotesFilter}
 
                   {selectedBook && (
                     <div className="max-w-3xl">
