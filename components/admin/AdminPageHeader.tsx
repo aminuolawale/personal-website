@@ -26,19 +26,19 @@ export default function AdminPageHeader({
 }: Props) {
   return (
     <div className="border-b border-surface/10 bg-base">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
           <Link
             href={backHref}
-            className="flex items-center gap-1.5 font-mono text-xs text-muted/40 hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 font-mono text-xs text-muted/40 hover:text-accent transition-colors shrink-0"
           >
             <ArrowLeft size={13} />
             {backLabel}
           </Link>
-          <span className="font-mono text-accent text-sm font-bold">{title}</span>
+          <span className="font-mono text-accent text-sm font-bold min-w-0 break-words">{title}</span>
           <ThemeToggle />
         </div>
-        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>}
       </div>
     </div>
   );

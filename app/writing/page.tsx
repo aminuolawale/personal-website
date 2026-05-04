@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
@@ -32,6 +32,7 @@ export default function WritingPage() {
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
   const [notesLoading, setNotesLoading] = useState(true);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +90,13 @@ export default function WritingPage() {
     setSelectedBookId(booksWithNotes[0]?.id ?? null);
   }, [booksWithNotes, selectedBookId]);
 
+  useEffect(() => {
+    if (!selectedBookId) return;
+    const carousel = carouselRef.current;
+    const selected = carousel?.querySelector<HTMLElement>(`[data-book-id="${selectedBookId}"]`);
+    selected?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [selectedBookId, selectedCategoryId, booksWithNotes]);
+
   const selectedBook = booksWithNotes.find((book) => book.id === selectedBookId) ?? null;
   const selectedNotes = notes.filter((note) => note.bookId === selectedBookId);
 
@@ -100,7 +108,7 @@ export default function WritingPage() {
         description={writingDescription}
       />
 
-      <section className="py-8 sm:py-14 px-6 sm:px-16 max-w-6xl mx-auto">
+      <section className="py-8 sm:py-14 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
         <TabBar tabs={WRITING_TABS} activeId={activeTab} onChange={setActiveTab} />
 
         <div className="pt-8 sm:pt-12">
@@ -200,12 +208,16 @@ export default function WritingPage() {
                     </div>
                   )}
                   <div className="relative -mx-6 sm:mx-0">
-                    <div className="flex gap-3 overflow-x-auto px-6 sm:px-0 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div
+                      ref={carouselRef}
+                      className="flex gap-3 overflow-x-auto px-5 sm:px-0 pb-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    >
                       {booksWithNotes.map((book) => {
                         const selected = book.id === selectedBookId;
                         return (
                           <button
                             key={book.id}
+                            data-book-id={book.id}
                             type="button"
                             onClick={() => setSelectedBookId(book.id)}
                             className={`shrink-0 w-[78vw] max-w-[20rem] sm:w-72 text-left border p-4 transition-all duration-200 ${

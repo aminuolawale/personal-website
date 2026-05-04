@@ -51,7 +51,7 @@ export default function Navbar() {
           : ""
       }`}
     >
-      <nav className="max-w-6xl mx-auto px-6 sm:px-16 py-5 flex items-center justify-between">
+      <nav className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-16 py-4 sm:py-5 flex items-center justify-between gap-3">
         <Link
           href="/"
           className="font-mono text-accent text-xl font-bold hover:opacity-75 transition-all duration-500"
@@ -67,7 +67,7 @@ export default function Navbar() {
         />
 
         {/* Desktop nav */}
-        <ul className="hidden sm:flex items-center gap-1">
+        <ul className="hidden lg:flex items-center gap-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -92,13 +92,13 @@ export default function Navbar() {
         </ul>
 
         {/* Auth + theme — desktop */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <AuthButton />
           <ThemeToggle />
         </div>
 
         {/* Mobile: theme toggle + hamburger */}
-        <div className="sm:hidden flex items-center gap-1">
+        <div className="lg:hidden flex items-center gap-1">
           <ThemeToggle />
           <button
             className="text-accent p-1"
@@ -114,7 +114,7 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <m.div
-            className="sm:hidden border-t border-surface/10 bg-base/95 backdrop-blur-md overflow-hidden"
+            className="lg:hidden border-t border-surface/10 bg-base/95 backdrop-blur-md overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

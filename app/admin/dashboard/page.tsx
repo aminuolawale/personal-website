@@ -62,8 +62,8 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-base text-muted">
       {/* Header */}
       <div className="border-b border-surface/10 bg-base">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <Link href="/" className="font-mono text-accent text-lg font-bold hover:opacity-75 transition-opacity">
               AO.
             </Link>
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Section tabs + context actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
           <div className="flex flex-wrap items-center gap-2">
             {(["writing", "swe", "astrophotography", "misc"] as const).map((s) => (
               <button
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {section === "swe" && (
               <>
                 <Link
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
             {filtered.map((article) => (
               <div
                 key={article.id}
-                className="py-4 flex items-start justify-between gap-4 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors"
+                className="py-4 flex items-start justify-between gap-3 sm:gap-4 hover:bg-surface/[0.015] -mx-3 px-3 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">

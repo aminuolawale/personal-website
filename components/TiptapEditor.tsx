@@ -18,7 +18,7 @@ interface TiptapEditorProps {
 }
 
 const BTN =
-  "p-2 rounded text-muted/60 hover:text-accent hover:bg-accent/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
+  "p-1.5 sm:p-2 rounded text-muted/60 hover:text-accent hover:bg-accent/10 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed";
 const BTN_ACTIVE = "text-accent bg-accent/15";
 
 export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
@@ -34,7 +34,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: "tiptap-editor min-h-[480px] p-6 focus:outline-none",
+        class: "tiptap-editor min-h-[280px] sm:min-h-[420px] p-4 sm:p-6 focus:outline-none",
       },
     },
   });
@@ -53,7 +53,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
   };
 
   return (
-    <div className="border border-surface/15 rounded-sm flex flex-col bg-base">
+    <div className="border border-surface/15 rounded-sm flex flex-col bg-base min-w-0">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-surface/10 bg-surface/[0.02]">
         <button

@@ -23,11 +23,27 @@
 }
 
 /* ── Base ────────────────────────────────────────────────── */
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
 
 body {
   background-color: var(--color-base);
   color: var(--color-muted);
+  overflow-x: clip;
+}
+
+main,
+section,
+article,
+p,
+h1,
+h2,
+h3,
+h4,
+a {
+  overflow-wrap: anywhere;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -51,6 +67,7 @@ body {
     color: var(--color-muted);
     line-height: 1.75;
     font-size: 1rem;
+    overflow-wrap: anywhere;
   }
 
   .tiptap-editor p.is-editor-empty:first-child::before {

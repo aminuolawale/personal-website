@@ -1,6 +1,6 @@
 "use client";
 
-import {m} from "framer-motion";
+import { m } from "framer-motion";
 
 interface PageHeaderProps {
   eyebrow: string;
@@ -17,14 +17,14 @@ export default function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <section className="pt-24 sm:pt-40 pb-0 px-6 sm:px-16 max-w-6xl mx-auto">
+    <section className="pt-24 sm:pt-32 lg:pt-40 pb-0 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
       <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
         <p className="font-mono text-accent text-sm mb-4">{eyebrow}</p>
-        <h1 className="text-[clamp(32px,6vw,64px)] font-bold text-surface leading-tight mb-4 sm:mb-6">
+        <h1 className="text-[clamp(32px,6vw,64px)] font-bold text-surface leading-tight mb-4 sm:mb-6 break-words">
           {title}
         </h1>
         <p className="text-muted/65 text-base sm:text-lg max-w-xl leading-relaxed mb-8 sm:mb-12">

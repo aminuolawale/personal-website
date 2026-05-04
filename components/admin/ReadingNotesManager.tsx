@@ -192,7 +192,7 @@ export default function ReadingNotesManager() {
       )}
 
       <div className="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-6">
-        <form onSubmit={createBook} className="border border-surface/10 bg-surface/[0.02] p-5 space-y-4">
+        <form onSubmit={createBook} className="border border-surface/10 bg-surface/[0.02] p-4 sm:p-5 space-y-4 min-w-0">
           <div className="flex items-center gap-2 text-surface font-semibold">
             <BookOpen size={16} />
             Book entry
@@ -251,7 +251,7 @@ export default function ReadingNotesManager() {
           </button>
         </form>
 
-        <form onSubmit={createNote} className="border border-surface/10 bg-surface/[0.02] p-5 space-y-4">
+        <form onSubmit={createNote} className="border border-surface/10 bg-surface/[0.02] p-4 sm:p-5 space-y-4 min-w-0">
           <div className="flex items-center gap-2 text-surface font-semibold">
             <Pencil size={16} />
             Reading note
@@ -305,10 +305,10 @@ export default function ReadingNotesManager() {
               const book = booksById.get(note.bookId);
               const editing = editingId === note.id;
               return (
-                <article key={note.id} className="border border-surface/10 bg-surface/[0.015] p-5">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <p className="text-surface font-semibold">
+                <article key={note.id} className="border border-surface/10 bg-surface/[0.015] p-4 sm:p-5 min-w-0">
+                  <div className="flex items-start justify-between gap-3 sm:gap-4 mb-4">
+                    <div className="min-w-0">
+                      <p className="text-surface font-semibold break-words">
                         {book ? book.title : `Book #${note.bookId}`}
                       </p>
                       <p className="font-mono text-xs text-muted/35 mt-1">
@@ -320,7 +320,7 @@ export default function ReadingNotesManager() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 -mr-2">
                       <button
                         type="button"
                         onClick={() => { setEditingId(note.id); setEditingContent(note.content); }}
@@ -348,7 +348,7 @@ export default function ReadingNotesManager() {
                         onChange={setEditingContent}
                         placeholder="Edit the note text…"
                       />
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => updateNote(note.id)}
