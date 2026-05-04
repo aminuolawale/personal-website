@@ -23,6 +23,7 @@ type SessionCallout = {
   anchorX: number;
   anchorY: number;
   ringInFrame: boolean;
+  isPast: boolean;
 };
 
 type ProjectedPoint = { x: number; y: number };
@@ -520,6 +521,7 @@ export default function NightSkyMap() {
       ? canvasLeft + width + 18
       : Math.max(12, frameWidth - cardWidth - 12);
     const listStartY = isFullscreen && frameWidth < 640 ? 52 : 8;
+    const now = Date.now();
 
     return sessions.flatMap((session, index): SessionCallout[] => {
       const mapSky = compute(date.current, lat, lon);
@@ -543,6 +545,7 @@ export default function NightSkyMap() {
         0
       );
       const ringRadius = Math.max(SINGLE_TARGET_RING_RADIUS, objectRadius + TARGET_RING_PADDING);
+      const isPast = new Date(session.scheduledAt).getTime() < now;
       const targetX = canvasLeft + centerX;
       const targetY = canvasTop + centerY;
       const ringInFrame = isRingFullyInMapFrame(centerX, centerY, ringRadius, width, height, skyRadius, isFullscreen);
@@ -572,6 +575,7 @@ export default function NightSkyMap() {
         anchorX,
         anchorY,
         ringInFrame,
+        isPast,
       }];
     });
   })();
@@ -600,14 +604,14 @@ export default function NightSkyMap() {
   const sessionOverlay = sessionCallouts.length > 0 && (
     <div className="absolute inset-0 pointer-events-none overflow-visible">
       <svg className="absolute inset-0 overflow-visible" aria-hidden="true">
-        {sessionCallouts.filter((callout) => callout.ringInFrame).map(({ session, targetX, targetY, ringRadius, circleX, circleY, anchorX, anchorY }) => (
+        {sessionCallouts.filter((callout) => callout.ringInFrame).map(({ session, targetX, targetY, ringRadius, circleX, circleY, anchorX, anchorY, isPast }) => (
           <g key={session.id}>
             <circle
               cx={targetX}
               cy={targetY}
               r={ringRadius}
-              fill="rgba(252,158,79,0.07)"
-              stroke="rgba(252,158,79,0.8)"
+              fill={isPast ? "rgba(148,163,184,0.06)" : "rgba(252,158,79,0.07)"}
+              stroke={isPast ? "rgba(148,163,184,0.55)" : "rgba(252,158,79,0.8)"}
               strokeWidth="1"
             />
             <line
@@ -615,14 +619,14 @@ export default function NightSkyMap() {
               y1={circleY}
               x2={anchorX}
               y2={anchorY}
-              stroke="rgba(252,158,79,0.65)"
+              stroke={isPast ? "rgba(148,163,184,0.45)" : "rgba(252,158,79,0.65)"}
               strokeWidth="1"
             />
-            <circle cx={targetX} cy={targetY} r="2.5" fill="rgba(252,158,79,0.9)" />
+            <circle cx={targetX} cy={targetY} r="2.5" fill={isPast ? "rgba(148,163,184,0.75)" : "rgba(252,158,79,0.9)"} />
           </g>
         ))}
       </svg>
-      {sessionCallouts.map(({ session, cardX, cardY, cardWidth, cardHeight }) => {
+      {sessionCallouts.map(({ session, cardX, cardY, cardWidth, cardHeight, isPast }) => {
         const isActive = activeSessionId === session.id;
         return (
         <button
@@ -630,14 +634,16 @@ export default function NightSkyMap() {
           type="button"
           onClick={() => handleSessionSelect(session)}
           className={`absolute pointer-events-auto overflow-y-auto text-left border bg-base/95 backdrop-blur-md px-3 py-2 shadow-xl transition-colors ${
-            isActive ? "border-accent/70" : "border-accent/25 hover:border-accent/45"
+            isActive
+              ? isPast ? "border-muted/55" : "border-accent/70"
+              : isPast ? "border-muted/20 opacity-75 hover:opacity-100 hover:border-muted/35" : "border-accent/25 hover:border-accent/45"
           }`}
           style={{ width: cardWidth, height: cardHeight, left: cardX, top: cardY }}
         >
-          <p className="font-mono text-[9px] text-accent/70 uppercase tracking-widest">
+          <p className={`font-mono text-[9px] uppercase tracking-widest ${isPast ? "text-muted/45" : "text-accent/70"}`}>
             {formatSessionDateLabel(new Date(session.scheduledAt), isActive)}
           </p>
-          <p className="mt-1 text-sm font-semibold text-surface leading-tight">{session.title}</p>
+          <p className={`mt-1 text-sm font-semibold leading-tight ${isPast ? "text-muted/70" : "text-surface"}`}>{session.title}</p>
           <p className="mt-0.5 font-mono text-[10px] text-muted/45">
             {session.targetName}
           </p>

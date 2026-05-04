@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarClock, CalendarPlus, Trash2 } from "lucide-react";
 import type { AstroGear, AstroSession } from "@/lib/schema";
 import { SKY_TARGETS, type SkyTargetType } from "@/lib/sky-targets";
 
@@ -26,6 +26,7 @@ function defaultScheduledAt() {
 }
 
 export default function AstroSessionScheduler() {
+  const dateTimeInputRef = useRef<HTMLInputElement>(null);
   const [sessions, setSessions] = useState<SessionWithGear[]>([]);
   const [gear, setGear] = useState<AstroGear[]>([]);
   const [title, setTitle] = useState("");
@@ -120,13 +121,24 @@ export default function AstroSessionScheduler() {
 
           <label className="block">
             <span className="font-mono text-[10px] text-muted/40 uppercase tracking-widest">Date + Time</span>
-            <input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              className="mt-1 w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
-              required
-            />
+            <div className="mt-1 flex">
+              <input
+                ref={dateTimeInputRef}
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => dateTimeInputRef.current?.showPicker?.()}
+                className="border border-l-0 border-surface/15 px-3 text-muted/45 hover:text-accent hover:border-accent/50 transition-colors"
+                aria-label="Open date and time picker"
+              >
+                <CalendarClock size={16} />
+              </button>
+            </div>
           </label>
         </div>
 
