@@ -76,6 +76,26 @@ function projectToCanvas(alt: number, az: number, width: number, height: number,
   };
 }
 
+function isSameLocalDate(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function formatSessionDateLabel(date: Date, expanded: boolean) {
+  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  if (isSameLocalDate(date, new Date())) return `Tonight · ${time}`;
+
+  return date.toLocaleString(undefined, {
+    weekday: expanded ? "short" : undefined,
+    month: "short",
+    day: "numeric",
+    year: expanded ? "numeric" : undefined,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function isRingFullyInMapFrame(
   cx: number,
   cy: number,
@@ -615,14 +635,7 @@ export default function NightSkyMap() {
           style={{ width: cardWidth, height: cardHeight, left: cardX, top: cardY }}
         >
           <p className="font-mono text-[9px] text-accent/70 uppercase tracking-widest">
-            {new Date(session.scheduledAt).toLocaleString(undefined, {
-              weekday: isActive ? "short" : undefined,
-              month: "short",
-              day: "numeric",
-              year: isActive ? "numeric" : undefined,
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatSessionDateLabel(new Date(session.scheduledAt), isActive)}
           </p>
           <p className="mt-1 text-sm font-semibold text-surface leading-tight">{session.title}</p>
           <p className="mt-0.5 font-mono text-[10px] text-muted/45">
