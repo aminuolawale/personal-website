@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -20,7 +20,9 @@ const ALL_NAV_ITEMS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminTapCount, setAdminTapCount] = useState(0);
   const pathname = usePathname();
+  const router = useRouter();
   const visibility = useSectionVisibility();
   const navItems = ALL_NAV_ITEMS.filter((item) => visibility[item.section]);
 
@@ -29,6 +31,17 @@ export default function Navbar() {
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  useEffect(() => {
+    if (adminTapCount === 0) return;
+    if (adminTapCount >= 4) {
+      setAdminTapCount(0);
+      router.push("/admin");
+      return;
+    }
+    const timeout = window.setTimeout(() => setAdminTapCount(0), 1200);
+    return () => window.clearTimeout(timeout);
+  }, [adminTapCount, router]);
 
   return (
     <header
@@ -45,6 +58,13 @@ export default function Navbar() {
         >
           AO.
         </Link>
+
+        <button
+          type="button"
+          aria-label="Hidden admin shortcut"
+          className="flex-1 self-stretch cursor-default"
+          onClick={() => setAdminTapCount((count) => count + 1)}
+        />
 
         {/* Desktop nav */}
         <ul className="hidden sm:flex items-center gap-1">
