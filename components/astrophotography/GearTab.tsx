@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Cpu, Wrench, Layers, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
 import type { AstroGear, GearImage } from "@/lib/schema";
@@ -282,17 +283,24 @@ function GearItem({ item, onSelect }: { item: AstroGear; onSelect?: (item: Astro
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function GearTab() {
+  const searchParams = useSearchParams();
   const [gear, setGear]         = useState<AstroGear[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<AstroGear | null>(null);
+  const selectedGearId = Number(searchParams.get("gear"));
 
   useEffect(() => {
     fetch("/api/astro-gear")
       .then(r => r.ok ? r.json() : [])
-      .then(data => setGear(Array.isArray(data) ? data : []))
+      .then(data => {
+        const items = Array.isArray(data) ? data : [];
+        setGear(items);
+        const linkedItem = items.find((item) => item.id === selectedGearId);
+        if (linkedItem?.type === "equipment") setSelected(linkedItem);
+      })
       .catch(() => setGear([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedGearId]);
 
   if (loading) return <p className="font-mono text-xs text-muted/30 py-16 text-center">Loading…</p>;
 

@@ -93,6 +93,24 @@ export const gearImages = pgTable("gear_images", {
 export type GearImage = typeof gearImages.$inferSelect;
 export type NewGearImage = typeof gearImages.$inferInsert;
 
+// Planned astrophotography sessions shown as callouts on the night sky map.
+// targetId points at the shared sky target catalog; gearIds is a JSON array of
+// astro_gear IDs to keep scheduling lightweight without a join table.
+export const astroSessions = pgTable("astro_sessions", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  targetId: text("target_id").notNull(),
+  targetName: text("target_name").notNull(),
+  gearIds: text("gear_ids").notNull().default("[]"),
+  notes: text("notes").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type AstroSession = typeof astroSessions.$inferSelect;
+export type NewAstroSession = typeof astroSessions.$inferInsert;
+
 // Homepage and /updates feed entries. Rows are auto-created by API routes when
 // content is saved with publishAsUpdate=true. thumbnailUrl is populated when
 // the content has an associated image (e.g. equipment with a photo).

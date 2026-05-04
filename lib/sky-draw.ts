@@ -45,6 +45,7 @@ function drawSkyObjects(
   centerX: number, centerY: number, skyRadius: number,
   darkMode: boolean,
   selectedConstellation: string | null,
+  highlightedConstellations: readonly string[],
 ) {
   function projectToCanvas(alt: number, az: number): [number, number] {
     const radialDistance = (1 - alt / 90) * skyRadius;
@@ -57,19 +58,24 @@ function drawSkyObjects(
 
   for (const constellation of comp.constellations) {
     const isSelected = selectedConstellation === constellation.name;
-    if (selectedConstellation !== null && !isSelected) continue;
-    ctx.strokeStyle = isSelected
-      ? (darkMode ? "rgba(130,160,255,0.65)" : "rgba(40,60,180,0.5)")
-      : (darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)");
-    ctx.lineWidth = isSelected ? 1.2 : 0.8;
+    const isHighlighted = highlightedConstellations.includes(constellation.name);
+    if (selectedConstellation !== null && !isSelected && !isHighlighted) continue;
+    ctx.strokeStyle = isHighlighted
+      ? (darkMode ? "rgba(252,158,79,0.9)" : "rgba(184,58,8,0.85)")
+      : isSelected
+        ? (darkMode ? "rgba(130,160,255,0.65)" : "rgba(40,60,180,0.5)")
+        : (darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)");
+    ctx.lineWidth = isHighlighted ? 1.5 : isSelected ? 1.2 : 0.8;
     for (const [startPos, endPos] of constellation.segs) {
       const [x1, y1] = projectToCanvas(startPos.alt, startPos.az);
       const [x2, y2] = projectToCanvas(endPos.alt,   endPos.az);
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     }
-    if (isSelected && constellation.centroid) {
+    if ((isSelected || isHighlighted) && constellation.centroid) {
       const [constellationLabelX, constellationLabelY] = projectToCanvas(constellation.centroid.alt, constellation.centroid.az);
-      ctx.fillStyle = darkMode ? "rgba(160,185,255,0.85)" : "rgba(40,60,180,0.75)";
+      ctx.fillStyle = isHighlighted
+        ? (darkMode ? "rgba(252,180,105,0.9)" : "rgba(184,58,8,0.85)")
+        : darkMode ? "rgba(160,185,255,0.85)" : "rgba(40,60,180,0.75)";
       ctx.font = `bold 10px Space Mono, monospace`;
       ctx.textAlign = "center"; ctx.textBaseline = "bottom";
       ctx.fillText(constellation.name, constellationLabelX, constellationLabelY - 6);
@@ -210,6 +216,7 @@ export function draw(
   darkMode: boolean,
   selectedConstellation: string | null,
   fullBleed = false,
+  highlightedConstellations: readonly string[] = [],
 ) {
   const devicePixelRatio = window.devicePixelRatio || 1;
   const canvasWidth  = canvas.width  / devicePixelRatio;
@@ -259,7 +266,7 @@ export function draw(
     }
   }
 
-  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation);
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation, highlightedConstellations);
   drawPolarisMarker(ctx, comp, zoom, panX, panY, centerX, centerY, skyRadius, darkMode);
   if (!fullBleed) ctx.restore();
 

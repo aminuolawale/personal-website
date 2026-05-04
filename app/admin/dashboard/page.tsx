@@ -152,6 +152,13 @@ export default function AdminDashboard() {
                   <Plus size={13} />
                   New Photo
                 </Link>
+                <Link
+                  href="/admin/dashboard/astro-sessions"
+                  className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
+                >
+                  <Plus size={13} />
+                  New Session
+                </Link>
               </>
             )}
             <Link

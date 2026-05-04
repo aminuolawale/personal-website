@@ -1,9 +1,41 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { DEG_TO_RAD, compute, midnightTonight, type Computed } from "@/lib/sky-engine";
 import { draw, clampPan } from "@/lib/sky-draw";
 import { useTheme } from "@/components/ThemeProvider";
+import { getSkyTargetById } from "@/lib/sky-targets";
+import type { AstroGear, AstroSession } from "@/lib/schema";
+
+type SessionWithGear = AstroSession & { gear: AstroGear[] };
+type SessionCallout = {
+  session: SessionWithGear;
+  targetX: number;
+  targetY: number;
+  ringRadius: number;
+  circleX: number;
+  circleY: number;
+  cardX: number;
+  cardY: number;
+  anchorX: number;
+  anchorY: number;
+  ringInFrame: boolean;
+};
+
+type SkyViewport = {
+  frameWidth: number;
+  frameHeight: number;
+  canvasLeft: number;
+  canvasTop: number;
+  width: number;
+  height: number;
+  zoom: number;
+  panX: number;
+  panY: number;
+  lat: number;
+  lon: number;
+};
 
 const LOCATIONS = [
   { name: "North Pole",          label: "N. Pole", lat:  89.99, lon:   0    },
@@ -16,15 +48,51 @@ const LOCATIONS = [
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 8;
 const TRANSITION_DURATION = 1400;
+const TARGET_RING_PADDING = 18;
+const SINGLE_TARGET_RING_RADIUS = 18;
+const SESSION_CARD_WIDTH = 260;
+const SESSION_CARD_HEIGHT = 112;
+const SESSION_CARD_GAP = 10;
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
+
+function getSkyRadius(width: number, height: number, fullBleed: boolean) {
+  return fullBleed && height > width ? height / 2 : Math.min(width, height) / 2 - 24;
+}
+
+function projectToCanvas(alt: number, az: number, width: number, height: number, skyRadius: number, zoom: number, panX: number, panY: number) {
+  const radialDistance = (1 - alt / 90) * skyRadius;
+  const azimuthRad = az * DEG_TO_RAD;
+  return {
+    x: width / 2 + radialDistance * Math.sin(azimuthRad) * zoom + panX,
+    y: height / 2 - radialDistance * Math.cos(azimuthRad) * zoom + panY,
+  };
+}
+
+function isRingFullyInMapFrame(
+  cx: number,
+  cy: number,
+  radius: number,
+  width: number,
+  height: number,
+  skyRadius: number,
+  fullBleed: boolean
+) {
+  if (fullBleed && height > width) {
+    return cx - radius >= 0 && cx + radius <= width && cy - radius >= 0 && cy + radius <= height;
+  }
+
+  return Math.hypot(cx - width / 2, cy - height / 2) + radius <= skyRadius;
+}
 
 export default function NightSkyMap() {
   const { theme } = useTheme();
   const themeRef = useRef<"dark" | "light">("dark");
 
   const canvasRef     = useRef<HTMLCanvasElement>(null);
+  const skyFrameRef   = useRef<HTMLDivElement>(null);
   const rafRef        = useRef<number>(0);
   const zoomRef       = useRef(1);
   const panRef        = useRef({ x: 0, y: 0 });
@@ -36,6 +104,7 @@ export default function NightSkyMap() {
   const selectedConstellationRef = useRef<string | null>(null);
   const isFullscreenRef          = useRef(false);
   const panTransitionRef         = useRef<{ fromX: number; fromY: number; toX: number; toY: number; startTick: number } | null>(null);
+  const highlightedConstellationsRef = useRef<string[]>([]);
   const date = useRef(midnightTonight());
 
   const [computed, setComputed]                               = useState<Computed | null>(null);
@@ -44,10 +113,56 @@ export default function NightSkyMap() {
   const [locationIdx, setLocationIdx]                         = useState(1);
   const [isFullscreen, setIsFullscreen]                       = useState(false);
   const [selectedConstellation, setSelectedConstellation]     = useState<string | null>(null);
+  const [sessions, setSessions]                               = useState<SessionWithGear[]>([]);
+  const [showSessionBubbles, setShowSessionBubbles]           = useState(true);
+  const [showPastSessions, setShowPastSessions]               = useState(false);
+  const [viewport, setViewport]                               = useState<SkyViewport>({
+    frameWidth: 0,
+    frameHeight: 0,
+    canvasLeft: 0,
+    canvasTop: 0,
+    width: 0,
+    height: 0,
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    lat: LOCATIONS[1].lat,
+    lon: LOCATIONS[1].lon,
+  });
   const [error, setError]                                     = useState("");
 
   useEffect(() => { themeRef.current = theme; }, [theme]);
   useEffect(() => { isFullscreenRef.current = isFullscreen; }, [isFullscreen]);
+
+  const publishViewport = useCallback((coords?: { lat?: number; lon?: number }) => {
+    const canvas = canvasRef.current;
+    const frame = skyFrameRef.current;
+    if (!canvas || !frame) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const canvasRect = canvas.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const next = {
+      frameWidth: frameRect.width,
+      frameHeight: frameRect.height,
+      canvasLeft: canvasRect.left - frameRect.left,
+      canvasTop: canvasRect.top - frameRect.top,
+      width: canvas.width / dpr,
+      height: canvas.height / dpr,
+      zoom: zoomRef.current,
+      panX: panRef.current.x,
+      panY: panRef.current.y,
+      lat: coords?.lat ?? LOCATIONS[locationIdx].lat,
+      lon: coords?.lon ?? LOCATIONS[locationIdx].lon,
+    };
+
+    setViewport((current) => {
+      const unchanged = (Object.keys(next) as (keyof typeof next)[]).every(
+        (key) => Math.abs(current[key] - next[key]) < 0.5
+      );
+      return unchanged ? current : next;
+    });
+  }, [locationIdx]);
 
   const nightLabel = date.current.toLocaleDateString("en-GB", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
@@ -65,12 +180,27 @@ export default function NightSkyMap() {
     const R = (isFullscreenRef.current && cH > cW) ? cH / 2 : Math.min(cW, cH) / 2 - 24;
     panRef.current = clampPan(clamped, anchorX - worldX * clamped, anchorY - worldY * clamped, R);
     setZoomLevel(clamped);
-  }, []);
+    publishViewport();
+  }, [publishViewport]);
 
   useEffect(() => {
     try { setComputed(compute(date.current, LOCATIONS[1].lat, LOCATIONS[1].lon)); }
     catch (e) { setError(String(e)); }
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/astro-sessions${showPastSessions ? "?includePast=true" : ""}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setSessions(Array.isArray(data) ? data : []))
+      .catch(() => setSessions([]));
+  }, [showPastSessions]);
+
+  useEffect(() => {
+    highlightedConstellationsRef.current = sessions.flatMap((session) => {
+      const target = getSkyTargetById(session.targetId);
+      return target?.type === "constellation" ? [target.name] : [];
+    });
+  }, [sessions]);
 
   const handleConstellationSelect = useCallback((name: string | null) => {
     const next = selectedConstellationRef.current === name ? null : name;
@@ -133,7 +263,10 @@ export default function NightSkyMap() {
       if (tr.startTick === 0) tr.startTick = tick;
       const t = Math.min(1, (tick - tr.startTick) / TRANSITION_DURATION);
       const ease = easeInOut(t);
-      frameComp = compute(date.current, lerp(tr.fromLat, tr.toLat, ease), lerp(tr.fromLon, tr.toLon, ease));
+      const frameLat = lerp(tr.fromLat, tr.toLat, ease);
+      const frameLon = lerp(tr.fromLon, tr.toLon, ease);
+      frameComp = compute(date.current, frameLat, frameLon);
+      publishViewport({ lat: frameLat, lon: frameLon });
       if (t >= 1) { transitionRef.current = null; setComputed(frameComp); }
     }
 
@@ -143,13 +276,15 @@ export default function NightSkyMap() {
       const t = Math.min(1, (tick - pt.startTick) / 700);
       const ease = easeInOut(t);
       panRef.current = { x: lerp(pt.fromX, pt.toX, ease), y: lerp(pt.fromY, pt.toY, ease) };
+      publishViewport();
       if (t >= 1) panTransitionRef.current = null;
     }
 
     draw(canvas, frameComp, tick, zoomRef.current, panRef.current.x, panRef.current.y,
-      themeRef.current === "dark", selectedConstellationRef.current, isFullscreenRef.current);
+      themeRef.current === "dark", selectedConstellationRef.current, isFullscreenRef.current,
+      highlightedConstellationsRef.current);
     rafRef.current = requestAnimationFrame(animate);
-  }, [computed, locationIdx]);
+  }, [computed, publishViewport]);
 
   useEffect(() => {
     if (!computed) return;
@@ -167,10 +302,16 @@ export default function NightSkyMap() {
       const dpr = window.devicePixelRatio || 1;
       canvas.width  = w * dpr;
       canvas.height = (h || w) * dpr;
+      publishViewport();
     });
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, [isFullscreen]);
+  }, [isFullscreen, publishViewport]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => publishViewport());
+    return () => cancelAnimationFrame(frame);
+  }, [isFullscreen, publishViewport]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -209,11 +350,12 @@ export default function NightSkyMap() {
           touchDragRef.current.startPanY + dy,
           R,
         );
+        publishViewport();
       }
     };
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => canvas.removeEventListener("touchmove", onTouchMove);
-  }, [applyZoom, isFullscreen]);
+  }, [applyZoom, isFullscreen, publishViewport]);
 
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? "hidden" : "";
@@ -241,6 +383,7 @@ export default function NightSkyMap() {
     const canvas = canvasRef.current;
     const R = canvas ? Math.min(canvas.width, canvas.height) / (2 * (window.devicePixelRatio || 1)) - 24 : 200;
     panRef.current = clampPan(zoomRef.current, dragRef.current.startPanX + dx, dragRef.current.startPanY + dy, R);
+    publishViewport();
   };
 
   const onPointerUp = () => { dragRef.current = null; setIsDragging(false); };
@@ -267,6 +410,7 @@ export default function NightSkyMap() {
     zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoomLevel(1);
     selectedConstellationRef.current = null; setSelectedConstellation(null);
     panTransitionRef.current = null; touchDragRef.current = null;
+    publishViewport();
   };
 
   if (error) return <p className="font-mono text-xs text-red-400 py-8">{error}</p>;
@@ -276,6 +420,167 @@ export default function NightSkyMap() {
     onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp,
     onTouchStart, onTouchEnd, onDoubleClick,
   };
+
+  const sessionCallouts = (() => {
+    if (!showSessionBubbles) return [];
+    const { frameWidth, frameHeight, canvasLeft, canvasTop, width, height, zoom, panX, panY, lat, lon } = viewport;
+    const skyRadius = getSkyRadius(width, height, isFullscreen);
+    if (skyRadius <= 0 || frameWidth <= 0 || frameHeight <= 0) return [];
+
+    const isMobile = frameWidth < 640;
+    const cardX = isMobile
+      ? clamp(frameWidth - SESSION_CARD_WIDTH - 12, 12, Math.max(12, frameWidth - SESSION_CARD_WIDTH - 12))
+      : Math.max(canvasLeft + width + 18, frameWidth - SESSION_CARD_WIDTH - 8);
+    const listStartY = isMobile ? 12 : 8;
+
+    return sessions.flatMap((session, index): SessionCallout[] => {
+      const mapSky = compute(date.current, lat, lon);
+      const target = getSkyTargetById(session.targetId);
+      if (!target) return [];
+
+      const projectedPoints = (() => {
+        if (target.type === "constellation") {
+          const constellation = mapSky.constellations.find((item) => item.name === target.name);
+          if (!constellation?.visible) return [];
+          return constellation.segs.flatMap(([start, end]) => [start, end]).map((point) =>
+            projectToCanvas(point.alt, point.az, width, height, skyRadius, zoom, panX, panY)
+          );
+        }
+
+        const point = target.type === "deep-sky"
+          ? mapSky.dso.find((item) => item.name === target.name)
+          : target.name === "Moon"
+            ? mapSky.moon
+            : mapSky.planets.find((item) => item.name === target.name);
+
+        return point ? [projectToCanvas(point.alt, point.az, width, height, skyRadius, zoom, panX, panY)] : [];
+      })();
+
+      if (projectedPoints.length === 0) return [];
+
+      const bounds = projectedPoints.reduce(
+        (acc, point) => ({
+          minX: Math.min(acc.minX, point.x),
+          maxX: Math.max(acc.maxX, point.x),
+          minY: Math.min(acc.minY, point.y),
+          maxY: Math.max(acc.maxY, point.y),
+        }),
+        { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+      );
+      const centerX = (bounds.minX + bounds.maxX) / 2;
+      const centerY = (bounds.minY + bounds.maxY) / 2;
+      const objectRadius = projectedPoints.reduce(
+        (maxRadius, point) => Math.max(maxRadius, Math.hypot(point.x - centerX, point.y - centerY)),
+        0
+      );
+      const ringRadius = Math.max(SINGLE_TARGET_RING_RADIUS, objectRadius + TARGET_RING_PADDING);
+      const targetX = canvasLeft + centerX;
+      const targetY = canvasTop + centerY;
+      const ringInFrame = isRingFullyInMapFrame(centerX, centerY, ringRadius, width, height, skyRadius, isFullscreen);
+      const cardY = listStartY + index * (SESSION_CARD_HEIGHT + SESSION_CARD_GAP);
+      const anchorX = cardX;
+      const anchorY = cardY + 24;
+      const dx = anchorX - targetX;
+      const dy = anchorY - targetY;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+
+      return [{
+        session,
+        targetX,
+        targetY,
+        ringRadius,
+        circleX: targetX + (dx / distance) * ringRadius,
+        circleY: targetY + (dy / distance) * ringRadius,
+        cardX,
+        cardY,
+        anchorX,
+        anchorY,
+        ringInFrame,
+      }];
+    });
+  })();
+
+  const sessionControls = (
+    <div className="flex items-center gap-2 font-mono text-[10px] shrink-0">
+      <button
+        onClick={() => setShowSessionBubbles((value) => !value)}
+        className={`px-2.5 py-1 border transition-colors ${
+          showSessionBubbles ? "border-accent text-accent bg-accent/10" : "border-muted/20 text-muted/40 hover:text-muted/70"
+        }`}
+      >
+        Sessions
+      </button>
+      <button
+        onClick={() => setShowPastSessions((value) => !value)}
+        className={`px-2.5 py-1 border transition-colors ${
+          showPastSessions ? "border-accent text-accent bg-accent/10" : "border-muted/20 text-muted/40 hover:text-muted/70"
+        }`}
+      >
+        Old
+      </button>
+    </div>
+  );
+
+  const sessionOverlay = sessionCallouts.length > 0 && (
+    <div className="absolute inset-0 pointer-events-none overflow-visible">
+      <svg className="absolute inset-0 overflow-visible" aria-hidden="true">
+        {sessionCallouts.filter((callout) => callout.ringInFrame).map(({ session, targetX, targetY, ringRadius, circleX, circleY, anchorX, anchorY }) => (
+          <g key={session.id}>
+            <circle
+              cx={targetX}
+              cy={targetY}
+              r={ringRadius}
+              fill="rgba(252,158,79,0.07)"
+              stroke="rgba(252,158,79,0.8)"
+              strokeWidth="1"
+            />
+            <line
+              x1={circleX}
+              y1={circleY}
+              x2={anchorX}
+              y2={anchorY}
+              stroke="rgba(252,158,79,0.65)"
+              strokeWidth="1"
+            />
+            <circle cx={targetX} cy={targetY} r="2.5" fill="rgba(252,158,79,0.9)" />
+          </g>
+        ))}
+      </svg>
+      {sessionCallouts.map(({ session, cardX, cardY }) => (
+        <div
+          key={session.id}
+          className="absolute pointer-events-auto border border-accent/25 bg-base/95 backdrop-blur-md px-3 py-2 shadow-xl"
+          style={{ width: SESSION_CARD_WIDTH, minHeight: SESSION_CARD_HEIGHT, left: cardX, top: cardY }}
+        >
+          <p className="font-mono text-[9px] text-accent/70 uppercase tracking-widest">
+            {new Date(session.scheduledAt).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-surface leading-tight">{session.title}</p>
+          <p className="mt-0.5 font-mono text-[10px] text-muted/45">
+            {session.targetName}
+          </p>
+          {session.gear.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {session.gear.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/astrophotography?tab=gear&gear=${item.id}`}
+                  className="font-mono text-[9px] text-accent/70 hover:text-accent border border-accent/20 px-1.5 py-0.5 transition-colors"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   const locationToggle = (
     <div className="flex items-center gap-1 font-mono text-[10px] rounded border border-muted/20 overflow-hidden shrink-0">
@@ -314,6 +619,7 @@ export default function NightSkyMap() {
         [theme === "dark" ? "bg-[rgba(252,158,79,0.9)]" : "bg-[rgba(184,58,8,0.8)]", "Planets"],
         [theme === "dark" ? "bg-[rgba(230,225,200,0.8)]" : "bg-[rgba(50,55,70,0.7)]", "Moon"],
         [theme === "dark" ? "bg-[rgba(180,200,255,0.6)]" : "bg-[rgba(10,40,140,0.5)]", "Deep sky"],
+        ["w-4 h-px bg-[rgba(252,158,79,0.65)] rounded-none", "Sessions"],
       ] as [string, string][]).map(([cls, label]) => (
         <span key={label} className="flex items-center gap-1.5">
           <span className={`inline-block w-2 h-2 rounded-full ${cls}`} /> {label}
@@ -386,7 +692,10 @@ export default function NightSkyMap() {
           {/* Canvas wrapper:
               Mobile  — absolute inset-0, canvas fills the full screen
               Desktop — flex-1 static container, canvas is a centred square */}
-          <div className="absolute inset-0 sm:relative sm:flex-1 sm:min-h-0 sm:min-w-0 sm:flex sm:items-center sm:justify-center">
+          <div
+            ref={skyFrameRef}
+            className="absolute inset-0 sm:relative sm:flex-1 sm:min-h-0 sm:min-w-0 sm:flex sm:items-center sm:justify-center"
+          >
             <canvas
               ref={canvasRef}
               className="block w-full h-full sm:w-auto sm:h-full sm:rounded-full"
@@ -398,6 +707,7 @@ export default function NightSkyMap() {
               }}
               {...canvasEvents}
             />
+            {sessionOverlay}
             {!computed && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="font-mono text-xs text-muted/30">Computing sky…</p>
@@ -456,6 +766,7 @@ export default function NightSkyMap() {
               <div className="flex flex-col items-center gap-2">
                 {locationToggle}
                 {zoomControls}
+                {sessionControls}
               </div>
               <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none text-center">
                 pinch&nbsp;·&nbsp;drag&nbsp;·&nbsp;double-tap to reset
@@ -469,6 +780,7 @@ export default function NightSkyMap() {
           <div className="flex flex-row items-center justify-center gap-3">
             {locationToggle}
             {zoomControls}
+            {sessionControls}
           </div>
           <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none text-center">
             scroll&nbsp;·&nbsp;pinch&nbsp;·&nbsp;drag to pan&nbsp;·&nbsp;double-click to reset&nbsp;·&nbsp;esc to close
@@ -486,13 +798,14 @@ export default function NightSkyMap() {
         {nightLabel} &nbsp;·&nbsp; midnight
       </div>
 
-      <div className="w-full max-w-2xl mx-auto relative group">
+      <div ref={skyFrameRef} className="w-full max-w-2xl mx-auto relative group">
         <canvas
           ref={canvasRef}
           className="block w-full rounded-full"
           style={{ aspectRatio: "1", cursor: isDragging ? "grabbing" : "grab" }}
           {...canvasEvents}
         />
+        {sessionOverlay}
         <div className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <span className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full ${theme === "dark" ? "text-white/30 bg-[#020122]/60" : "text-black/30 bg-white/70"}`}>
             click to expand
@@ -507,6 +820,7 @@ export default function NightSkyMap() {
 
       {locationToggle}
       {zoomControls}
+      {sessionControls}
       <p className="font-mono text-[9px] text-muted/20 uppercase tracking-widest select-none -mt-2">
         scroll · pinch &nbsp;·&nbsp; drag to pan &nbsp;·&nbsp; double-click to reset
       </p>
