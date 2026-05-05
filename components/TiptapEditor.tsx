@@ -1,5 +1,6 @@
 "use client";
 
+import { Node, mergeAttributes } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -8,8 +9,116 @@ import Typography from "@tiptap/extension-typography";
 import {
   Bold, Italic, Strikethrough, Code, List, ListOrdered,
   Quote, Minus, Undo, Redo, Link2, Link2Off,
-  Heading1, Heading2, Heading3, Terminal,
+  Heading1, Heading2, Heading3, Terminal, Image as ImageIcon,
+  Sigma, SquareSigma,
 } from "lucide-react";
+
+const ImageBlock = Node.create({
+  name: "imageBlock",
+  group: "block",
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("src"),
+      },
+      alt: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("alt") ?? "",
+      },
+      title: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("title") ?? "",
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "img[src]" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "img",
+      mergeAttributes(HTMLAttributes, {
+        "data-editor-image": "true",
+        class: "editor-rich-image",
+      }),
+    ];
+  },
+});
+
+const LatexInline = Node.create({
+  name: "latexInline",
+  group: "inline",
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      latex: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-latex") ?? element.textContent ?? "",
+        renderHTML: () => ({}),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-latex-formula][data-display="inline"]' }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    const latex = node.attrs.latex ?? "";
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-latex-formula": "true",
+        "data-display": "inline",
+        "data-latex": latex,
+        class: "latex-formula latex-formula-inline",
+      }),
+      latex,
+    ];
+  },
+});
+
+const LatexBlock = Node.create({
+  name: "latexBlock",
+  group: "block",
+  atom: true,
+
+  addAttributes() {
+    return {
+      latex: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-latex") ?? element.textContent ?? "",
+        renderHTML: () => ({}),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-latex-formula][data-display="block"]' }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    const latex = node.attrs.latex ?? "";
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-latex-formula": "true",
+        "data-display": "block",
+        "data-latex": latex,
+        class: "latex-formula latex-formula-block",
+      }),
+      latex,
+    ];
+  },
+});
 
 interface TiptapEditorProps {
   content: string;
@@ -28,6 +137,9 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
       Placeholder.configure({ placeholder: placeholder ?? "Start writing…" }),
       Link.configure({ openOnClick: false }),
       Typography,
+      ImageBlock,
+      LatexInline,
+      LatexBlock,
     ],
     content,
     immediatelyRender: false,
@@ -50,6 +162,34 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     } else {
       editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
     }
+  };
+
+  const insertImage = () => {
+    const src = window.prompt("Image URL");
+    if (!src?.trim()) return;
+    const alt = window.prompt("Alt text", "") ?? "";
+    const title = window.prompt("Caption/title", "") ?? "";
+    editor
+      .chain()
+      .focus()
+      .insertContent({ type: "imageBlock", attrs: { src: src.trim(), alt, title } })
+      .run();
+  };
+
+  const insertLatex = (display: "inline" | "block") => {
+    const latex = window.prompt(
+      display === "inline" ? "Inline LaTeX" : "Block LaTeX",
+      display === "inline" ? "E = mc^2" : "\\int_0^\\infty e^{-x}\\,dx = 1"
+    );
+    if (!latex?.trim()) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: display === "inline" ? "latexInline" : "latexBlock",
+        attrs: { latex: latex.trim() },
+      })
+      .run();
   };
 
   return (
@@ -179,6 +319,33 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
             <Link2Off size={15} />
           </button>
         )}
+
+        <div className="w-px h-4 bg-surface/15 mx-1" />
+
+        <button
+          type="button"
+          onClick={insertImage}
+          className={BTN}
+          title="Insert image"
+        >
+          <ImageIcon size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={() => insertLatex("inline")}
+          className={BTN}
+          title="Inline LaTeX"
+        >
+          <Sigma size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={() => insertLatex("block")}
+          className={BTN}
+          title="Block LaTeX"
+        >
+          <SquareSigma size={15} />
+        </button>
 
         <div className="w-px h-4 bg-surface/15 mx-1" />
 

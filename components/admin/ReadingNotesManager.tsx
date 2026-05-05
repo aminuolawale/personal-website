@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { BookOpen, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import RichTextContent from "@/components/RichTextContent";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
@@ -368,7 +369,7 @@ export default function ReadingNotesManager() {
                       </div>
                     </div>
                   ) : (
-                    <div className="article-content text-[0.98rem]" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    <RichTextContent html={note.content} className="text-[0.98rem]" />
                   )}
                 </article>
               );

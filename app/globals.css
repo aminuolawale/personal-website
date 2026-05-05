@@ -85,6 +85,61 @@ a {
     font-size: 1.05rem;
   }
 
+  .tiptap-editor img,
+  .article-content img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid color-mix(in srgb, var(--color-surface) 12%, transparent);
+    background: color-mix(in srgb, var(--color-surface) 4%, transparent);
+    margin: 1.75rem 0;
+  }
+
+  .tiptap-editor .editor-rich-image,
+  .article-content .editor-rich-image {
+    border-radius: 4px;
+  }
+
+  .latex-formula {
+    font-family: var(--font-mono, monospace);
+    color: var(--color-surface);
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 16%, transparent);
+  }
+
+  .latex-formula-inline {
+    display: inline-block;
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    line-height: 1.45;
+  }
+
+  .latex-formula-block {
+    display: block;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .latex-formula-rendered {
+    font-family: inherit;
+    background: transparent;
+    border: 0;
+    color: var(--color-surface);
+  }
+
+  .latex-formula-rendered.latex-formula-block {
+    background: color-mix(in srgb, var(--color-surface) 3%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-surface) 9%, transparent);
+  }
+
+  .latex-formula-error {
+    color: #f87171;
+    border-color: color-mix(in srgb, #f87171 35%, transparent);
+  }
+
   /* Headings */
   .tiptap-editor h1,
   .tiptap-editor h2,

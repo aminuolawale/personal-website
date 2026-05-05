@@ -17,7 +17,7 @@ A full-stack personal website and content management system built with Next.js. 
 | ORM | Drizzle ORM | `lib/schema.ts` is the source of truth |
 | Auth | NextAuth v5 beta | Google OAuth; single configured admin email |
 | Blob Storage | Vercel Blob | Gallery and gear image uploads |
-| Rich Text | Tiptap | Article and reading-note body editor |
+| Rich Text | Tiptap + KaTeX | Article and reading-note body editor with images and LaTeX formulas |
 | Animation | Framer Motion | Page/tab transitions and visual polish |
 | Icons | Lucide React | UI icons |
 | Testing | Vitest + Testing Library | API, hooks, components, utilities |
@@ -159,6 +159,8 @@ The Writing section is split into:
 - Reading notes: rich-text notes grouped under book entries.
 
 Book entries store a title, author, year published, and category. Categories can be created while creating a book, and the public Reading Notes tab can be filtered by category. Reading notes map many-to-one to a book entry and are shown publicly as a horizontal book carousel; selecting a book lists its notes newest to oldest. In the admin panel, a reading note's book assignment is fixed after creation. Only the note text is editable.
+
+The shared rich-text editor supports headings, lists, links, code, images by URL, inline LaTeX, and block LaTeX. Saved formulas render through KaTeX in articles, book reviews, misc pages, and reading notes.
 
 ---
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import RichTextContent from "@/components/RichTextContent";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
@@ -293,10 +294,7 @@ export default function WritingPage() {
                             <p className="font-mono text-xs text-muted/35 mb-4">
                               {formatNoteDate(note.createdAt)}
                             </p>
-                            <div
-                              className="article-content text-[0.98rem]"
-                              dangerouslySetInnerHTML={{ __html: note.content }}
-                            />
+                            <RichTextContent html={note.content} className="text-[0.98rem]" />
                           </article>
                         ))}
                       </div>

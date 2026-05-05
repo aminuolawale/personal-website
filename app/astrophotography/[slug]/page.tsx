@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin } from "lucide-react";
-import {m} from "framer-motion";
+import { m } from "framer-motion";
+import RichTextContent from "@/components/RichTextContent";
 import TagBadge from "@/components/TagBadge";
 import { ASTRO_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
@@ -70,10 +71,7 @@ export default function AstroSessionPage() {
             </div>
           </header>
 
-          <div
-            className="article-content"
-            dangerouslySetInnerHTML={{ __html: article.content }}
-          />
+          <RichTextContent html={article.content} />
 
         </m.article>
       )}

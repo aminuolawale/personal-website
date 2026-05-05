@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
+import RichTextContent from "@/components/RichTextContent";
 import TabBar from "@/components/TabBar";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
@@ -79,7 +80,7 @@ function MiscContent() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
               >
-                <article className="article-content" dangerouslySetInnerHTML={{ __html: activeTab.content }} />
+                <RichTextContent html={activeTab.content} />
               </m.div>
             )}
           </AnimatePresence>
