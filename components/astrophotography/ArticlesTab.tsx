@@ -1,5 +1,7 @@
-import {m} from "framer-motion";
+import { useCallback, useState } from "react";
+import { m } from "framer-motion";
 import AstroSessionCard from "@/components/AstroSessionCard";
+import ReaderOverlay from "@/components/ReaderOverlay";
 import type { Article } from "@/lib/schema";
 
 interface ArticlesTabProps {
@@ -8,6 +10,9 @@ interface ArticlesTabProps {
 }
 
 export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
+  const [readerArticle, setReaderArticle] = useState<Article | null>(null);
+  const closeReader = useCallback(() => setReaderArticle(null), []);
+
   if (isLoading) {
     return <p className="font-mono text-xs text-muted/30">Loading…</p>;
   }
@@ -21,17 +26,27 @@ export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {articles.map((article, index) => (
-        <m.div
-          key={article.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.06, duration: 0.4 }}
-        >
-          <AstroSessionCard article={article} />
-        </m.div>
-      ))}
-    </div>
+    <>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {articles.map((article, index) => (
+          <m.div
+            key={article.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06, duration: 0.4 }}
+          >
+            <AstroSessionCard article={article} onOpen={setReaderArticle} />
+          </m.div>
+        ))}
+      </div>
+      <ReaderOverlay
+        open={Boolean(readerArticle)}
+        title={readerArticle?.title ?? ""}
+        meta={[readerArticle?.date, readerArticle?.location, readerArticle?.readTime].filter(Boolean).join(" · ")}
+        html={readerArticle?.content ?? ""}
+        href={readerArticle ? `/astrophotography/${readerArticle.slug}` : undefined}
+        onClose={closeReader}
+      />
+    </>
   );
 }

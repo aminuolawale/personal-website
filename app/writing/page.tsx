@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import ReaderOverlay from "@/components/ReaderOverlay";
 import RichTextContent from "@/components/RichTextContent";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
@@ -35,6 +36,12 @@ export default function WritingPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [notesLoading, setNotesLoading] = useState(true);
+  const [reader, setReader] = useState<{
+    title: string;
+    meta?: string;
+    html: string;
+    href?: string;
+  } | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -246,7 +253,15 @@ export default function WritingPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.06, duration: 0.4 }}
                     >
-                      <WritingArticleCard article={article} />
+                      <WritingArticleCard
+                        article={article}
+                        onOpen={(selectedArticle) => setReader({
+                          title: selectedArticle.title,
+                          meta: [selectedArticle.date, selectedArticle.readTime].filter(Boolean).join(" · "),
+                          html: selectedArticle.content,
+                          href: `/writing/${selectedArticle.slug}`,
+                        })}
+                      />
                     </m.div>
                   ))}
                 </div>
@@ -289,7 +304,24 @@ export default function WritingPage() {
                         {selectedNotes.map((note) => (
                           <article
                             key={note.id}
-                            className="border border-surface/10 bg-surface/[0.02] p-5 sm:p-6"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setReader({
+                              title: selectedBook.title,
+                              meta: [selectedBook.author, String(selectedBook.yearPublished), formatNoteDate(note.createdAt)].join(" · "),
+                              html: note.content,
+                            })}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setReader({
+                                  title: selectedBook.title,
+                                  meta: [selectedBook.author, String(selectedBook.yearPublished), formatNoteDate(note.createdAt)].join(" · "),
+                                  html: note.content,
+                                });
+                              }
+                            }}
+                            className="border border-surface/10 bg-surface/[0.02] p-5 sm:p-6 cursor-pointer hover:border-accent/25 hover:bg-surface/[0.035] transition-colors"
                           >
                             <p className="font-mono text-xs text-muted/35 mb-4">
                               {formatNoteDate(note.createdAt)}
@@ -306,6 +338,14 @@ export default function WritingPage() {
           )}
         </div>
       </section>
+      <ReaderOverlay
+        open={Boolean(reader)}
+        title={reader?.title ?? ""}
+        meta={reader?.meta}
+        html={reader?.html ?? ""}
+        href={reader?.href}
+        onClose={() => setReader(null)}
+      />
     </main>
   );
 }
