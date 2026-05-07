@@ -22,6 +22,7 @@ A full-stack personal website and content management system built with Next.js. 
 | Icons | Lucide React | UI icons |
 | Testing | Vitest + Testing Library | API, hooks, components, utilities |
 | Analytics | Vercel Analytics | Injected in `app/layout.tsx` |
+| Monitoring | Sentry | Errors, traces, structured telemetry logs, and web vitals |
 
 ---
 
@@ -210,6 +211,34 @@ The Astrophotography dashboard actions include:
 ### Publish as Update
 
 Several admin create flows include a “Publish as Update” toggle. When enabled, the create action also inserts a row in `site_updates`, optionally with a thumbnail and a deep link back to the content.
+
+---
+
+## Monitoring
+
+Production monitoring is wired through Sentry using `@sentry/nextjs`.
+
+Sentry captures:
+
+- unhandled client/server errors
+- App Router navigation traces
+- sampled performance traces
+- web vitals via `components/WebVitalsReporter.tsx`
+- structured telemetry logs through `/api/telemetry/events`
+- admin write events for articles, misc tabs, misc series, and astro sessions
+- public events for page views, reader opens, writing tabs, reading-note book selections, misc tabs, and misc series filters
+
+Required production environment variables:
+
+```text
+NEXT_PUBLIC_SENTRY_DSN=...
+SENTRY_DSN=...
+SENTRY_ORG=...
+SENTRY_PROJECT=...
+SENTRY_AUTH_TOKEN=...
+```
+
+`SENTRY_AUTH_TOKEN` is only needed for source-map upload during production builds. Without it, the app still builds and runs, but source-map upload is disabled.
 
 ---
 

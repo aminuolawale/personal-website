@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { miscSeries } from "@/lib/schema";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -43,6 +44,12 @@ export async function POST(req: NextRequest) {
       .insert(miscSeries)
       .values({ title, description })
       .returning();
+    logTelemetryEvent({
+      name: "admin.misc_series.created",
+      section: "misc",
+      targetType: "misc_series",
+      targetId: series.id,
+    });
     return NextResponse.json(series, { status: 201 });
   } catch (err) {
     console.error(err);

@@ -5,6 +5,7 @@ import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { astroGear, astroSessions, type AstroGear, type AstroSession } from "@/lib/schema";
 import { getSkyTargetById } from "@/lib/sky-targets";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 export interface AstroSessionResponse extends AstroSession {
   gear: AstroGear[];
@@ -96,6 +97,13 @@ export async function POST(req: NextRequest) {
       .returning();
 
     const [sessionWithGear] = await attachGear([session]);
+    logTelemetryEvent({
+      name: "admin.astro_session.created",
+      section: "astrophotography",
+      targetType: "astro_session",
+      targetId: session.id,
+      attributes: { target_id: session.targetId, gear_count: readGearIds(session).length },
+    });
     return NextResponse.json(sessionWithGear, { status: 201 });
   } catch (err) {
     console.error(err);

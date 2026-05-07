@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { articles, miscSeries } from "@/lib/schema";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -35,6 +36,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       .returning();
 
     if (!series) return NextResponse.json({ error: "Series not found" }, { status: 404 });
+    logTelemetryEvent({
+      name: "admin.misc_series.updated",
+      section: "misc",
+      targetType: "misc_series",
+      targetId: series.id,
+    });
     return NextResponse.json(series);
   } catch (err) {
     console.error(err);
@@ -58,6 +65,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
     const [deleted] = await db.delete(miscSeries).where(eq(miscSeries.id, id)).returning();
     if (!deleted) return NextResponse.json({ error: "Series not found" }, { status: 404 });
+    logTelemetryEvent({
+      name: "admin.misc_series.deleted",
+      section: "misc",
+      targetType: "misc_series",
+      targetId: id,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);

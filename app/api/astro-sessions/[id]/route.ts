@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, notFound, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { astroSessions } from "@/lib/schema";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,6 +27,13 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       .returning();
 
     if (!deleted) return notFound("Session not found");
+    logTelemetryEvent({
+      name: "admin.astro_session.deleted",
+      section: "astrophotography",
+      targetType: "astro_session",
+      targetId: id,
+      attributes: { target_id: deleted.targetId },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);

@@ -4,6 +4,7 @@ import { articles } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { unauthorized, notFound, serverError } from "@/lib/api";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 export async function GET(
   _req: NextRequest,
@@ -39,6 +40,15 @@ export async function PUT(
       .set({ ...body, updatedAt: new Date() })
       .where(eq(articles.id, parseInt(id)))
       .returning();
+    if (article) {
+      logTelemetryEvent({
+        name: "admin.article.updated",
+        section: article.type,
+        targetType: "article",
+        targetId: article.id,
+        attributes: { published: article.published, slug: article.slug },
+      });
+    }
     return NextResponse.json(article);
   } catch {
     return serverError();
@@ -54,7 +64,13 @@ export async function DELETE(
   const { id } = await params;
   try {
     const db = getDb();
-    await db.delete(articles).where(eq(articles.id, parseInt(id)));
+    const articleId = parseInt(id);
+    await db.delete(articles).where(eq(articles.id, articleId));
+    logTelemetryEvent({
+      name: "admin.article.deleted",
+      targetType: "article",
+      targetId: articleId,
+    });
     return NextResponse.json({ ok: true });
   } catch {
     return serverError();

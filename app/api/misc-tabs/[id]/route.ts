@@ -5,6 +5,7 @@ import { badRequest, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { articles, miscTabs } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -40,6 +41,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       .returning();
 
     if (!tab) return NextResponse.json({ error: "Tab not found" }, { status: 404 });
+    logTelemetryEvent({
+      name: "admin.misc_tab.updated",
+      section: "misc",
+      targetType: "misc_tab",
+      targetId: tab.id,
+      attributes: { slug: tab.slug, position: tab.position },
+    });
     return NextResponse.json(tab);
   } catch (err) {
     console.error(err);
@@ -63,6 +71,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
     const [deleted] = await db.delete(miscTabs).where(eq(miscTabs.id, id)).returning();
     if (!deleted) return NextResponse.json({ error: "Tab not found" }, { status: 404 });
+    logTelemetryEvent({
+      name: "admin.misc_tab.deleted",
+      section: "misc",
+      targetType: "misc_tab",
+      targetId: id,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);

@@ -11,6 +11,7 @@ import TagBadge from "@/components/TagBadge";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
+import { trackEvent } from "@/lib/observability/client";
 import { WRITING_TAG_COLORS } from "@/lib/tag-colors";
 import { splitTags } from "@/lib/utils";
 import type { Article, MiscSeries, MiscTab } from "@/lib/schema";
@@ -77,11 +78,15 @@ function MiscContent() {
     if (displayTabs.length === 0) return;
     if (activeTabId && displayTabs.some((tab) => tab.id === activeTabId)) return;
     const validUrlTab = urlTab && displayTabs.some((tab) => tab.id === urlTab) ? urlTab : null;
-    setActiveTabId(validUrlTab || displayTabs[0].id);
+    const timer = window.setTimeout(() => {
+      setActiveTabId(validUrlTab || displayTabs[0].id);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [displayTabs, activeTabId, urlTab]);
 
   useEffect(() => {
-    setSelectedSeriesId("all");
+    const timer = window.setTimeout(() => setSelectedSeriesId("all"), 0);
+    return () => window.clearTimeout(timer);
   }, [activeTabId]);
 
   const activeTab = displayTabs.find((tab) => tab.id === activeTabId) ?? displayTabs[0];
@@ -106,6 +111,26 @@ function MiscContent() {
     ? activeArticles
     : activeArticles.filter((article) => article.seriesId === selectedSeriesId);
 
+  function selectTab(tabId: string) {
+    setActiveTabId(tabId);
+    trackEvent({
+      name: "public.misc_tab.changed",
+      section: "misc",
+      targetType: "misc_tab",
+      targetId: tabId,
+    });
+  }
+
+  function selectSeries(seriesId: number | "all") {
+    setSelectedSeriesId(seriesId);
+    trackEvent({
+      name: "public.misc_series.changed",
+      section: "misc",
+      targetType: "misc_series",
+      targetId: seriesId,
+    });
+  }
+
   return (
     <main>
       <PageHeader
@@ -117,7 +142,7 @@ function MiscContent() {
           <TabBar
             tabs={displayTabs}
             activeId={activeTab?.id}
-            onChange={setActiveTabId}
+            onChange={selectTab}
           />
         )}
       </PageHeader>
@@ -154,7 +179,7 @@ function MiscContent() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => setSelectedSeriesId("all")}
+                          onClick={() => selectSeries("all")}
                           className={`font-mono text-xs px-3 py-1.5 border transition-all ${
                             selectedSeriesId === "all"
                               ? "bg-accent text-base border-accent"
@@ -167,7 +192,7 @@ function MiscContent() {
                           <button
                             key={series.id}
                             type="button"
-                            onClick={() => setSelectedSeriesId(series.id)}
+                            onClick={() => selectSeries(series.id)}
                             className={`font-mono text-xs px-3 py-1.5 border transition-all ${
                               selectedSeriesId === series.id
                                 ? "bg-accent text-base border-accent"
@@ -193,11 +218,19 @@ function MiscContent() {
                             <button
                               key={article.id}
                               type="button"
-                              onClick={() => setReader({
-                                title: article.title,
-                                meta: [article.date, series?.title, article.readTime].filter(Boolean).join(" · "),
-                                html: article.content,
-                              })}
+                              onClick={() => {
+                                trackEvent({
+                                  name: "public.reader.opened",
+                                  section: "misc",
+                                  targetType: "article",
+                                  targetId: article.slug,
+                                });
+                                setReader({
+                                  title: article.title,
+                                  meta: [article.date, series?.title, article.readTime].filter(Boolean).join(" · "),
+                                  html: article.content,
+                                });
+                              }}
                               className="group block w-full text-left border border-surface/10 bg-surface/[0.02] p-5 hover:border-accent/25 hover:bg-surface/[0.04] transition-colors"
                             >
                               <div className="flex flex-wrap items-center gap-2 mb-3">

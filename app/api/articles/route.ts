@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
 import { createUpdate } from "@/lib/updates";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -54,6 +55,13 @@ export async function POST(req: NextRequest) {
       .insert(articles)
       .values({ ...body, slug })
       .returning();
+    logTelemetryEvent({
+      name: "admin.article.created",
+      section: article.type,
+      targetType: "article",
+      targetId: article.id,
+      attributes: { published: article.published, slug: article.slug },
+    });
     if (publishAsUpdate) {
       const section = SECTION_LABEL[article.type] ?? article.type;
       let linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;

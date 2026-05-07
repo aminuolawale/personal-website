@@ -11,6 +11,7 @@ import { SECTION_TABS } from "@/lib/section-tabs";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
+import { trackEvent } from "@/lib/observability/client";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
@@ -114,6 +115,26 @@ export default function WritingPage() {
     ? `${selectedCategoryLabel} · ${selectedBook.title}`
     : selectedCategoryLabel;
 
+  function selectWritingTab(tabId: string) {
+    setActiveTab(tabId);
+    trackEvent({
+      name: "public.writing_tab.changed",
+      section: "writing",
+      targetType: "writing_tab",
+      targetId: tabId,
+    });
+  }
+
+  function selectBook(bookId: number) {
+    setSelectedBookId(bookId);
+    trackEvent({
+      name: "public.reading_notes.book_selected",
+      section: "writing",
+      targetType: "book",
+      targetId: bookId,
+    });
+  }
+
   const readingNotesFilter = (visibleCategories.length > 0 || booksWithNotes.length > 0) && (
     <div className="border border-surface/10 bg-surface/[0.015]">
       <button
@@ -198,7 +219,7 @@ export default function WritingPage() {
                           key={book.id}
                           data-book-id={book.id}
                           type="button"
-                          onClick={() => setSelectedBookId(book.id)}
+                          onClick={() => selectBook(book.id)}
                           className={`shrink-0 max-w-[16rem] text-left border px-3 py-2 transition-all duration-200 ${
                             selected
                               ? "border-accent bg-accent/10"
@@ -230,7 +251,7 @@ export default function WritingPage() {
       />
 
       <section className="py-8 sm:py-14 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
-        <TabBar tabs={SECTION_TABS.writing} activeId={activeTab} onChange={setActiveTab} />
+        <TabBar tabs={SECTION_TABS.writing} activeId={activeTab} onChange={selectWritingTab} />
 
         <div className="pt-8 sm:pt-12">
           {activeTab === "book-reviews" && (
@@ -252,12 +273,20 @@ export default function WritingPage() {
                     >
                       <WritingArticleCard
                         article={article}
-                        onOpen={(selectedArticle) => setReader({
-                          title: selectedArticle.title,
-                          meta: [selectedArticle.date, selectedArticle.readTime].filter(Boolean).join(" · "),
-                          html: selectedArticle.content,
-                          href: `/writing/${selectedArticle.slug}`,
-                        })}
+                        onOpen={(selectedArticle) => {
+                          trackEvent({
+                            name: "public.reader.opened",
+                            section: "writing",
+                            targetType: "article",
+                            targetId: selectedArticle.slug,
+                          });
+                          setReader({
+                            title: selectedArticle.title,
+                            meta: [selectedArticle.date, selectedArticle.readTime].filter(Boolean).join(" · "),
+                            html: selectedArticle.content,
+                            href: `/writing/${selectedArticle.slug}`,
+                          });
+                        }}
                       />
                     </m.div>
                   ))}
@@ -303,14 +332,28 @@ export default function WritingPage() {
                             key={note.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => setReader({
-                              title: selectedBook.title,
-                              meta: [selectedBook.author, String(selectedBook.yearPublished), formatNoteDate(note.createdAt)].join(" · "),
-                              html: note.content,
-                            })}
+                            onClick={() => {
+                              trackEvent({
+                                name: "public.reader.opened",
+                                section: "writing",
+                                targetType: "reading_note",
+                                targetId: note.id,
+                              });
+                              setReader({
+                                title: selectedBook.title,
+                                meta: [selectedBook.author, String(selectedBook.yearPublished), formatNoteDate(note.createdAt)].join(" · "),
+                                html: note.content,
+                              });
+                            }}
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
+                                trackEvent({
+                                  name: "public.reader.opened",
+                                  section: "writing",
+                                  targetType: "reading_note",
+                                  targetId: note.id,
+                                });
                                 setReader({
                                   title: selectedBook.title,
                                   meta: [selectedBook.author, String(selectedBook.yearPublished), formatNoteDate(note.createdAt)].join(" · "),

@@ -5,6 +5,7 @@ import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { miscTabs } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
+import { logTelemetryEvent } from "@/lib/observability/server";
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -48,6 +49,13 @@ export async function POST(req: NextRequest) {
       .insert(miscTabs)
       .values({ title, slug, description, position })
       .returning();
+    logTelemetryEvent({
+      name: "admin.misc_tab.created",
+      section: "misc",
+      targetType: "misc_tab",
+      targetId: tab.id,
+      attributes: { slug: tab.slug, position: tab.position },
+    });
     return NextResponse.json(tab, { status: 201 });
   } catch (err) {
     console.error(err);
