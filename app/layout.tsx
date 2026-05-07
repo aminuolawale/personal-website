@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Space_Mono } from "next/font/google";
-import "katex/dist/katex.min.css";
 import "./globals.css";
 import ClientShell from "@/components/ClientShell";
 import { ThemeProvider } from "@/components/ThemeProvider";

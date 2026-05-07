@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
-import ReaderOverlay from "@/components/ReaderOverlay";
+import dynamic from "next/dynamic";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import type { Article } from "@/lib/schema";
+
+const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
 
 interface ArticlesTabProps {
   articles: Article[];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchCachedJson } from "@/lib/client-cache";
 
 // Default values mirror the current hardcoded text exactly, so the page
 // renders the correct content on first paint and there is no visible flash
@@ -28,14 +29,12 @@ export function useSiteContent(): SiteContent {
   const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT);
 
   useEffect(() => {
-    fetch("/api/config?key=site-content")
-      .then((r) => (r.ok ? r.json() : { value: null }))
+    fetchCachedJson<{ value: unknown }>("/api/config?key=site-content", { value: null })
       .then(({ value }) => {
         if (value && typeof value === "object") {
           setContent({ ...DEFAULT_CONTENT, ...value });
         }
-      })
-      .catch(() => {});
+      });
   }, []);
 
   return content;

@@ -11,10 +11,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
     return <SessionProvider>{children}</SessionProvider>;
   }
   return (
-    <SessionProvider>
-      <LazyMotion features={domAnimation} strict>
-        <PageShell>{children}</PageShell>
-      </LazyMotion>
-    </SessionProvider>
+    <LazyMotion features={domAnimation} strict>
+      <PageShell>{children}</PageShell>
+    </LazyMotion>
   );
 }

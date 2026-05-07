@@ -1,20 +1,24 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
-import Projects from "@/components/Projects";
-import About from "@/components/About";
-import Experience from "@/components/Experience";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber } from "@/lib/section-visibility";
 import type { Article } from "@/lib/schema";
+
+const Projects = dynamic(() => import("@/components/Projects"), {
+  loading: () => <p className="font-mono text-xs text-muted/30">Loading projects…</p>,
+});
+const About = dynamic(() => import("@/components/About"));
+const Experience = dynamic(() => import("@/components/Experience"));
 
 type SweTab = TabConfig & {
   renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;

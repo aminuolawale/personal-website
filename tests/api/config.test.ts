@@ -8,6 +8,7 @@ vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
 import { GET, PUT } from "@/app/api/config/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { PUBLIC_CACHE } from "@/lib/api";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
   return new NextRequest(new URL(url, "http://localhost:3000"), opts as any);
@@ -28,6 +29,7 @@ describe("GET /api/config", () => {
     const req = makeRequest("http://localhost:3000/api/config?key=site-content");
     const res = await GET(req);
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(PUBLIC_CACHE);
     expect(await res.json()).toEqual({ value: null });
   });
 
@@ -44,7 +46,23 @@ describe("GET /api/config", () => {
     const req = makeRequest("http://localhost:3000/api/config?key=site-content");
     const res = await GET(req);
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(PUBLIC_CACHE);
     expect(await res.json()).toEqual({ value: storedValue });
+  });
+
+  it("sets Cache-Control for multi-key public responses", async () => {
+    vi.mocked(getDb).mockReturnValue({
+      select: () => ({
+        from: () => ({
+          where: async () => [{ key: "tab-order-swe", value: JSON.stringify(["articles"]) }],
+        }),
+      }),
+    } as any);
+
+    const req = makeRequest("http://localhost:3000/api/config?keys=tab-order-swe");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(PUBLIC_CACHE);
   });
 
   it("returns { value: null } on db error", async () => {

@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { m } from "framer-motion";
 import AstroSessionCard from "@/components/AstroSessionCard";
-import ReaderOverlay from "@/components/ReaderOverlay";
 import type { Article } from "@/lib/schema";
+
+const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
 
 interface ArticlesTabProps {
   articles: Article[];

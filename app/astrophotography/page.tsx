@@ -6,12 +6,16 @@ import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
-import CalendarTab from "@/components/astrophotography/CalendarTab";
-import GalleryTab from "@/components/astrophotography/GalleryTab";
-import GearTab from "@/components/astrophotography/GearTab";
 import dynamic from "next/dynamic";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 
+const CalendarTab = dynamic(() => import("@/components/astrophotography/CalendarTab"));
+const GalleryTab = dynamic(() => import("@/components/astrophotography/GalleryTab"), {
+  loading: () => <p className="font-mono text-xs text-muted/30">Loading gallery…</p>,
+});
+const GearTab = dynamic(() => import("@/components/astrophotography/GearTab"), {
+  loading: () => <p className="font-mono text-xs text-muted/30">Loading gear…</p>,
+});
 const NightSkyMap = dynamic(() => import("@/components/astrophotography/NightSkyMap"), { ssr: false });
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Article } from "@/lib/schema";
+import { fetchCachedJson } from "@/lib/client-cache";
 
 interface UseArticlesResult {
   articles: Article[];
@@ -17,8 +18,7 @@ export function useArticles(
 
   useEffect(() => {
     const url = `/api/articles?type=${type}${admin ? "&admin=true" : ""}`;
-    fetch(url)
-      .then((response) => response.json())
+    fetchCachedJson<unknown>(url, [])
       .then((data) => {
         if (Array.isArray(data)) setArticles(data);
       })

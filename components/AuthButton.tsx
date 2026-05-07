@@ -1,7 +1,7 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useState, useRef, useEffect } from "react";
+import * as NextAuthReact from "next-auth/react";
+import { Fragment, useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { LogOut, ChevronDown } from "lucide-react";
 
@@ -9,8 +9,8 @@ interface Props {
   inline?: boolean;
 }
 
-export default function AuthButton({ inline = false }: Props) {
-  const { data: session, status } = useSession();
+function AuthButtonContent({ inline = false }: Props) {
+  const { data: session, status } = NextAuthReact.useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -28,7 +28,7 @@ export default function AuthButton({ inline = false }: Props) {
 
   const signInButton = (
     <button
-      onClick={() => signIn("google", { callbackUrl: window.location.href })}
+      onClick={() => NextAuthReact.signIn("google", { callbackUrl: window.location.href })}
       className="font-mono text-xs text-muted/50 hover:text-accent transition-colors border border-surface/15 px-3 py-1.5 hover:border-accent/40"
     >
       Sign in
@@ -61,7 +61,7 @@ export default function AuthButton({ inline = false }: Props) {
           </div>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => NextAuthReact.signOut({ callbackUrl: "/" })}
           className="flex items-center gap-2 font-mono text-sm text-surface hover:text-accent transition-colors"
         >
           <LogOut size={13} />
@@ -102,7 +102,7 @@ export default function AuthButton({ inline = false }: Props) {
             <p className="font-mono text-[10px] text-muted/40 truncate">{session.user?.email}</p>
           </div>
           <button
-            onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+            onClick={() => { setOpen(false); NextAuthReact.signOut({ callbackUrl: "/" }); }}
             className="flex items-center gap-2 w-full px-3 py-2 font-mono text-xs text-muted/60 hover:text-accent hover:bg-surface/5 transition-colors"
           >
             <LogOut size={12} />
@@ -111,5 +111,14 @@ export default function AuthButton({ inline = false }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AuthButton(props: Props) {
+  const Provider = "SessionProvider" in NextAuthReact ? NextAuthReact.SessionProvider : Fragment;
+  return (
+    <Provider>
+      <AuthButtonContent {...props} />
+    </Provider>
   );
 }

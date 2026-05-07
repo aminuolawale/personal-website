@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import AuthButton from "./AuthButton";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber, type SectionId } from "@/lib/section-visibility";
+
+const AuthButton = dynamic(() => import("./AuthButton"), { ssr: false });
 
 const ALL_NAV_ITEMS = [
   { label: "SWE", href: "/swe", section: "swe" as SectionId },

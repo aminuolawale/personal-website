@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { m } from "framer-motion";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import ReaderOverlay from "@/components/ReaderOverlay";
-import RichTextContent from "@/components/RichTextContent";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
+import { fetchCachedJson } from "@/lib/client-cache";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const WRITING_TABS = [
   { id: "book-reviews", label: "Book reviews" },
   { id: "reading-notes", label: "Reading notes" },
 ];
+
+const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
+const RichTextContent = dynamic(() => import("@/components/RichTextContent"), { ssr: false });
 
 function formatNoteDate(value: string | Date) {
   return new Intl.DateTimeFormat(undefined, {
@@ -50,15 +53,10 @@ export default function WritingPage() {
     async function loadReadingNotes() {
       setNotesLoading(true);
       try {
-        const [bookRes, noteRes] = await Promise.all([
-          fetch("/api/books"),
-          fetch("/api/reading-notes"),
-        ]);
-        const categoryRes = await fetch("/api/book-categories");
         const [bookRows, noteRows, categoryRows] = await Promise.all([
-          bookRes.json(),
-          noteRes.json(),
-          categoryRes.json(),
+          fetchCachedJson<unknown>("/api/books", []),
+          fetchCachedJson<unknown>("/api/reading-notes", []),
+          fetchCachedJson<unknown>("/api/book-categories", []),
         ]);
         if (cancelled) return;
         const nextBooks = Array.isArray(bookRows) ? bookRows : [];

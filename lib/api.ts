@@ -18,4 +18,4 @@ export const serverError = (msg = "Database error") =>
 
 // Cache-Control value used on all public (non-admin) GET responses.
 // CDN serves cached data for 60s; stale data is served for up to 5 min while revalidating.
-export const PUBLIC_CACHE = "public, s-maxage=60, stale-while-revalidate=300";
+export const PUBLIC_CACHE = "public, max-age=60, s-maxage=300, stale-while-revalidate=86400";

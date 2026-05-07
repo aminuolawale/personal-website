@@ -1,16 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
-import katex from "katex";
+import { useEffect, useState } from "react";
 
 interface RichTextContentProps {
   html: string;
   className?: string;
 }
 
-function renderMath(html: string) {
+async function renderMath(html: string) {
   if (typeof window === "undefined") return html;
+  if (!html.includes("data-latex-formula")) return html;
 
+  const katex = await import("katex");
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll<HTMLElement>("[data-latex-formula]").forEach((node) => {
     const latex = node.dataset.latex ?? node.textContent ?? "";
@@ -21,7 +22,7 @@ function renderMath(html: string) {
         throwOnError: false,
         strict: false,
         trust: false,
-        output: "htmlAndMathml",
+        output: "mathml",
       });
       node.classList.add("latex-formula-rendered");
     } catch {
@@ -34,7 +35,16 @@ function renderMath(html: string) {
 }
 
 export default function RichTextContent({ html, className = "" }: RichTextContentProps) {
-  const renderedHtml = useMemo(() => renderMath(html), [html]);
+  const [renderedHtml, setRenderedHtml] = useState(html);
+
+  useEffect(() => {
+    let cancelled = false;
+    setRenderedHtml(html);
+    renderMath(html).then((nextHtml) => {
+      if (!cancelled) setRenderedHtml(nextHtml);
+    });
+    return () => { cancelled = true; };
+  }, [html]);
 
   return (
     <div

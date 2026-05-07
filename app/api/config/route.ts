@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db";
 import { siteConfig } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, badRequest, serverError } from "@/lib/api";
+import { unauthorized, badRequest, serverError, PUBLIC_CACHE } from "@/lib/api";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -26,13 +26,13 @@ export async function GET(req: NextRequest) {
       const values: Record<string, unknown> = {};
       for (const row of rows) values[row.key] = JSON.parse(row.value);
       const res = NextResponse.json({ values });
-      res.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+      res.headers.set("Cache-Control", PUBLIC_CACHE);
       return res;
     }
 
     const [row] = await db.select().from(siteConfig).where(eq(siteConfig.key, key!));
     const res = NextResponse.json({ value: row ? JSON.parse(row.value) : null });
-    res.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+    res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch {
     if (keys) return NextResponse.json({ values: {} });

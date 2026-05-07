@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchCachedJson } from "@/lib/client-cache";
 
 export interface TabConfigResult {
   order: string[];
@@ -29,8 +30,7 @@ export function useTabConfig(
       `tab-visibility-${section}`,
     ].join(",");
 
-    fetch(`/api/config?keys=${keys}`)
-      .then((r) => (r.ok ? r.json() : { values: {} }))
+    fetchCachedJson<{ values: Record<string, unknown> }>(`/api/config?keys=${keys}`, { values: {} })
       .then(({ values }: { values: Record<string, unknown> }) => {
         const savedOrder = values[`tab-order-${section}`];
         const savedLabels = values[`tab-labels-${section}`];
@@ -52,10 +52,8 @@ export function useTabConfig(
           savedVisibility && typeof savedVisibility === "object" && !Array.isArray(savedVisibility)
             ? { ...defaultVisibility, ...(savedVisibility as Record<string, boolean>) }
             : defaultVisibility;
-
         setConfig({ order, labels, visibility });
-      })
-      .catch(() => {});
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
