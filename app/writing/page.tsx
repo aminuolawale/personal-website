@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { m } from "framer-motion";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
@@ -15,7 +16,6 @@ import { trackEvent } from "@/lib/observability/client";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
-const RichTextContent = dynamic(() => import("@/components/RichTextContent"), { ssr: false });
 
 function formatNoteDate(value: string | Date) {
   return new Intl.DateTimeFormat(undefined, {
@@ -25,10 +25,27 @@ function formatNoteDate(value: string | Date) {
   }).format(new Date(value));
 }
 
+function richTextPreview(html: string) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function WritingPage() {
+  const searchParams = useSearchParams();
   const { articles, isLoading } = useArticles("writing");
   const { writingTitle, writingDescription } = useSiteContent();
-  const [activeTab, setActiveTab] = useState("book-reviews");
+  const urlTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    SECTION_TABS.writing.some((tab) => tab.id === urlTab) ? urlTab! : "book-reviews"
+  );
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<BookCategory[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
@@ -361,12 +378,19 @@ export default function WritingPage() {
                                 });
                               }
                             }}
-                            className="border border-surface/10 bg-surface/[0.02] p-5 sm:p-6 cursor-pointer hover:border-accent/25 hover:bg-surface/[0.035] transition-colors"
+                            className="group border border-surface/10 bg-surface/[0.02] p-5 sm:p-6 cursor-pointer hover:border-accent/25 hover:bg-surface/[0.035] transition-colors"
                           >
-                            <p className="font-mono text-xs text-muted/35 mb-4">
-                              {formatNoteDate(note.createdAt)}
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <p className="font-mono text-xs text-muted/35">
+                                {formatNoteDate(note.createdAt)}
+                              </p>
+                              <span className="font-mono text-[10px] uppercase tracking-widest text-accent/55 group-hover:text-accent transition-colors">
+                                Read
+                              </span>
+                            </div>
+                            <p className="text-muted/55 text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                              {richTextPreview(note.content)}
                             </p>
-                            <RichTextContent html={note.content} className="text-[0.98rem]" />
                           </article>
                         ))}
                       </div>

@@ -1,14 +1,17 @@
 // @vitest-environment node
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
+vi.mock("@/lib/updates", () => ({ createUpdate: vi.fn().mockResolvedValue(undefined) }));
 
 import { GET, POST } from "@/app/api/reading-notes/route";
 import { PUT } from "@/app/api/reading-notes/[id]/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { createUpdate } from "@/lib/updates";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
   return new NextRequest(new URL(url, "http://localhost:3000"), opts as any);
@@ -80,6 +83,27 @@ describe("POST /api/reading-notes", () => {
 
     expect(res.status).toBe(201);
     expect(insertedValues).toMatchObject({ bookId: 1, content: "<p>Good note</p>" });
+  });
+
+  it("can publish a reading note as an update", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    vi.mocked(getDb).mockReturnValue({
+      select: () => ({ from: () => ({ where: async () => [{ id: 1, title: "Dune", author: "Frank Herbert" }] }) }),
+      insert: () => ({
+        values: (values: any) => ({ returning: async () => [{ id: 2, ...values }] }),
+      }),
+    } as any);
+
+    const res = await POST(makeRequest("http://localhost:3000/api/reading-notes", {
+      method: "POST",
+      body: JSON.stringify({ bookId: 1, content: "<p>Good note</p>", publishAsUpdate: true }),
+    }));
+
+    expect(res.status).toBe(201);
+    expect(createUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      text: expect.stringContaining("Dune"),
+      linkUrl: "/writing?tab=reading-notes",
+    }));
   });
 });
 

@@ -2,6 +2,7 @@
 
 import { Node, mergeAttributes } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect } from "react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
@@ -150,6 +151,12 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
       },
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    if (editor.getHTML() === content) return;
+    editor.commands.setContent(content, { emitUpdate: false });
+  }, [content, editor]);
 
   if (!editor) return null;
 

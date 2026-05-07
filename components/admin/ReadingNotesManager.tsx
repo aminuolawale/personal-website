@@ -39,6 +39,8 @@ export default function ReadingNotesManager() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedBookId, setSelectedBookId] = useState("");
   const [noteContent, setNoteContent] = useState("");
+  const [noteEditorKey, setNoteEditorKey] = useState(0);
+  const [publishNoteAsUpdate, setPublishNoteAsUpdate] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,10 @@ export default function ReadingNotesManager() {
     }
   }, [router]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const booksById = useMemo(() => new Map(books.map((book) => [book.id, book])), [books]);
   const categoriesById = useMemo(
@@ -139,12 +144,18 @@ export default function ReadingNotesManager() {
       const res = await fetch("/api/reading-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId: Number(selectedBookId), content: noteContent }),
+        body: JSON.stringify({
+          bookId: Number(selectedBookId),
+          content: noteContent,
+          publishAsUpdate: publishNoteAsUpdate,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Note save failed");
 
       setNoteContent("");
+      setNoteEditorKey((key) => key + 1);
+      setPublishNoteAsUpdate(false);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Note save failed");
@@ -274,19 +285,33 @@ export default function ReadingNotesManager() {
           <div>
             <label className={LABEL}>Note text</label>
             <TiptapEditor
+              key={noteEditorKey}
               content={noteContent}
               onChange={setNoteContent}
               placeholder="Add the reading note…"
             />
           </div>
-          <button
-            type="submit"
-            disabled={saving || !selectedBookId}
-            className="inline-flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all disabled:opacity-50"
-          >
-            <Save size={13} />
-            Save Note
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPublishNoteAsUpdate((value) => !value)}
+              className={`font-mono text-xs px-3 py-2 border transition-all ${
+                publishNoteAsUpdate
+                  ? "bg-muted text-base border-muted"
+                  : "text-muted/50 border-surface/15 hover:border-muted/40"
+              }`}
+            >
+              + Update
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !selectedBookId}
+              className="inline-flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all disabled:opacity-50"
+            >
+              <Save size={13} />
+              Save Note
+            </button>
+          </div>
         </form>
       </div>
 

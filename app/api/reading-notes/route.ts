@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, notFound, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { books, readingNotes } from "@/lib/schema";
+import { createUpdate } from "@/lib/updates";
 
 function cleanRichText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const bookId = Number(body.bookId);
   const content = cleanRichText(body.content);
+  const publishAsUpdate = body.publishAsUpdate === true;
 
   if (!Number.isInteger(bookId) || bookId <= 0) return badRequest("Book is required");
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
@@ -65,6 +67,14 @@ export async function POST(req: NextRequest) {
       .insert(readingNotes)
       .values({ bookId, content })
       .returning();
+
+    if (publishAsUpdate) {
+      await createUpdate({
+        text: `Aminu added a reading note for ${book.title} — ${book.author}`,
+        linkUrl: "/writing?tab=reading-notes",
+      });
+    }
+
     return NextResponse.json(note, { status: 201 });
   } catch (err) {
     console.error(err);

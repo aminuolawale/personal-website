@@ -43,6 +43,11 @@ const SECTION_LABEL: Record<string, string> = {
   misc: "Misc",
 };
 
+function articleLink(article: { type: string; slug: string }) {
+  if (article.type === "misc") return `/misc?tab=${article.slug}`;
+  return `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
+}
+
 export async function POST(req: NextRequest) {
   if (!(await getSession())) return unauthorized();
 
@@ -64,11 +69,10 @@ export async function POST(req: NextRequest) {
     });
     if (publishAsUpdate) {
       const section = SECTION_LABEL[article.type] ?? article.type;
-      let linkUrl = `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
-      if (article.type === "misc") {
-        linkUrl = `/misc?tab=${article.slug}`;
-      }
-      await createUpdate({ text: `Aminu published a new article — ${article.title} — in ${section}`, linkUrl });
+      await createUpdate({
+        text: `Aminu published a new ${article.type === "writing" ? "book review" : "article"} — ${article.title} — in ${section}`,
+        linkUrl: articleLink(article),
+      });
     }
     return NextResponse.json(article, { status: 201 });
   } catch (err) {

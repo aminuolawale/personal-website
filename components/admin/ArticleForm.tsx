@@ -47,7 +47,9 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!slugTouched) setSlug(slugify(title));
+    if (slugTouched) return;
+    const timer = window.setTimeout(() => setSlug(slugify(title)), 0);
+    return () => window.clearTimeout(timer);
   }, [title, slugTouched]);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
       location: location || null, published, content,
       miscTabId: type === "misc" && miscTabId ? Number(miscTabId) : null,
       seriesId: type === "misc" && seriesId ? Number(seriesId) : null,
-      ...(isNew ? { publishAsUpdate } : {}),
+      publishAsUpdate,
     };
 
     try {
@@ -92,6 +94,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
         throw new Error(data.error ?? "Save failed");
       }
 
+      if (type === "writing") setContent("");
       router.push("/admin/dashboard");
       router.refresh();
     } catch (err: unknown) {
@@ -118,19 +121,17 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
           </div>
 
           <div className="flex items-center gap-3">
-            {isNew && (
-              <button
-                type="button"
-                onClick={() => setPublishAsUpdate((v) => !v)}
-                className={`font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
-                  publishAsUpdate
-                    ? "text-base bg-muted border-muted"
-                    : "text-muted/50 border-surface/15 hover:border-muted/40"
-                }`}
-              >
-                + Update
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setPublishAsUpdate((v) => !v)}
+              className={`font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
+                publishAsUpdate
+                  ? "text-base bg-muted border-muted"
+                  : "text-muted/50 border-surface/15 hover:border-muted/40"
+              }`}
+            >
+              + Update
+            </button>
             <button
               type="button"
               onClick={() => setPublished((v) => !v)}

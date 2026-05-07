@@ -1,13 +1,16 @@
 // @vitest-environment node
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
+vi.mock("@/lib/updates", () => ({ createUpdate: vi.fn().mockResolvedValue(undefined) }));
 
 import { GET, PUT, DELETE } from "@/app/api/articles/[id]/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { createUpdate } from "@/lib/updates";
 
 const mockArticle = { id: 1, title: "Test Article", slug: "test-article", type: "swe" };
 
@@ -73,6 +76,32 @@ describe("PUT /api/articles/[id]", () => {
     const res = await PUT(req, { params: params("1") });
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBe("Updated Title");
+  });
+
+  it("can publish an updated article as an update", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    const updated = { ...mockArticle, title: "Updated Title", type: "writing", slug: "updated-title" };
+    vi.mocked(getDb).mockReturnValue({
+      update: () => ({
+        set: () => ({
+          where: () => ({
+            returning: async () => [updated],
+          }),
+        }),
+      }),
+    } as any);
+
+    const req = makeRequest("http://localhost:3000/api/articles/1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Updated Title", publishAsUpdate: true }),
+    });
+    const res = await PUT(req, { params: params("1") });
+    expect(res.status).toBe(200);
+    expect(createUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      text: expect.stringContaining("Updated Title"),
+      linkUrl: "/writing/updated-title",
+    }));
   });
 });
 
