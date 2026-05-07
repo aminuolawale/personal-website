@@ -16,7 +16,7 @@ function AdminLoginContent() {
         <p className="font-mono text-accent text-xs uppercase tracking-widest mb-3">
           Admin
         </p>
-        <h1 className="text-surface text-2xl font-bold mb-8">AO. CMS</h1>
+        <h1 className="text-surface text-2xl font-bold mb-8">AM. CMS</h1>
 
         {error && (
           <p className="font-mono text-xs text-red-400 mb-4">

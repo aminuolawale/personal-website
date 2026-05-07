@@ -128,7 +128,7 @@ Gear links can also deep-link to an equipment modal:
 
 The navbar and section headers respect section visibility. When sections are hidden, visible section numbers are recalculated consistently across navigation, home cards, and page headers.
 
-There is also a hidden admin shortcut: tapping/clicking the spacer between `AO.` and the nav controls four times within a short window routes to `/admin`.
+There is also a hidden admin shortcut: tapping/clicking the spacer between `AM.` and the nav controls four times within a short window routes to `/admin`.
 
 ---
 

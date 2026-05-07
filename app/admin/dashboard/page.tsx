@@ -30,19 +30,32 @@ export default function AdminDashboard() {
   const [section, setSection] = useState<Section>("writing");
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/articles?admin=true");
       if (res.status === 401) { router.push("/admin"); return; }
-      setArticles(await res.json());
+      if (!res.ok) throw new Error("Could not load articles");
+
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Article list response was invalid");
+
+      setArticles(data);
+    } catch (err) {
+      setArticles([]);
+      setError(err instanceof Error ? err.message : "Could not load articles");
     } finally {
       setLoading(false);
     }
   }, [router]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const filtered = articles.filter((a) => a.type === section);
 
@@ -65,7 +78,7 @@ export default function AdminDashboard() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <Link href="/" className="font-mono text-accent text-lg font-bold hover:opacity-75 transition-opacity">
-              AO.
+              AM.
             </Link>
             <span className="font-mono text-xs text-muted/30 uppercase tracking-widest">CMS</span>
             <Link
@@ -188,7 +201,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Article list */}
-        {loading ? (
+        {error ? (
+          <p className="font-mono text-xs text-red-400 border border-red-400/30 bg-red-400/5 px-4 py-3">
+            {error}
+          </p>
+        ) : loading ? (
           <p className="font-mono text-xs text-muted/30 text-center py-16">Loading…</p>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24 border border-surface/10">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,7 +22,8 @@ const ALL_NAV_ITEMS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [adminTapCount, setAdminTapCount] = useState(0);
+  const adminTapCountRef = useRef(0);
+  const adminTapResetRef = useRef<number | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const visibility = useSectionVisibility();
@@ -34,16 +35,24 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  useEffect(() => {
-    if (adminTapCount === 0) return;
-    if (adminTapCount >= 4) {
-      setAdminTapCount(0);
+  useEffect(() => () => {
+    if (adminTapResetRef.current !== null) window.clearTimeout(adminTapResetRef.current);
+  }, []);
+
+  function handleAdminShortcutTap() {
+    if (adminTapResetRef.current !== null) window.clearTimeout(adminTapResetRef.current);
+
+    adminTapCountRef.current += 1;
+    if (adminTapCountRef.current >= 4) {
+      adminTapCountRef.current = 0;
       router.push("/admin");
       return;
     }
-    const timeout = window.setTimeout(() => setAdminTapCount(0), 1200);
-    return () => window.clearTimeout(timeout);
-  }, [adminTapCount, router]);
+
+    adminTapResetRef.current = window.setTimeout(() => {
+      adminTapCountRef.current = 0;
+    }, 1200);
+  }
 
   return (
     <header
@@ -58,14 +67,14 @@ export default function Navbar() {
           href="/"
           className="font-mono text-accent text-xl font-bold hover:opacity-75 transition-all duration-500"
         >
-          AO.
+          AM.
         </Link>
 
         <button
           type="button"
           aria-label="Hidden admin shortcut"
           className="flex-1 self-stretch cursor-default"
-          onClick={() => setAdminTapCount((count) => count + 1)}
+          onClick={handleAdminShortcutTap}
         />
 
         {/* Desktop nav */}
