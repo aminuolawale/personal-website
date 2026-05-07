@@ -17,6 +17,8 @@ export const articles = pgTable("articles", {
   date: text("date").notNull().default(""),
   location: text("location"),
   readTime: text("read_time"),
+  miscTabId: integer("misc_tab_id"),
+  seriesId: integer("series_id"),
   published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -24,6 +26,34 @@ export const articles = pgTable("articles", {
 
 export type Article = typeof articles.$inferSelect;
 export type NewArticle = typeof articles.$inferInsert;
+
+// Misc section tabs. Unlike SWE/Astro tab config, these are content buckets
+// created by the admin. Each tab can contain many misc articles.
+export const miscTabs = pgTable("misc_tabs", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description").notNull().default(""),
+  position: integer("position").notNull().default(99),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type MiscTab = typeof miscTabs.$inferSelect;
+export type NewMiscTab = typeof miscTabs.$inferInsert;
+
+// Series objects group misc articles inside tabs. A tab can contain articles
+// from multiple series, and readers can filter the active tab by series.
+export const miscSeries = pgTable("misc_series", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type MiscSeries = typeof miscSeries.$inferSelect;
+export type NewMiscSeries = typeof miscSeries.$inferInsert;
 
 // SWE projects shown on the /swe?tab=projects tab.
 export const projects = pgTable("projects", {

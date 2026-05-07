@@ -1,0 +1,22 @@
+import type { TabConfig } from "@/components/TabBar";
+
+export type SectionTabId = "swe" | "astrophotography" | "writing";
+
+export const SECTION_TABS: Record<SectionTabId, TabConfig[]> = {
+  swe: [
+    { id: "articles", label: "Articles" },
+    { id: "projects", label: "Projects" },
+    { id: "about", label: "About Me" },
+  ],
+  astrophotography: [
+    { id: "articles", label: "Articles" },
+    { id: "calendar", label: "Astro Calendar" },
+    { id: "gallery", label: "Gallery" },
+    { id: "gear", label: "Gear" },
+    { id: "sky", label: "Night Sky" },
+  ],
+  writing: [
+    { id: "book-reviews", label: "Book reviews" },
+    { id: "reading-notes", label: "Reading notes" },
+  ],
+};

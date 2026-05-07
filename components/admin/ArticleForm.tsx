@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import ThemeToggle from "@/components/ThemeToggle";
-import type { Article } from "@/lib/schema";
+import type { Article, MiscSeries, MiscTab } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
@@ -35,6 +35,10 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [date, setDate] = useState(article?.date ?? "");
   const [readTime, setReadTime] = useState(article?.readTime ?? "");
   const [location, setLocation] = useState(article?.location ?? "");
+  const [miscTabId, setMiscTabId] = useState(article?.miscTabId ? String(article.miscTabId) : "");
+  const [seriesId, setSeriesId] = useState(article?.seriesId ? String(article.seriesId) : "");
+  const [miscTabs, setMiscTabs] = useState<MiscTab[]>([]);
+  const [miscSeries, setMiscSeries] = useState<MiscSeries[]>([]);
   const [published, setPublished] = useState(article?.published ?? false);
   const [content, setContent] = useState(article?.content ?? "");
   const [publishAsUpdate, setPublishAsUpdate] = useState(false);
@@ -46,6 +50,20 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
     if (!slugTouched) setSlug(slugify(title));
   }, [title, slugTouched]);
 
+  useEffect(() => {
+    if (type !== "misc") return;
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/misc-tabs?admin=true").then((res) => res.ok ? res.json() : []),
+      fetch("/api/misc-series?admin=true").then((res) => res.ok ? res.json() : []),
+    ]).then(([tabs, series]) => {
+      if (cancelled) return;
+      setMiscTabs(Array.isArray(tabs) ? tabs : []);
+      setMiscSeries(Array.isArray(series) ? series : []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [type]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -54,6 +72,8 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
     const payload = {
       type, title, slug, summary, tags, date, readTime,
       location: location || null, published, content,
+      miscTabId: type === "misc" && miscTabId ? Number(miscTabId) : null,
+      seriesId: type === "misc" && seriesId ? Number(seriesId) : null,
       ...(isNew ? { publishAsUpdate } : {}),
     };
 
@@ -236,6 +256,37 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
             </div>
           )}
         </div>
+
+        {type === "misc" && (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LABEL}>Misc tab</label>
+              <select
+                className={INPUT}
+                value={miscTabId}
+                onChange={(e) => setMiscTabId(e.target.value)}
+              >
+                <option value="">No tab selected</option>
+                {miscTabs.map((tab) => (
+                  <option key={tab.id} value={tab.id}>{tab.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LABEL}>Series</label>
+              <select
+                className={INPUT}
+                value={seriesId}
+                onChange={(e) => setSeriesId(e.target.value)}
+              >
+                <option value="">No series</option>
+                {miscSeries.map((series) => (
+                  <option key={series.id} value={series.id}>{series.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Tags */}
         <div>

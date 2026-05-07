@@ -7,15 +7,11 @@ import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
+import { SECTION_TABS } from "@/lib/section-tabs";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
-
-const WRITING_TABS = [
-  { id: "book-reviews", label: "Book reviews" },
-  { id: "reading-notes", label: "Reading notes" },
-];
 
 const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
 const RichTextContent = dynamic(() => import("@/components/RichTextContent"), { ssr: false });
@@ -95,7 +91,10 @@ export default function WritingPage() {
 
   useEffect(() => {
     if (selectedBookId && booksWithNotes.some((book) => book.id === selectedBookId)) return;
-    setSelectedBookId(booksWithNotes[0]?.id ?? null);
+    const timer = window.setTimeout(() => {
+      setSelectedBookId(booksWithNotes[0]?.id ?? null);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [booksWithNotes, selectedBookId]);
 
   useEffect(() => {
@@ -231,7 +230,7 @@ export default function WritingPage() {
       />
 
       <section className="py-8 sm:py-14 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
-        <TabBar tabs={WRITING_TABS} activeId={activeTab} onChange={setActiveTab} />
+        <TabBar tabs={SECTION_TABS.writing} activeId={activeTab} onChange={setActiveTab} />
 
         <div className="pt-8 sm:pt-12">
           {activeTab === "book-reviews" && (

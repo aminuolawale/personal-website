@@ -12,6 +12,7 @@ import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber } from "@/lib/section-visibility";
+import { SECTION_TABS } from "@/lib/section-tabs";
 import type { Article } from "@/lib/schema";
 
 const Projects = dynamic(() => import("@/components/Projects"), {
@@ -26,20 +27,17 @@ type SweTab = TabConfig & {
 
 const SWE_TABS: SweTab[] = [
   {
-    id: "articles",
-    label: "Articles",
+    ...SECTION_TABS.swe[0],
     renderContent: (articles, isLoading) => (
       <ArticlesTab articles={articles} isLoading={isLoading} />
     ),
   },
   {
-    id: "projects",
-    label: "Projects",
+    ...SECTION_TABS.swe[1],
     renderContent: () => <Projects />,
   },
   {
-    id: "about",
-    label: "About Me",
+    ...SECTION_TABS.swe[2],
     renderContent: () => <div><About /><Experience /></div>,
   },
 ];

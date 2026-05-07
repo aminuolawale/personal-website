@@ -169,6 +169,14 @@ export default function AdminDashboard() {
                 Reading Notes
               </Link>
             )}
+            {section === "misc" && (
+              <Link
+                href="/admin/dashboard/misc"
+                className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
+              >
+                Misc Structure
+              </Link>
+            )}
             <Link
               href={`/admin/dashboard/new?type=${section}`}
               className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-1.5 hover:bg-accent/10 transition-all"

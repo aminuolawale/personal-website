@@ -1,6 +1,6 @@
 # Personal Website CMS
 
-A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
+A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, structured misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, misc tabs, misc series, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
 
 **Live site:** https://mohamedall.com  
 **Hosting:** Vercel
@@ -33,7 +33,7 @@ app/
   swe/                             Software engineering section and article pages
   astrophotography/                Astro section, including gallery, gear, sky map
   writing/                         Book reviews, reading notes, and article pages
-  misc/                            Misc section with configurable article tabs
+  misc/                            Misc tabs containing filterable articles
   updates/                         Public updates feed
   admin/
     page.tsx                       Google OAuth login
@@ -45,6 +45,7 @@ app/
       gallery/                     Astrophotography gallery CRUD
       astro-gear/                  Gear library CRUD
       astro-sessions/              Schedule astrophotography sessions
+      misc/                        Misc tabs and series management
       reading-notes/               Book entries and rich-text reading notes
       updates/                     Updates feed CRUD
       settings/                    Site settings, visibility, theme, tab order
@@ -56,6 +57,8 @@ app/
     astro-sessions/                Astro session CRUD
     book-categories/               Book category API
     books/                         Book entry API
+    misc-tabs/                     Misc tab API
+    misc-series/                   Misc series API
     reading-notes/                 Reading note API
     comments/                      Reader comments
     updates/                       Site updates
@@ -74,6 +77,7 @@ lib/
   auth.ts                          Admin and reader session helpers
   api.ts                           Shared API response helpers
   hooks/                           Client data/config hooks
+  section-tabs.ts                  Shared built-in tab definitions
   section-visibility.ts            Section visibility and numbering helpers
   sky-*.ts                         Night-sky data, math, engine, drawing, targets
   updates.ts                       Site update helper
@@ -105,7 +109,7 @@ vitest.config.ts                   Vitest config
 | Software Engineering | `/swe` | Articles, projects, about/experience |
 | Astrophotography | `/astrophotography` | Articles, astro calendar, gallery, gear, night-sky map |
 | Writing | `/writing` | Book reviews and reading notes |
-| Misc | `/misc` | Article-backed configurable tabs |
+| Misc | `/misc` | Admin-created tabs containing articles, filterable by series |
 | Updates | `/updates` | Full updates feed |
 
 Deep-linking to a tab works via `?tab=<tab-id>`, for example:
@@ -164,6 +168,19 @@ The shared rich-text editor supports headings, lists, links, code, images by URL
 
 ---
 
+## Misc
+
+The Misc section uses admin-created tabs rather than one tab per article. A misc article can be assigned to:
+
+- a misc tab
+- an optional series
+
+Each tab can contain many articles from multiple series. On the public `/misc` page, readers choose a tab and can filter the articles in that tab by series. Clicking an article opens the full-screen reader view.
+
+Tabs and series are created, edited, and deleted from `/admin/dashboard/misc`. Deleting a tab unassigns its articles from that tab; deleting a series keeps the articles in place and clears only their series assignment. Misc article tab/series assignments are set in the article editor when the article type is `misc`.
+
+---
+
 ## Admin Panel
 
 Navigate to `/admin` and sign in with Google. Only the configured admin email can access `/admin/dashboard/*` and write APIs.
@@ -177,6 +194,7 @@ Navigate to `/admin` and sign in with Google. Only the configured admin email ca
 | Gallery | `/admin/dashboard/gallery` | Astro photo management |
 | Gear Library | `/admin/dashboard/astro-gear` | Equipment, software, technique management |
 | Astro Sessions | `/admin/dashboard/astro-sessions` | Schedule sky-map sessions |
+| Misc Structure | `/admin/dashboard/misc` | Create, edit, and delete misc tabs and series |
 | Reading Notes | `/admin/dashboard/reading-notes` | Create books and rich-text reading notes |
 | Updates | `/admin/dashboard/updates` | Edit/delete updates |
 | Settings | `/admin/dashboard/settings` | Section visibility, site content, experience, palette, typography, tab order, config links |
@@ -214,6 +232,8 @@ Several admin create flows include a “Publish as Update” toggle. When enable
 | `astro_sessions` | Scheduled astro sessions for the night-sky map |
 | `book_categories` | Categories for filtering reading-note books |
 | `books` | Book entries used by reading notes |
+| `misc_tabs` | Admin-created Misc section tabs |
+| `misc_series` | Series filters for Misc articles |
 | `reading_notes` | Rich-text notes mapped to books |
 | `site_updates` | Homepage and `/updates` feed |
 | `site_config` | JSON config values for tabs/content/settings |
@@ -226,7 +246,7 @@ npm run db:push        # push to the dev database in .env.local
 npm run db:push --prod # temporarily use .env.prod.forsync, push, then restore .env.local
 ```
 
-The current astro session and reading-notes features require the `astro_sessions`, `book_categories`, `books`, and `reading_notes` tables to exist in the target database.
+The current astro session, reading-notes, and misc-structure features require the `astro_sessions`, `book_categories`, `books`, `reading_notes`, `misc_tabs`, and `misc_series` tables plus the `articles.misc_tab_id` and `articles.series_id` columns to exist in the target database.
 
 ---
 

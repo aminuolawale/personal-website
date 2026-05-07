@@ -142,6 +142,32 @@ describe("POST /api/articles", () => {
     expect(insertedValues.slug).toBe("my-custom-slug");
   });
 
+  it("persists misc tab and series assignments", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    let insertedValues: any;
+    vi.mocked(getDb).mockReturnValue({
+      insert: () => ({
+        values: (v: any) => {
+          insertedValues = v;
+          return { returning: async () => [{ ...v, id: 1 }] };
+        },
+      }),
+    } as any);
+
+    const req = makeRequest("http://localhost:3000/api/articles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "A Misc Article",
+        type: "misc",
+        miscTabId: 2,
+        seriesId: 5,
+      }),
+    });
+    await POST(req);
+    expect(insertedValues).toMatchObject({ miscTabId: 2, seriesId: 5 });
+  });
+
   it("calls createUpdate when publishAsUpdate is true", async () => {
     vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
     const article = { id: 1, title: "Big Post", slug: "big-post", type: "writing" };

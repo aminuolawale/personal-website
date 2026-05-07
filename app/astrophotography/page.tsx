@@ -21,6 +21,7 @@ import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber } from "@/lib/section-visibility";
+import { SECTION_TABS } from "@/lib/section-tabs";
 import type { Article } from "@/lib/schema";
 
 type AstroTab = TabConfig & {
@@ -29,30 +30,25 @@ type AstroTab = TabConfig & {
 
 const ASTRO_TABS: AstroTab[] = [
   {
-    id: "articles",
-    label: "Articles",
+    ...SECTION_TABS.astrophotography[0],
     renderContent: (articles, isLoading) => (
       <ArticlesTab articles={articles} isLoading={isLoading} />
     ),
   },
   {
-    id: "calendar",
-    label: "Astro Calendar",
+    ...SECTION_TABS.astrophotography[1],
     renderContent: () => <CalendarTab />,
   },
   {
-    id: "gallery",
-    label: "Gallery",
+    ...SECTION_TABS.astrophotography[2],
     renderContent: () => <GalleryTab />,
   },
   {
-    id: "gear",
-    label: "Gear",
+    ...SECTION_TABS.astrophotography[3],
     renderContent: () => <GearTab />,
   },
   {
-    id: "sky",
-    label: "Night Sky",
+    ...SECTION_TABS.astrophotography[4],
     renderContent: () => <NightSkyMap />,
   },
 ];
