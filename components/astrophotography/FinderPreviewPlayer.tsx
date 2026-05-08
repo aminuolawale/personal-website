@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minimize2, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
+import { ChevronDown, ChevronUp, Maximize2, Minimize2, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import { DEG_TO_RAD, compute, midnightTonight, type Computed, type SkyPos } from "@/lib/sky-engine";
 import { clampPan, draw } from "@/lib/sky-draw";
 import { getSkyTargetById, resolveComputedTargetPosition } from "@/lib/sky-targets";
@@ -48,13 +48,13 @@ function getSkyRadius(width: number, height: number, fullBleed: boolean) {
   return fullBleed && height > width ? height / 2 : Math.min(width, height) / 2 - 24;
 }
 
-function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number, zoom: number) {
+function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number, zoom: number, focusOffsetY = 0) {
   const radialDistance = (1 - pos.alt / 90) * skyRadius;
   const azimuthRad = pos.az * DEG_TO_RAD;
   return clampPan(
     zoom,
     -(radialDistance * Math.sin(azimuthRad)) * zoom,
-    (radialDistance * Math.cos(azimuthRad)) * zoom,
+    (radialDistance * Math.cos(azimuthRad)) * zoom + focusOffsetY,
     skyRadius
   );
 }
@@ -82,6 +82,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const [playing, setPlaying] = useState(false);
   const [loop, setLoop] = useState(initialPreview?.loop ?? false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
 
   useEffect(() => {
     if (initialPreview || !previewId) return;
@@ -131,7 +132,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     const stepZoom = steps[index].zoomLevel ?? TARGET_ZOOM;
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, requestedZoom ?? stepZoom));
     setZoomLevel(zoom);
-    const nextPan = targetPan(pos, width, height, skyRadius, zoom);
+    const focusOffsetY = isFullscreen && width < 640 ? -height * 0.18 : 0;
+    const nextPan = targetPan(pos, width, height, skyRadius, zoom, focusOffsetY);
 
     if (immediate) {
       zoomRef.current = zoom;
@@ -257,6 +259,28 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     );
   }
 
+  if (compact && !isFullscreen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsFullscreen(true)}
+        className="not-prose my-4 flex w-full items-center justify-between gap-4 border border-accent/35 bg-accent/10 px-4 py-3 text-left transition-colors hover:border-accent hover:bg-accent/15"
+      >
+        <span className="min-w-0">
+          <span className="block font-mono text-[10px] uppercase tracking-widest text-accent/70">
+            Finder preview
+          </span>
+          <span className="mt-1 block truncate text-sm font-semibold text-surface">
+            {preview.name}
+          </span>
+        </span>
+        <span className="shrink-0 rounded-sm border border-accent/35 p-2 text-accent">
+          <Maximize2 size={15} />
+        </span>
+      </button>
+    );
+  }
+
   const shellClass = isFullscreen
     ? "fixed inset-0 z-[90] m-0 border-0 bg-base"
     : compact ? "my-4" : "my-8";
@@ -276,7 +300,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     ? "absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 flex items-center gap-1 rounded-sm border border-white/10 bg-black/45 p-1 backdrop-blur sm:right-4"
     : "absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-sm border border-white/10 bg-black/40 p-1 backdrop-blur";
   const panelClass = isFullscreen
-    ? "absolute inset-x-0 bottom-0 z-30 max-h-[48dvh] overflow-y-auto border-t border-white/10 bg-base/[0.90] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-12 shadow-2xl backdrop-blur-md sm:left-auto sm:right-4 sm:bottom-4 sm:w-[min(24rem,calc(100vw-2rem))] sm:max-h-[calc(100dvh-8rem)] sm:border sm:p-4"
+    ? "absolute inset-x-0 bottom-0 z-30 border-t border-white/10 bg-base/[0.90] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl backdrop-blur-md sm:left-auto sm:right-4 sm:bottom-4 sm:w-[min(24rem,calc(100vw-2rem))] sm:border sm:p-4"
     : "border-t border-surface/10 p-4 sm:p-5 lg:border-t-0 lg:border-l";
   const topOverlayStyle = isFullscreen
     ? { background: "linear-gradient(to bottom, rgba(15,23,42,0.82), rgba(15,23,42,0))" }
@@ -353,7 +377,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         </div>
 
         <div className={`flex flex-col gap-3 sm:gap-4 ${panelClass}`}>
-          <div>
+          <div className={isFullscreen ? "hidden sm:block" : ""}>
             <p className="font-mono text-[10px] uppercase tracking-widest text-accent/70">
               {activeStep + 1}/{Math.max(steps.length, 1)}
             </p>
@@ -361,13 +385,32 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
             {preview.description && <p className="mt-2 text-sm text-muted/55 leading-relaxed">{preview.description}</p>}
           </div>
 
-          <div className="border border-surface/10 bg-surface/[0.02] p-3 min-h-28">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted/35">
-              {currentTarget?.name ?? "Step target"} · {(currentStep?.zoomLevel ?? TARGET_ZOOM).toFixed(1)}x
-            </p>
-            <p className="mt-2 text-sm text-muted/70 leading-relaxed">
-              {currentStep?.description || "No description for this step."}
-            </p>
+          <div className="border border-surface/10 bg-surface/[0.02]">
+            <button
+              type="button"
+              onClick={() => setDetailsCollapsed((value) => !value)}
+              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+              aria-expanded={!detailsCollapsed}
+            >
+              <span className="min-w-0">
+                <span className="hidden font-mono text-[10px] uppercase tracking-widest text-muted/35 sm:block">
+                  {activeStep + 1}/{Math.max(steps.length, 1)} · {currentTarget?.name ?? "Step target"} · {(currentStep?.zoomLevel ?? TARGET_ZOOM).toFixed(1)}x
+                </span>
+                <span className="block text-sm font-semibold text-surface sm:hidden">
+                  Step {activeStep + 1}/{Math.max(steps.length, 1)}
+                </span>
+              </span>
+              <span className="shrink-0 text-muted/45 hover:text-accent">
+                {detailsCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+              </span>
+            </button>
+            {!detailsCollapsed && (
+              <div className="h-28 overflow-y-auto border-t border-surface/10 px-3 py-2 sm:h-32">
+                <p className="text-sm text-muted/70 leading-relaxed">
+                  {currentStep?.description || "No description for this step."}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
