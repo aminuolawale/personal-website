@@ -71,7 +71,7 @@ export default function Hero() {
         <div className="flex flex-wrap gap-4">
           <a
             href="#work"
-            className="font-mono text-sm text-accent border border-accent px-8 py-4 hover:bg-accent/10 hover:shadow-[0_0_24px_rgba(252,158,79,0.18)] transition-all duration-300"
+            className="font-mono text-sm text-accent border border-accent px-8 py-4 hover:bg-accent/10 hover:shadow-[0_0_24px_rgba(56,189,248,0.18)] transition-all duration-300"
           >
             Explore My Work
           </a>

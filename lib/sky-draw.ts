@@ -61,7 +61,7 @@ function drawSkyObjects(
     const isHighlighted = highlightedConstellations.includes(constellation.name);
     if (selectedConstellation !== null && !isSelected && !isHighlighted) continue;
     ctx.strokeStyle = isHighlighted
-      ? (darkMode ? "rgba(252,158,79,0.9)" : "rgba(184,58,8,0.85)")
+      ? (darkMode ? "rgba(56,189,248,0.9)" : "rgba(37,99,235,0.85)")
       : isSelected
         ? (darkMode ? "rgba(130,160,255,0.65)" : "rgba(40,60,180,0.5)")
         : (darkMode ? "rgba(130,160,255,0.22)" : "rgba(40,60,180,0.15)");
@@ -74,9 +74,9 @@ function drawSkyObjects(
     if ((isSelected || isHighlighted) && constellation.centroid) {
       const [constellationLabelX, constellationLabelY] = projectToCanvas(constellation.centroid.alt, constellation.centroid.az);
       ctx.fillStyle = isHighlighted
-        ? (darkMode ? "rgba(252,180,105,0.9)" : "rgba(184,58,8,0.85)")
+        ? (darkMode ? "rgba(125,211,252,0.9)" : "rgba(37,99,235,0.85)")
         : darkMode ? "rgba(160,185,255,0.85)" : "rgba(40,60,180,0.75)";
-      ctx.font = `bold 10px Space Mono, monospace`;
+      ctx.font = `bold 10px JetBrains Mono, monospace`;
       ctx.textAlign = "center"; ctx.textBaseline = "bottom";
       ctx.fillText(constellation.name, constellationLabelX, constellationLabelY - 6);
     }
@@ -96,7 +96,7 @@ function drawSkyObjects(
     ctx.beginPath(); ctx.arc(dsoX, dsoY, dsoDisplayRadius, 0, Math.PI * 2);
     ctx.fillStyle = dsoGlow; ctx.fill();
     ctx.fillStyle = darkMode ? "rgba(180,200,255,0.5)" : "rgba(10,40,140,0.5)";
-    ctx.font = `8px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.font = `8px JetBrains Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText(object.name, dsoX + dsoDisplayRadius + 3, dsoY);
   }
 
@@ -122,7 +122,7 @@ function drawSkyObjects(
     if (!star.name || star.name === "Polaris" || star.mag > labelMagnitudeThreshold) continue;
     const [starX, starY] = projectToCanvas(star.alt, star.az);
     ctx.fillStyle = darkMode ? "rgba(255,255,255,0.55)" : "rgba(10,10,60,0.55)";
-    ctx.font = `9px Space Mono, monospace`;
+    ctx.font = `9px JetBrains Mono, monospace`;
     ctx.textAlign = "left"; ctx.fillText(star.name, starX + star.r + 4, starY - 4);
   }
 
@@ -160,7 +160,7 @@ function drawSkyObjects(
       ctx.strokeStyle = "rgba(50,55,70,0.35)"; ctx.lineWidth = 0.5; ctx.stroke();
       ctx.fillStyle = "rgba(50,55,70,0.7)";
     }
-    ctx.font = `bold 9px Space Mono, monospace`;
+    ctx.font = `bold 9px JetBrains Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("Moon", moonX + moonDisplayRadius + 4, moonY);
   }
 
@@ -172,7 +172,7 @@ function drawSkyObjects(
     planetGlow.addColorStop(0, planetColor + "66"); planetGlow.addColorStop(1, "transparent");
     ctx.beginPath(); ctx.arc(planetX, planetY, planetDisplayRadius * 3.5, 0, Math.PI * 2); ctx.fillStyle = planetGlow; ctx.fill();
     ctx.beginPath(); ctx.arc(planetX, planetY, planetDisplayRadius, 0, Math.PI * 2); ctx.fillStyle = planetColor; ctx.fill();
-    ctx.fillStyle = planetColor; ctx.font = `bold 9px Space Mono, monospace`;
+    ctx.fillStyle = planetColor; ctx.font = `bold 9px JetBrains Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(planet.name, planetX + planetDisplayRadius + 5, planetY);
   }
 }
@@ -203,7 +203,7 @@ function drawPolarisMarker(
   ctx.setLineDash([]);
 
   ctx.fillStyle = darkMode ? "rgba(200,220,255,0.85)" : "rgba(10,40,140,0.75)";
-  ctx.font = `bold 9px Space Mono, monospace`;
+  ctx.font = `bold 9px JetBrains Mono, monospace`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   ctx.fillText("Polaris", polarisX + scaledStarRadius * 5 + 4, polarisY);
@@ -237,7 +237,7 @@ export function draw(
 
   const skyGradient = ctx.createRadialGradient(centerX + panX, centerY + panY, 0, centerX + panX, centerY + panY, skyRadius * zoom);
   if (darkMode) {
-    skyGradient.addColorStop(0, "#0d1240"); skyGradient.addColorStop(0.5, "#060c2a"); skyGradient.addColorStop(1, "#020122");
+    skyGradient.addColorStop(0, "#1e293b"); skyGradient.addColorStop(0.5, "#111827"); skyGradient.addColorStop(1, "#0f172a");
   } else {
     skyGradient.addColorStop(0, "#ffffff"); skyGradient.addColorStop(0.5, "#fafafa"); skyGradient.addColorStop(1, "#f5f5f5");
   }
@@ -261,7 +261,7 @@ export function draw(
       ctx.fillStyle = darkMode
         ? (isMajor ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.13)")
         : (isMajor ? "rgba(0,0,60,0.30)" : "rgba(0,0,60,0.18)");
-      ctx.font = `9px Space Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.font = `9px JetBrains Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(`${alt}°`, ringLabelX + 3, ringLabelY);
     }
   }
@@ -271,11 +271,11 @@ export function draw(
   if (!fullBleed) ctx.restore();
 
   ctx.beginPath(); ctx.arc(centerX, centerY, skyRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = darkMode ? "rgba(252,158,79,0.2)" : "rgba(184,58,8,0.25)";
+  ctx.strokeStyle = darkMode ? "rgba(56,189,248,0.2)" : "rgba(37,99,235,0.25)";
   ctx.lineWidth = 1; ctx.stroke();
 
-  ctx.fillStyle = darkMode ? "rgba(252,158,79,0.55)" : "rgba(184,58,8,0.65)";
-  ctx.font = `bold 11px Space Mono, monospace`;
+  ctx.fillStyle = darkMode ? "rgba(56,189,248,0.55)" : "rgba(37,99,235,0.65)";
+  ctx.font = `bold 11px JetBrains Mono, monospace`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (fullBleed && isPortrait) {
     const cardinalLabelPadding = 14;
@@ -291,8 +291,8 @@ export function draw(
   }
 
   if (zoom > 1.05 && !fullBleed) {
-    ctx.fillStyle = darkMode ? "rgba(252,158,79,0.4)" : "rgba(184,58,8,0.45)";
-    ctx.font = `8px Space Mono, monospace`;
+    ctx.fillStyle = darkMode ? "rgba(56,189,248,0.4)" : "rgba(37,99,235,0.45)";
+    ctx.font = `8px JetBrains Mono, monospace`;
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     ctx.fillText(`${zoom.toFixed(1)}×`, centerX - skyRadius + 6, centerY - skyRadius + 8);
   }

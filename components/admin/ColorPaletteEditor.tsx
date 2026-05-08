@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "@/components/ThemeProvider";
-import { DEFAULT_PALETTE, type ColorPalette, type PaletteTheme } from "@/lib/theme-config";
+import {
+  COLOR_PALETTE_PRESETS,
+  DEFAULT_PALETTE,
+  type ColorPalette,
+  type ColorPalettePreset,
+  type PaletteTheme,
+} from "@/lib/theme-config";
 
 const COLOR_FIELDS: { key: keyof PaletteTheme; label: string; hint: string }[] = [
   { key: "base",    label: "Background", hint: "Page background" },
@@ -13,12 +19,10 @@ const COLOR_FIELDS: { key: keyof PaletteTheme; label: string; hint: string }[] =
 
 function ThemeSlot({
   label,
-  theme,
   values,
   onChange,
 }: {
   label: string;
-  theme: "dark" | "light";
   values: PaletteTheme;
   onChange: (key: keyof PaletteTheme, val: string) => void;
 }) {
@@ -46,6 +50,70 @@ function ThemeSlot({
   );
 }
 
+function isSamePalette(a: ColorPalette, b: ColorPalette) {
+  return COLOR_FIELDS.every(({ key }) => a.dark[key] === b.dark[key] && a.light[key] === b.light[key]);
+}
+
+function PaletteSwatch({ values }: { values: PaletteTheme }) {
+  return (
+    <div
+      className="h-16 border border-surface/10 p-2"
+      style={{ backgroundColor: values.base }}
+      aria-hidden
+    >
+      <div className="flex h-full flex-col justify-between">
+        <div className="flex items-center justify-between gap-2">
+          <span className="h-2 w-10 rounded-full" style={{ backgroundColor: values.accent }} />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: values.surface }} />
+        </div>
+        <div className="space-y-1">
+          <span className="block h-2 w-3/4 rounded-full" style={{ backgroundColor: values.surface }} />
+          <span className="block h-2 w-1/2 rounded-full" style={{ backgroundColor: values.muted }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PalettePresetCard({
+  preset,
+  active,
+  onSelect,
+}: {
+  preset: ColorPalettePreset;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`group text-left border p-3 transition-colors ${
+        active
+          ? "border-accent bg-accent/10"
+          : "border-surface/10 bg-surface/[0.02] hover:border-accent/35 hover:bg-surface/[0.035]"
+      }`}
+      aria-pressed={active}
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <PaletteSwatch values={preset.palette.dark} />
+        <PaletteSwatch values={preset.palette.light} />
+      </div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-surface">{preset.label}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted/50">{preset.description}</p>
+        </div>
+        {active && (
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-accent">
+            Active
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
 export default function ColorPaletteEditor() {
   const { updatePalette } = useTheme();
   const [palette, setPalette] = useState<ColorPalette>(DEFAULT_PALETTE);
@@ -55,14 +123,24 @@ export default function ColorPaletteEditor() {
   useEffect(() => {
     fetch("/api/config?key=color-palette")
       .then((r) => r.json())
-      .then(({ value }) => { if (value) setPalette(value); })
+      .then(({ value }) => {
+        if (value) {
+          setPalette(value);
+          updatePalette(value);
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [updatePalette]);
 
   function patchTheme(themeKey: "dark" | "light", key: keyof PaletteTheme, val: string) {
     const next = { ...palette, [themeKey]: { ...palette[themeKey], [key]: val } };
     setPalette(next);
     updatePalette(next);
+  }
+
+  function applyPreset(preset: ColorPalettePreset) {
+    setPalette(preset.palette);
+    updatePalette(preset.palette);
   }
 
   async function handleSave() {
@@ -89,16 +167,30 @@ export default function ColorPaletteEditor() {
 
   return (
     <div className="space-y-4">
+      <div>
+        <p className="mb-3 font-mono text-xs uppercase tracking-widest text-muted/50">
+          Readable presets
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {COLOR_PALETTE_PRESETS.map((preset) => (
+            <PalettePresetCard
+              key={preset.id}
+              preset={preset}
+              active={isSamePalette(palette, preset.palette)}
+              onSelect={() => applyPreset(preset)}
+            />
+          ))}
+        </div>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         <ThemeSlot
           label="Dark theme"
-          theme="dark"
           values={palette.dark}
           onChange={(k, v) => patchTheme("dark", k, v)}
         />
         <ThemeSlot
           label="Light theme"
-          theme="light"
           values={palette.light}
           onChange={(k, v) => patchTheme("light", k, v)}
         />

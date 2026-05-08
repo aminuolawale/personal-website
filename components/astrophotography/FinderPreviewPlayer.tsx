@@ -258,14 +258,14 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }
 
   const shellClass = isFullscreen
-    ? "fixed inset-0 z-[90] m-0 border-0 bg-[#020122]"
+    ? "fixed inset-0 z-[90] m-0 border-0 bg-base"
     : compact ? "my-4" : "my-8";
   const layoutClass = isFullscreen
-    ? "relative h-[100dvh] w-full overflow-hidden bg-[#020122]"
+    ? "relative h-[100dvh] w-full overflow-hidden bg-base"
     : "grid lg:grid-cols-[minmax(0,1fr)_18rem]";
   const mapClass = isFullscreen
-    ? "absolute inset-0 bg-[#020122]"
-    : "relative min-h-[18rem] bg-[#020122]";
+    ? "absolute inset-0 bg-base"
+    : "relative min-h-[18rem] bg-base";
   const canvasClass = isFullscreen
     ? "block h-full w-full"
     : "block h-[18rem] w-full sm:h-[24rem]";
@@ -279,10 +279,10 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     ? "absolute inset-x-0 bottom-0 z-30 max-h-[48dvh] overflow-y-auto border-t border-white/10 bg-base/[0.90] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-12 shadow-2xl backdrop-blur-md sm:left-auto sm:right-4 sm:bottom-4 sm:w-[min(24rem,calc(100vw-2rem))] sm:max-h-[calc(100dvh-8rem)] sm:border sm:p-4"
     : "border-t border-surface/10 p-4 sm:p-5 lg:border-t-0 lg:border-l";
   const topOverlayStyle = isFullscreen
-    ? { background: "linear-gradient(to bottom, rgba(2,1,34,0.82), rgba(2,1,34,0))" }
+    ? { background: "linear-gradient(to bottom, rgba(15,23,42,0.82), rgba(15,23,42,0))" }
     : undefined;
   const bottomOverlayStyle = isFullscreen
-    ? { background: "linear-gradient(to top, rgba(2,1,34,0.84), rgba(2,1,34,0))" }
+    ? { background: "linear-gradient(to top, rgba(15,23,42,0.84), rgba(15,23,42,0))" }
     : undefined;
 
   return (

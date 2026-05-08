@@ -54,7 +54,7 @@ export default function Contact() {
         <div className="pt-2 sm:pt-4">
           <a
             href="mailto:aminuolawalekan@gmail.com"
-            className="inline-block font-mono text-sm text-accent border border-accent px-8 sm:px-10 py-3 sm:py-4 hover:bg-accent/10 hover:shadow-[0_0_28px_rgba(252,158,79,0.18)] transition-all duration-300"
+            className="inline-block font-mono text-sm text-accent border border-accent px-8 sm:px-10 py-3 sm:py-4 hover:bg-accent/10 hover:shadow-[0_0_28px_rgba(56,189,248,0.18)] transition-all duration-300"
           >
             Say Hello
           </a>

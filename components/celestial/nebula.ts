@@ -56,7 +56,7 @@ export function drawNebula(
   } else if (shape === 'pillars') {
     ctx.strokeStyle = primaryColor;
     ctx.lineWidth = lineWidth * 1.5;
-    ctx.fillStyle = "#020122";
+    ctx.fillStyle = "#0f172a";
     for (let i = -1; i <= 1; i++) {
       const pillarCenterX = i * nebulaRadius * 0.4;
       const pillarHeight  = nebulaRadius * (0.8 + rand() * 0.4);

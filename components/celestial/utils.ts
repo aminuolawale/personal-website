@@ -9,18 +9,18 @@ export function createSeededRandom(seed: number) {
 }
 
 export const colorPalette = {
-  // Warm nebula colors — look good on dark and light backgrounds
-  orange: "#fc9e4f",
-  gold: "#edd382",
-  cream: "#f2f3ae",
+  // Soft nebula colors — tuned for legibility on dark and light backgrounds
+  orange: "#38bdf8",
+  gold: "#cbd5e1",
+  cream: "#f8fafc",
   red: "#f4442e",
   // Dark star colors — used on light backgrounds so stars remain visible
   navy: "#1a2744",
   slate: "#374151",
 
-  orangeAlpha: (a: number) => `rgba(252,158,79,${a.toFixed(3)})`,
-  goldAlpha:   (a: number) => `rgba(237,211,130,${a.toFixed(3)})`,
-  creamAlpha:  (a: number) => `rgba(242,243,174,${a.toFixed(3)})`,
+  orangeAlpha: (a: number) => `rgba(56,189,248,${a.toFixed(3)})`,
+  goldAlpha:   (a: number) => `rgba(203,213,225,${a.toFixed(3)})`,
+  creamAlpha:  (a: number) => `rgba(248,250,252,${a.toFixed(3)})`,
   redAlpha:    (a: number) => `rgba(244,68,46,${a.toFixed(3)})`,
   navyAlpha:   (a: number) => `rgba(26,39,68,${a.toFixed(3)})`,
   slateAlpha:  (a: number) => `rgba(55,65,81,${a.toFixed(3)})`,

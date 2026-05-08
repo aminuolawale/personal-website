@@ -610,8 +610,8 @@ export default function NightSkyMap() {
               cx={targetX}
               cy={targetY}
               r={ringRadius}
-              fill={isPast ? "rgba(148,163,184,0.06)" : "rgba(252,158,79,0.07)"}
-              stroke={isPast ? "rgba(148,163,184,0.55)" : "rgba(252,158,79,0.8)"}
+              fill={isPast ? "rgba(148,163,184,0.06)" : "rgba(56,189,248,0.07)"}
+              stroke={isPast ? "rgba(148,163,184,0.55)" : "rgba(56,189,248,0.8)"}
               strokeWidth="1"
             />
             <line
@@ -619,10 +619,10 @@ export default function NightSkyMap() {
               y1={circleY}
               x2={anchorX}
               y2={anchorY}
-              stroke={isPast ? "rgba(148,163,184,0.45)" : "rgba(252,158,79,0.65)"}
+              stroke={isPast ? "rgba(148,163,184,0.45)" : "rgba(56,189,248,0.65)"}
               strokeWidth="1"
             />
-            <circle cx={targetX} cy={targetY} r="2.5" fill={isPast ? "rgba(148,163,184,0.75)" : "rgba(252,158,79,0.9)"} />
+            <circle cx={targetX} cy={targetY} r="2.5" fill={isPast ? "rgba(148,163,184,0.75)" : "rgba(56,189,248,0.9)"} />
           </g>
         ))}
       </svg>
@@ -711,10 +711,10 @@ export default function NightSkyMap() {
       {([
         [theme === "dark" ? "bg-white/80" : "bg-[rgba(10,10,60,0.7)]", "Stars"],
         ["w-4 h-px bg-[rgba(130,160,255,0.5)] rounded-none", "Constellations"],
-        [theme === "dark" ? "bg-[rgba(252,158,79,0.9)]" : "bg-[rgba(184,58,8,0.8)]", "Planets"],
+        [theme === "dark" ? "bg-[rgba(56,189,248,0.9)]" : "bg-[rgba(37,99,235,0.8)]", "Planets"],
         [theme === "dark" ? "bg-[rgba(230,225,200,0.8)]" : "bg-[rgba(50,55,70,0.7)]", "Moon"],
         [theme === "dark" ? "bg-[rgba(180,200,255,0.6)]" : "bg-[rgba(10,40,140,0.5)]", "Deep sky"],
-        ["w-4 h-px bg-[rgba(252,158,79,0.65)] rounded-none", "Sessions"],
+        ["w-4 h-px bg-[rgba(56,189,248,0.65)] rounded-none", "Sessions"],
       ] as [string, string][]).map(([cls, label]) => (
         <span key={label} className="flex items-center gap-1.5">
           <span className={`inline-block w-2 h-2 rounded-full ${cls}`} /> {label}
@@ -727,7 +727,7 @@ export default function NightSkyMap() {
   if (isFullscreen) {
     const constellationList = computed?.constellations ?? [];
     const visibleCount = constellationList.filter((c) => c.visible).length;
-    const bgClass = theme === "dark" ? "bg-[#020122]" : "bg-white";
+    const bgClass = theme === "dark" ? "bg-base" : "bg-white";
     const topGradient = theme === "dark"
       ? "linear-gradient(to bottom, rgba(2,1,34,0.88) 0%, transparent 100%)"
       : "linear-gradient(to bottom, rgba(255,255,255,0.88) 0%, transparent 100%)";
@@ -902,7 +902,7 @@ export default function NightSkyMap() {
         />
         {sessionOverlay}
         <div className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <span className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full ${theme === "dark" ? "text-white/30 bg-[#020122]/60" : "text-black/30 bg-white/70"}`}>
+          <span className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full ${theme === "dark" ? "text-white/30 bg-base/60" : "text-black/30 bg-white/70"}`}>
             click to expand
           </span>
         </div>

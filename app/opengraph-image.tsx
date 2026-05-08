@@ -18,7 +18,7 @@ export default function OgImage() {
           alignItems: "flex-start",
           justifyContent: "flex-end",
           padding: "64px",
-          background: "linear-gradient(135deg, #020122 0%, #05033a 60%, #0a0550 100%)",
+          background: "linear-gradient(135deg, #0f172a 0%, #111827 58%, #0c4a6e 100%)",
           fontFamily: "monospace",
         }}
       >
@@ -31,7 +31,7 @@ export default function OgImage() {
             right: 0,
             bottom: 0,
             backgroundImage:
-              "radial-gradient(circle, #edd382 1px, transparent 1px), radial-gradient(circle, #edd382 1px, transparent 1px)",
+              "radial-gradient(circle, #cbd5e1 1px, transparent 1px), radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
             backgroundSize: "200px 200px, 300px 300px",
             backgroundPosition: "0 0, 100px 100px",
             opacity: 0.08,
@@ -46,24 +46,24 @@ export default function OgImage() {
             left: 0,
             right: 0,
             height: "4px",
-            background: "linear-gradient(90deg, #fc9e4f, #edd382)",
+            background: "linear-gradient(90deg, #38bdf8, #cbd5e1)",
           }}
         />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "900px" }}>
-          <span style={{ color: "#fc9e4f", fontSize: "20px", letterSpacing: "0.15em", fontFamily: "monospace" }}>
+          <span style={{ color: "#38bdf8", fontSize: "20px", letterSpacing: "0.15em", fontFamily: "monospace" }}>
             aminuolawale.com
           </span>
 
-          <h1 style={{ color: "#f2f3ae", fontSize: "64px", fontWeight: "700", lineHeight: 1.1, margin: 0 }}>
+          <h1 style={{ color: "#f8fafc", fontSize: "64px", fontWeight: "700", lineHeight: 1.1, margin: 0 }}>
             {SITE.name}
           </h1>
 
-          <p style={{ color: "#edd382", fontSize: "28px", margin: 0, opacity: 0.75 }}>
+          <p style={{ color: "#cbd5e1", fontSize: "28px", margin: 0, opacity: 0.75 }}>
             Software Engineer · Astrophotographer · Writer
           </p>
 
-          <p style={{ color: "#edd382", fontSize: "20px", margin: 0, opacity: 0.5 }}>
+          <p style={{ color: "#cbd5e1", fontSize: "20px", margin: 0, opacity: 0.5 }}>
             Based in Zurich, Switzerland
           </p>
         </div>

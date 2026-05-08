@@ -2,24 +2,24 @@
 
 /* ── Font tokens (inlined at build time) ─────────────────── */
 @theme inline {
-  --font-sans: var(--font-space-grotesk, "Space Grotesk", sans-serif);
-  --font-mono: var(--font-space-mono, "Space Mono", monospace);
+  --font-sans: var(--font-space-grotesk, "Inter", sans-serif);
+  --font-mono: var(--font-space-mono, "JetBrains Mono", monospace);
 }
 
 /* ── Color tokens (CSS-variable backed → overridable at runtime) ── */
 @theme {
-  --color-base:    #020122;
-  --color-accent:  #fc9e4f;
-  --color-surface: #f2f3ae;
-  --color-muted:   #edd382;
+  --color-base:    #0f172a;
+  --color-accent:  #38bdf8;
+  --color-surface: #f8fafc;
+  --color-muted:   #cbd5e1;
 }
 
 /* ── Light theme overrides ───────────────────────────────── */
 [data-theme="light"] {
-  --color-base:    #ffffff;
-  --color-accent:  #b83a08;
-  --color-surface: #030712;
-  --color-muted:   #111827;
+  --color-base:    #f8fafc;
+  --color-accent:  #2563eb;
+  --color-surface: #0f172a;
+  --color-muted:   #334155;
 }
 
 /* ── Base ────────────────────────────────────────────────── */
