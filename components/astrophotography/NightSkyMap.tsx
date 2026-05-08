@@ -2,8 +2,9 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { DEG_TO_RAD, compute, midnightTonight, type Computed } from "@/lib/sky-engine";
+import { compute, midnightTonight, type Computed } from "@/lib/sky-engine";
 import { draw, clampPan } from "@/lib/sky-draw";
+import { getSkyRadius, projectToCanvas, skyPointToPan } from "@/lib/sky-projection";
 import { useTheme } from "@/components/ThemeProvider";
 import { getSkyTargetById } from "@/lib/sky-targets";
 import type { AstroGear, AstroSession } from "@/lib/schema";
@@ -62,20 +63,6 @@ const SESSION_CARD_GAP = 10;
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
-function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
-
-function getSkyRadius(width: number, height: number, fullBleed: boolean) {
-  return fullBleed && height > width ? height / 2 : Math.min(width, height) / 2 - 24;
-}
-
-function projectToCanvas(alt: number, az: number, width: number, height: number, skyRadius: number, zoom: number, panX: number, panY: number) {
-  const radialDistance = (1 - alt / 90) * skyRadius;
-  const azimuthRad = az * DEG_TO_RAD;
-  return {
-    x: width / 2 + radialDistance * Math.sin(azimuthRad) * zoom + panX,
-    y: height / 2 - radialDistance * Math.cos(azimuthRad) * zoom + panY,
-  };
-}
 
 function isSameLocalDate(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear()
@@ -224,11 +211,8 @@ export default function NightSkyMap() {
     zoomRef.current = nextZoom;
     setZoomLevel(nextZoom);
 
-    const radialDistance = (1 - alt / 90) * skyRadius;
-    const azimuthRad = az * DEG_TO_RAD;
-    const targetPanX = -(radialDistance * Math.sin(azimuthRad)) * nextZoom;
-    const targetPanY =  (radialDistance * Math.cos(azimuthRad)) * nextZoom;
-    const clamped = clampPan(nextZoom, targetPanX, targetPanY, skyRadius);
+    const nextPan = skyPointToPan(alt, az, skyRadius, nextZoom);
+    const clamped = clampPan(nextZoom, nextPan.x, nextPan.y, skyRadius);
 
     panTransitionRef.current = {
       fromX: panRef.current.x,

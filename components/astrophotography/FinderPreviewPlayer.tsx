@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Maximize2, Minimize2, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
-import { DEG_TO_RAD, compute, midnightTonight, type Computed, type SkyPos } from "@/lib/sky-engine";
+import { compute, midnightTonight, type Computed, type SkyPos } from "@/lib/sky-engine";
 import { clampPan, draw } from "@/lib/sky-draw";
+import { getSkyRadius, skyPointToPan } from "@/lib/sky-projection";
 import { getSkyTargetById, resolveComputedTargetPosition } from "@/lib/sky-targets";
 import type { FinderPreviewStep } from "@/lib/finder-previews";
 
@@ -44,17 +45,12 @@ function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
-function getSkyRadius(width: number, height: number, fullBleed: boolean) {
-  return fullBleed && height > width ? height / 2 : Math.min(width, height) / 2 - 24;
-}
-
 function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number, zoom: number, focusOffsetY = 0) {
-  const radialDistance = (1 - pos.alt / 90) * skyRadius;
-  const azimuthRad = pos.az * DEG_TO_RAD;
+  const pan = skyPointToPan(pos.alt, pos.az, skyRadius, zoom, focusOffsetY);
   return clampPan(
     zoom,
-    -(radialDistance * Math.sin(azimuthRad)) * zoom,
-    (radialDistance * Math.cos(azimuthRad)) * zoom + focusOffsetY,
+    pan.x,
+    pan.y,
     skyRadius
   );
 }
