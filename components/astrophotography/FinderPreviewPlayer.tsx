@@ -61,6 +61,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const timerRef = useRef<number | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(MIN_ZOOM);
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
+  const touchDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const frameTransitionRef = useRef<{
     fromX: number;
     fromY: number;
@@ -117,6 +119,39 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchRef.current) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM,
+          pinchRef.current.zoom * Math.sqrt(dx * dx + dy * dy) / pinchRef.current.dist
+        ));
+        zoomRef.current = newZoom;
+        setZoomLevel(newZoom);
+        frameTransitionRef.current = null;
+      } else if (e.touches.length === 1 && touchDragRef.current) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - touchDragRef.current.startX;
+        const dy = e.touches[0].clientY - touchDragRef.current.startY;
+        const dpr = window.devicePixelRatio || 1;
+        const skyRadius = getSkyRadius(canvas.width / dpr, canvas.height / dpr, isFullscreen);
+        panRef.current = clampPan(
+          zoomRef.current,
+          touchDragRef.current.startPanX + dx,
+          touchDragRef.current.startPanY + dy,
+          skyRadius
+        );
+        frameTransitionRef.current = null;
+      }
+    };
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => canvas.removeEventListener("touchmove", onTouchMove);
+  }, [isFullscreen]);
 
   const frameStep = useCallback((index: number, requestedZoom?: number, immediate = false) => {
     if (!computed || !steps[index]) return;
@@ -322,6 +357,23 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
             ref={canvasRef}
             className={canvasClass}
             onDoubleClick={() => goToStep(safeActiveStep)}
+            onTouchStart={(e) => {
+              if (e.touches.length === 2) {
+                touchDragRef.current = null;
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                pinchRef.current = { dist: Math.sqrt(dx * dx + dy * dy), zoom: zoomRef.current };
+              } else if (e.touches.length === 1) {
+                pinchRef.current = null;
+                touchDragRef.current = {
+                  startX: e.touches[0].clientX,
+                  startY: e.touches[0].clientY,
+                  startPanX: panRef.current.x,
+                  startPanY: panRef.current.y,
+                };
+              }
+            }}
+            onTouchEnd={() => { pinchRef.current = null; touchDragRef.current = null; }}
           />
           <div className="absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 flex items-center gap-2 sm:left-4">
             <div className="rounded-sm border border-white/10 bg-black/45 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-white/65">
