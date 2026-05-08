@@ -17,6 +17,13 @@ function hasVisibleText(html: string) {
     .trim().length > 0;
 }
 
+function parseNoteDate(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return new Date();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T12:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const adminMode = searchParams.get("admin") === "true";
@@ -54,9 +61,11 @@ export async function POST(req: NextRequest) {
   const bookId = Number(body.bookId);
   const content = cleanRichText(body.content);
   const publishAsUpdate = body.publishAsUpdate === true;
+  const createdAt = parseNoteDate(body.noteDate);
 
   if (!Number.isInteger(bookId) || bookId <= 0) return badRequest("Book is required");
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
+  if (!createdAt) return badRequest("A valid note date is required");
 
   try {
     const db = getDb();
@@ -65,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     const [note] = await db
       .insert(readingNotes)
-      .values({ bookId, content })
+      .values({ bookId, content, createdAt })
       .returning();
 
     if (publishAsUpdate) {

@@ -26,6 +26,12 @@ function bookLabel(book: Book) {
   return `${book.title} — ${book.author} (${book.yearPublished})`;
 }
 
+function todayDateInput() {
+  const date = new Date();
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
 export default function ReadingNotesManager() {
   const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
@@ -38,6 +44,7 @@ export default function ReadingNotesManager() {
   const [bookCategoryId, setBookCategoryId] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedBookId, setSelectedBookId] = useState("");
+  const [noteDate, setNoteDate] = useState(todayDateInput);
   const [noteContent, setNoteContent] = useState("");
   const [noteEditorKey, setNoteEditorKey] = useState(0);
   const [publishNoteAsUpdate, setPublishNoteAsUpdate] = useState(false);
@@ -146,6 +153,7 @@ export default function ReadingNotesManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookId: Number(selectedBookId),
+          noteDate,
           content: noteContent,
           publishAsUpdate: publishNoteAsUpdate,
         }),
@@ -154,6 +162,7 @@ export default function ReadingNotesManager() {
       if (!res.ok) throw new Error(data.error ?? "Note save failed");
 
       setNoteContent("");
+      setNoteDate(todayDateInput());
       setNoteEditorKey((key) => key + 1);
       setPublishNoteAsUpdate(false);
       await load();
@@ -281,6 +290,16 @@ export default function ReadingNotesManager() {
                 <option key={book.id} value={book.id}>{bookLabel(book)}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className={LABEL}>Date</label>
+            <input
+              className={INPUT}
+              type="date"
+              value={noteDate}
+              onChange={(e) => setNoteDate(e.target.value)}
+              required
+            />
           </div>
           <div>
             <label className={LABEL}>Note text</label>

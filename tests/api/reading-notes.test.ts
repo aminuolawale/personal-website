@@ -78,11 +78,22 @@ describe("POST /api/reading-notes", () => {
 
     const res = await POST(makeRequest("http://localhost:3000/api/reading-notes", {
       method: "POST",
-      body: JSON.stringify({ bookId: 1, content: "<p>Good note</p>" }),
+      body: JSON.stringify({ bookId: 1, content: "<p>Good note</p>", noteDate: "2026-05-08" }),
     }));
 
     expect(res.status).toBe(201);
     expect(insertedValues).toMatchObject({ bookId: 1, content: "<p>Good note</p>" });
+    expect(insertedValues.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects invalid note dates", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    const res = await POST(makeRequest("http://localhost:3000/api/reading-notes", {
+      method: "POST",
+      body: JSON.stringify({ bookId: 1, content: "<p>Good note</p>", noteDate: "May 8" }),
+    }));
+
+    expect(res.status).toBe(400);
   });
 
   it("can publish a reading note as an update", async () => {

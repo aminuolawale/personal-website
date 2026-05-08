@@ -21,6 +21,12 @@ const INPUT =
 
 const LABEL = "block font-mono text-xs text-muted/50 uppercase tracking-widest mb-1.5";
 
+function toDateInputValue(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return value.slice(0, 10);
+  return "";
+}
+
 export default function ArticleForm({ article, defaultType = "writing" }: ArticleFormProps) {
   const router = useRouter();
   const isNew = !article;
@@ -32,7 +38,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [slug, setSlug] = useState(article?.slug ?? "");
   const [summary, setSummary] = useState(article?.summary ?? "");
   const [tags, setTags] = useState(article?.tags ?? "");
-  const [date, setDate] = useState(article?.date ?? "");
+  const [date, setDate] = useState(toDateInputValue(article?.date ?? ""));
   const [readTime, setReadTime] = useState(article?.readTime ?? "");
   const [location, setLocation] = useState(article?.location ?? "");
   const [miscTabId, setMiscTabId] = useState(article?.miscTabId ? String(article.miscTabId) : "");
@@ -231,7 +237,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
             <label className={LABEL}>Date</label>
             <input
               className={INPUT}
-              placeholder="April 2025"
+              type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
