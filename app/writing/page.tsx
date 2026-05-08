@@ -10,6 +10,7 @@ import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { SECTION_TABS } from "@/lib/section-tabs";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
 import { trackEvent } from "@/lib/observability/client";
@@ -46,6 +47,12 @@ export default function WritingPage() {
   const [activeTab, setActiveTab] = useState(
     SECTION_TABS.writing.some((tab) => tab.id === urlTab) ? urlTab! : "book-reviews"
   );
+  const { order, labels, visibility } = useTabConfig("writing", SECTION_TABS.writing);
+  const orderedTabs = order
+    .map((id) => SECTION_TABS.writing.find((tab) => tab.id === id)!)
+    .filter(Boolean)
+    .filter((tab) => visibility[tab.id] !== false)
+    .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label }));
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<BookCategory[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
@@ -131,6 +138,9 @@ export default function WritingPage() {
   const filterSummary = selectedBook
     ? `${selectedCategoryLabel} · ${selectedBook.title}`
     : selectedCategoryLabel;
+  const activeVisibleTab = orderedTabs.some((tab) => tab.id === activeTab)
+    ? activeTab
+    : orderedTabs[0]?.id ?? "book-reviews";
 
   function selectWritingTab(tabId: string) {
     setActiveTab(tabId);
@@ -268,10 +278,12 @@ export default function WritingPage() {
       />
 
       <section className="py-8 sm:py-14 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
-        <TabBar tabs={SECTION_TABS.writing} activeId={activeTab} onChange={selectWritingTab} />
+        {orderedTabs.length > 0 && (
+          <TabBar tabs={orderedTabs} activeId={activeVisibleTab} onChange={selectWritingTab} />
+        )}
 
         <div className="pt-8 sm:pt-12">
-          {activeTab === "book-reviews" && (
+          {activeVisibleTab === "book-reviews" && (
             <>
               {isLoading ? (
                 <p className="font-mono text-xs text-muted/30">Loading…</p>
@@ -312,7 +324,7 @@ export default function WritingPage() {
             </>
           )}
 
-          {activeTab === "reading-notes" && (
+          {activeVisibleTab === "reading-notes" && (
             <section className="space-y-8">
               {notesLoading ? (
                 <p className="font-mono text-xs text-muted/30">Loading…</p>

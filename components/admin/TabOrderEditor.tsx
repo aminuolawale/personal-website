@@ -37,9 +37,11 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
         const savedOrder = values[`tab-order-${section}`];
         const savedLabels = values[`tab-labels-${section}`];
         const savedVis = values[`tab-visibility-${section}`];
-        if (Array.isArray(savedOrder) && savedOrder.length === defaultTabs.length) {
-          const valid = defaultTabs.every((t) => (savedOrder as string[]).includes(t.id));
-          if (valid) setOrder(savedOrder as string[]);
+        if (Array.isArray(savedOrder)) {
+          const knownIds = new Set(defaultTabs.map((tab) => tab.id));
+          const orderedKnownIds = (savedOrder as string[]).filter((id) => knownIds.has(id));
+          const missingIds = defaultTabs.map((tab) => tab.id).filter((id) => !orderedKnownIds.includes(id));
+          setOrder([...orderedKnownIds, ...missingIds]);
         }
         if (savedLabels && typeof savedLabels === "object" && !Array.isArray(savedLabels)) {
           setLabels((prev) => ({ ...prev, ...(savedLabels as Record<string, string>) }));

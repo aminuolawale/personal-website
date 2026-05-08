@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 
 // All database tables are defined here. This is the single source of truth —
 // edit this file and run `npm run db:push` to apply changes to the database.
@@ -211,8 +211,8 @@ export type SiteUpdate = typeof siteUpdates.$inferSelect;
 export type NewSiteUpdate = typeof siteUpdates.$inferInsert;
 
 // Arbitrary key-value config store. Values are stored as JSON strings.
-// Currently used to persist tab order for the SWE and Astrophotography sections.
-// Keys follow the pattern "tab-order-<section>" (e.g. "tab-order-swe").
+// Currently used to persist section tab order, labels, visibility, and theme config.
+// Tab keys follow the pattern "tab-order-<section>" (e.g. "tab-order-swe").
 export const siteConfig = pgTable("site_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),   // JSON-stringified

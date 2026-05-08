@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TabOrderEditor from "@/components/admin/TabOrderEditor";
 import ContentEditor from "@/components/admin/ContentEditor";
 import ExperienceEditor from "@/components/admin/ExperienceEditor";
@@ -10,6 +10,52 @@ import SectionVisibilityEditor from "@/components/admin/SectionVisibilityEditor"
 import SettingsNav, { SETTINGS_SECTIONS, type SettingsSectionId } from "@/components/admin/SettingsNav";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { SECTION_TABS } from "@/lib/section-tabs";
+import type { MiscTab } from "@/lib/schema";
+
+function MiscTabOrderSettings() {
+  const [tabs, setTabs] = useState<MiscTab[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/misc-tabs?admin=true")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows) => {
+        if (cancelled) return;
+        setTabs(Array.isArray(rows) ? rows : []);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="border border-surface/10 p-4">
+        <p className="font-mono text-xs text-muted/30">Loading misc tabs...</p>
+      </div>
+    );
+  }
+
+  if (tabs.length === 0) {
+    return (
+      <div className="border border-surface/10 p-4">
+        <p className="font-mono text-xs text-muted/35">
+          Misc tabs will appear here after they are created in the Misc admin section.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <TabOrderEditor
+      key={tabs.map((tab) => tab.id).join("-")}
+      section="misc"
+      defaultTabs={tabs.map((tab) => ({ id: tab.slug, label: tab.title }))}
+    />
+  );
+}
 
 function SectionContent({ active }: { active: SettingsSectionId }) {
   switch (active) {
@@ -55,6 +101,8 @@ function SectionContent({ active }: { active: SettingsSectionId }) {
           <div className="space-y-4">
             <TabOrderEditor section="swe" defaultTabs={SECTION_TABS.swe} />
             <TabOrderEditor section="astrophotography" defaultTabs={SECTION_TABS.astrophotography} />
+            <TabOrderEditor section="writing" defaultTabs={SECTION_TABS.writing} />
+            <MiscTabOrderSettings />
           </div>
         </>
       );

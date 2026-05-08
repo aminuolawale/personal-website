@@ -9,6 +9,7 @@ import RichTextContent from "@/components/RichTextContent";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import TagBadge from "@/components/TagBadge";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
 import { trackEvent } from "@/lib/observability/client";
@@ -74,22 +75,31 @@ function MiscContent() {
     }));
   }, [tabs, articles]);
 
+  const { order, labels, visibility } = useTabConfig("misc", displayTabs);
+  const orderedDisplayTabs = useMemo<DisplayTab[]>(() => (
+    order
+      .map((id) => displayTabs.find((tab) => tab.id === id)!)
+      .filter(Boolean)
+      .filter((tab) => visibility[tab.id] !== false)
+      .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label }))
+  ), [displayTabs, labels, order, visibility]);
+
   useEffect(() => {
-    if (displayTabs.length === 0) return;
-    if (activeTabId && displayTabs.some((tab) => tab.id === activeTabId)) return;
-    const validUrlTab = urlTab && displayTabs.some((tab) => tab.id === urlTab) ? urlTab : null;
+    if (orderedDisplayTabs.length === 0) return;
+    if (activeTabId && orderedDisplayTabs.some((tab) => tab.id === activeTabId)) return;
+    const validUrlTab = urlTab && orderedDisplayTabs.some((tab) => tab.id === urlTab) ? urlTab : null;
     const timer = window.setTimeout(() => {
-      setActiveTabId(validUrlTab || displayTabs[0].id);
+      setActiveTabId(validUrlTab || orderedDisplayTabs[0].id);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [displayTabs, activeTabId, urlTab]);
+  }, [activeTabId, orderedDisplayTabs, urlTab]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSelectedSeriesId("all"), 0);
     return () => window.clearTimeout(timer);
   }, [activeTabId]);
 
-  const activeTab = displayTabs.find((tab) => tab.id === activeTabId) ?? displayTabs[0];
+  const activeTab = orderedDisplayTabs.find((tab) => tab.id === activeTabId) ?? orderedDisplayTabs[0];
   const activeArticles = useMemo(() => {
     if (!activeTab) return [];
     if (activeTab.legacyArticle) return [activeTab.legacyArticle];
@@ -138,9 +148,9 @@ function MiscContent() {
         title={miscTitle}
         description={miscDescription}
       >
-        {displayTabs.length > 0 && (
+        {orderedDisplayTabs.length > 0 && (
           <TabBar
-            tabs={displayTabs}
+            tabs={orderedDisplayTabs}
             activeId={activeTab?.id}
             onChange={selectTab}
           />
@@ -150,7 +160,7 @@ function MiscContent() {
       <section className="py-10 sm:py-16 px-6 sm:px-16 max-w-4xl mx-auto">
         {isLoading ? (
           <p className="font-mono text-xs text-muted/30">Loading articles…</p>
-        ) : displayTabs.length === 0 ? (
+        ) : orderedDisplayTabs.length === 0 ? (
           <div className="py-20 text-center border border-surface/10 bg-surface/[0.02]">
             <p className="font-mono text-sm text-muted/40 uppercase tracking-widest">
               No articles found in this section yet.

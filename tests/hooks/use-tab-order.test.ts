@@ -41,18 +41,18 @@ describe("useTabConfig", () => {
     expect(result.current.order).toEqual(reordered);
   });
 
-  it("falls back to default order when saved order has wrong length", async () => {
-    mockValues({ "tab-order-swe": ["articles", "projects"] });
+  it("appends new tabs when saved order is missing current tab IDs", async () => {
+    mockValues({ "tab-order-swe": ["projects", "articles"] });
     const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
-    await waitFor(() => {});
-    expect(result.current.order).toEqual(DEFAULT_ORDER);
+    await waitFor(() => expect(result.current.order[0]).toBe("projects"));
+    expect(result.current.order).toEqual(["projects", "articles", "about"]);
   });
 
-  it("falls back to default order when saved order has unknown tab IDs", async () => {
-    mockValues({ "tab-order-swe": ["articles", "projects", "unknown-tab"] });
+  it("ignores unknown saved tab IDs", async () => {
+    mockValues({ "tab-order-swe": ["unknown-tab", "about", "articles"] });
     const { result } = renderHook(() => useTabConfig("swe", DEFAULT_TABS));
-    await waitFor(() => {});
-    expect(result.current.order).toEqual(DEFAULT_ORDER);
+    await waitFor(() => expect(result.current.order[0]).toBe("about"));
+    expect(result.current.order).toEqual(["about", "articles", "projects"]);
   });
 
   it("applies saved labels merged with defaults", async () => {

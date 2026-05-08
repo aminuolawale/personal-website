@@ -1,6 +1,6 @@
 // Key-value site configuration store.
 // Values are JSON-stringified so any serialisable type can be stored.
-// Currently used for tab order: key = "tab-order-<section>", value = string[].
+// Used for section tab order/labels/visibility, palettes, typography, and similar settings.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
