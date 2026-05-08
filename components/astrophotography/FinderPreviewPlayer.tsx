@@ -74,15 +74,17 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     toZoom: number;
     startTick: number;
   } | null>(null);
-  const [preview, setPreview] = useState<FinderPreview | null>(initialPreview ?? null);
+  const [fetchedPreview, setFetchedPreview] = useState<FinderPreview | null>(null);
   const [locationIdx, setLocationIdx] = useState(1);
   const [computed, setComputed] = useState<Computed>(() => compute(midnightTonight(), LOCATIONS[1].lat, LOCATIONS[1].lon));
   const [zoomLevel, setZoomLevel] = useState(MIN_ZOOM);
   const [activeStep, setActiveStep] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [loop, setLoop] = useState(initialPreview?.loop ?? false);
+  const [loopOverride, setLoopOverride] = useState<boolean | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+
+  const preview = initialPreview ?? fetchedPreview;
 
   useEffect(() => {
     if (initialPreview || !previewId) return;
@@ -91,8 +93,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data) {
-          setPreview(data);
-          setLoop(Boolean(data.loop));
+          setFetchedPreview(data);
         }
       })
       .catch(() => undefined);
@@ -100,8 +101,10 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [initialPreview, previewId]);
 
   const steps = useMemo(() => preview?.steps ?? [], [preview?.steps]);
-  const currentStep = steps[activeStep] ?? null;
+  const safeActiveStep = steps.length === 0 ? 0 : Math.min(activeStep, steps.length - 1);
+  const currentStep = steps[safeActiveStep] ?? null;
   const currentTarget = currentStep ? getSkyTargetById(currentStep.targetId) : null;
+  const loop = loopOverride ?? preview?.loop ?? false;
   const highlightedConstellations = useMemo(() => {
     return currentTarget?.type === "constellation" ? [currentTarget.name] : [];
   }, [currentTarget]);
@@ -156,7 +159,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   function applyZoom(nextZoom: number) {
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
     setZoomLevel(zoom);
-    frameStep(activeStep, zoom);
+    frameStep(safeActiveStep, zoom);
   }
 
   function changeLocation(index: number) {
@@ -171,13 +174,13 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [frameStep, steps.length]);
 
   useEffect(() => {
-    frameStep(activeStep);
-  }, [activeStep, frameStep]);
+    frameStep(safeActiveStep);
+  }, [frameStep, safeActiveStep]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => frameStep(activeStep), 0);
+    const timer = window.setTimeout(() => frameStep(safeActiveStep), 0);
     return () => window.clearTimeout(timer);
-  }, [computed, activeStep, frameStep]);
+  }, [computed, frameStep, safeActiveStep]);
 
   useEffect(() => {
     if (!playing || steps.length === 0) return;
@@ -211,7 +214,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
           canvas.width = width * dpr;
           canvas.height = height * dpr;
-          frameStep(activeStep, undefined, true);
+          frameStep(safeActiveStep, undefined, true);
         }
       }
 
@@ -249,7 +252,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
 
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [activeStep, computed, frameStep, highlightedConstellations, isFullscreen]);
+  }, [computed, frameStep, highlightedConstellations, isFullscreen, safeActiveStep]);
 
   if (!preview) {
     return (
@@ -322,7 +325,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
           <canvas
             ref={canvasRef}
             className={canvasClass}
-            onDoubleClick={() => goToStep(activeStep)}
+            onDoubleClick={() => goToStep(safeActiveStep)}
           />
           <div className="absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 flex items-center gap-2 sm:left-4">
             <div className="rounded-sm border border-white/10 bg-black/45 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-white/65">
@@ -379,7 +382,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         <div className={`flex flex-col gap-3 sm:gap-4 ${panelClass}`}>
           <div className={isFullscreen ? "hidden sm:block" : ""}>
             <p className="font-mono text-[10px] uppercase tracking-widest text-accent/70">
-              {activeStep + 1}/{Math.max(steps.length, 1)}
+              {safeActiveStep + 1}/{Math.max(steps.length, 1)}
             </p>
             <h3 className="mt-1 text-surface font-semibold text-lg leading-tight">{preview.name}</h3>
             {preview.description && <p className="mt-2 text-sm text-muted/55 leading-relaxed">{preview.description}</p>}
@@ -394,10 +397,10 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
             >
               <span className="min-w-0">
                 <span className="hidden font-mono text-[10px] uppercase tracking-widest text-muted/35 sm:block">
-                  {activeStep + 1}/{Math.max(steps.length, 1)} · {currentTarget?.name ?? "Step target"} · {(currentStep?.zoomLevel ?? TARGET_ZOOM).toFixed(1)}x
+                  {safeActiveStep + 1}/{Math.max(steps.length, 1)} · {currentTarget?.name ?? "Step target"} · {(currentStep?.zoomLevel ?? TARGET_ZOOM).toFixed(1)}x
                 </span>
                 <span className="block text-sm font-semibold text-surface sm:hidden">
-                  Step {activeStep + 1}/{Math.max(steps.length, 1)}
+                  Step {safeActiveStep + 1}/{Math.max(steps.length, 1)}
                 </span>
               </span>
               <span className="shrink-0 text-muted/45 hover:text-accent">
@@ -416,8 +419,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => goToStep(activeStep - 1)}
-              disabled={activeStep === 0}
+              onClick={() => goToStep(safeActiveStep - 1)}
+              disabled={safeActiveStep === 0}
               className="p-2 border border-surface/15 text-muted/55 hover:text-accent hover:border-accent/40 disabled:opacity-30"
               aria-label="Previous finder step"
             >
@@ -433,8 +436,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
             </button>
             <button
               type="button"
-              onClick={() => goToStep(activeStep + 1)}
-              disabled={activeStep >= steps.length - 1}
+              onClick={() => goToStep(safeActiveStep + 1)}
+              disabled={safeActiveStep >= steps.length - 1}
               className="p-2 border border-surface/15 text-muted/55 hover:text-accent hover:border-accent/40 disabled:opacity-30"
               aria-label="Next finder step"
             >
@@ -452,7 +455,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
               <input
                 type="checkbox"
                 checked={loop}
-                onChange={(event) => setLoop(event.target.checked)}
+                onChange={(event) => setLoopOverride(event.target.checked)}
                 className="accent-accent"
               />
               Loop
