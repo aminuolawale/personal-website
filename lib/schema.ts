@@ -141,6 +141,23 @@ export const astroSessions = pgTable("astro_sessions", {
 export type AstroSession = typeof astroSessions.$inferSelect;
 export type NewAstroSession = typeof astroSessions.$inferInsert;
 
+// Saved finder-mode previews for guided star-hopping on the sky map. Steps are
+// stored as JSON: [{ targetId: string, description: string }].
+export const finderPreviews = pgTable("finder_previews", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  targetId: text("target_id").notNull(),
+  stepDelaySeconds: integer("step_delay_seconds").notNull().default(4),
+  loop: boolean("loop").notNull().default(false),
+  steps: text("steps").notNull().default("[]"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type FinderPreview = typeof finderPreviews.$inferSelect;
+export type NewFinderPreview = typeof finderPreviews.$inferInsert;
+
 // Book categories group reading-note books for filtering.
 export const bookCategories = pgTable("book_categories", {
   id: serial("id").primaryKey(),

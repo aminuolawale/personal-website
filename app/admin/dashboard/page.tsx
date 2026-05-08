@@ -172,6 +172,12 @@ export default function AdminDashboard() {
                   <Plus size={13} />
                   New Session
                 </Link>
+                <Link
+                  href="/admin/dashboard/finder-previews"
+                  className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
+                >
+                  Finder Previews
+                </Link>
               </>
             )}
             {section === "writing" && (

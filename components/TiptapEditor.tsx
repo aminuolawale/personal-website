@@ -2,7 +2,7 @@
 
 import { Node, mergeAttributes } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
@@ -11,7 +11,7 @@ import {
   Bold, Italic, Strikethrough, Code, List, ListOrdered,
   Quote, Minus, Undo, Redo, Link2, Link2Off,
   Heading1, Heading2, Heading3, Terminal, Image as ImageIcon,
-  Sigma, SquareSigma,
+  Sigma, SquareSigma, Search,
 } from "lucide-react";
 
 const ImageBlock = Node.create({
@@ -121,6 +121,41 @@ const LatexBlock = Node.create({
   },
 });
 
+const FinderPreviewBlock = Node.create({
+  name: "finderPreviewBlock",
+  group: "block",
+  atom: true,
+
+  addAttributes() {
+    return {
+      previewId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-finder-preview-id"),
+      },
+      name: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-finder-preview-name") ?? "",
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "div[data-finder-preview-id]" }];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-finder-preview-id": node.attrs.previewId,
+        "data-finder-preview-name": node.attrs.name,
+        class: "finder-preview-embed",
+      }),
+      `Finder preview: ${node.attrs.name || `#${node.attrs.previewId}`}`,
+    ];
+  },
+});
+
 interface TiptapEditorProps {
   content: string;
   onChange: (html: string) => void;
@@ -132,6 +167,8 @@ const BTN =
 const BTN_ACTIVE = "text-accent bg-accent/15";
 
 export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
+  const [finderPreviews, setFinderPreviews] = useState<{ id: number; name: string }[]>([]);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -141,6 +178,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
       ImageBlock,
       LatexInline,
       LatexBlock,
+      FinderPreviewBlock,
     ],
     content,
     immediatelyRender: false,
@@ -157,6 +195,17 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     if (editor.getHTML() === content) return;
     editor.commands.setContent(content, { emitUpdate: false });
   }, [content, editor]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/finder-previews?admin=true")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled) setFinderPreviews(Array.isArray(data) ? data.map((item) => ({ id: item.id, name: item.name })) : []);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   if (!editor) return null;
 
@@ -196,6 +245,20 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
         type: display === "inline" ? "latexInline" : "latexBlock",
         attrs: { latex: latex.trim() },
       })
+      .run();
+  };
+
+  const insertFinderPreview = () => {
+    const fallback = finderPreviews[0]?.id ? String(finderPreviews[0].id) : "";
+    const list = finderPreviews.map((preview) => `#${preview.id} ${preview.name}`).join("\n");
+    const selected = window.prompt(`Finder preview ID${list ? `\n\n${list}` : ""}`, fallback);
+    const previewId = Number(selected);
+    if (!Number.isInteger(previewId) || previewId <= 0) return;
+    const preview = finderPreviews.find((item) => item.id === previewId);
+    editor
+      .chain()
+      .focus()
+      .insertContent({ type: "finderPreviewBlock", attrs: { previewId: String(previewId), name: preview?.name ?? "" } })
       .run();
   };
 
@@ -352,6 +415,14 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           title="Block LaTeX"
         >
           <SquareSigma size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={insertFinderPreview}
+          className={BTN}
+          title="Insert finder preview"
+        >
+          <Search size={15} />
         </button>
 
         <div className="w-px h-4 bg-surface/15 mx-1" />

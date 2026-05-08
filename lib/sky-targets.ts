@@ -1,4 +1,4 @@
-import { CONSTELLATIONS, DSO_OBJECTS } from "@/lib/sky-data";
+import { CONSTELLATIONS, DSO_OBJECTS, NAMED_STARS } from "@/lib/sky-data";
 import { type Computed, type SkyPos } from "@/lib/sky-engine";
 
 export const SOLAR_SYSTEM_TARGETS = [
@@ -12,7 +12,7 @@ export const SOLAR_SYSTEM_TARGETS = [
   "Moon",
 ] as const;
 
-export type SkyTargetType = "constellation" | "deep-sky" | "solar-system";
+export type SkyTargetType = "constellation" | "deep-sky" | "solar-system" | "star";
 
 export interface SkyTarget {
   id: string;
@@ -34,6 +34,11 @@ export const SKY_TARGETS: SkyTarget[] = [
     id: `deep-sky:${slugifyTarget(target.name)}`,
     name: target.name,
     type: "deep-sky" as const,
+  })),
+  ...NAMED_STARS.map((target) => ({
+    id: `star:${slugifyTarget(target.name)}`,
+    name: target.name,
+    type: "star" as const,
   })),
   ...SOLAR_SYSTEM_TARGETS.map((name) => ({
     id: `solar-system:${slugifyTarget(name)}`,
@@ -59,6 +64,10 @@ export function resolveComputedTargetPosition(
 
   if (target.type === "deep-sky") {
     return computed.dso.find((item) => item.name === target.name) ?? null;
+  }
+
+  if (target.type === "star") {
+    return computed.stars.find((item) => item.name === target.name) ?? null;
   }
 
   if (target.name === "Moon") return computed.moon;

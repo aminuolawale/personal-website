@@ -1,6 +1,6 @@
 # Personal Website CMS
 
-A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, structured misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, misc tabs, misc series, projects, gallery photos, gear, astro sessions, site content, visibility, theme settings, and tab configuration.
+A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, structured misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, misc tabs, misc series, projects, gallery photos, gear, astro sessions, finder previews, site content, visibility, theme settings, and tab configuration.
 
 **Live site:** https://mohamedall.com  
 **Hosting:** Vercel
@@ -46,6 +46,7 @@ app/
       gallery/                     Astrophotography gallery CRUD
       astro-gear/                  Gear library CRUD
       astro-sessions/              Schedule astrophotography sessions
+      finder-previews/             Guided finder-mode sky-map previews
       misc/                        Misc tabs and series management
       reading-notes/               Book entries and rich-text reading notes
       updates/                     Updates feed CRUD
@@ -56,6 +57,7 @@ app/
     gallery/                       Gallery photo CRUD and upload token route
     astro-gear/                    Gear CRUD, image CRUD, upload token route
     astro-sessions/                Astro session CRUD
+    finder-previews/               Finder preview CRUD
     book-categories/               Book category API
     books/                         Book entry API
     misc-tabs/                     Misc tab API
@@ -154,6 +156,8 @@ Session targets can be constellations, deep-sky objects, planets, or Moon. Upcom
 
 Target options come from `lib/sky-targets.ts`, which is derived from constellation data, DSO data, and solar-system targets.
 
+Finder previews are saved guided sky-map tours. Each preview has a name, description, primary target, step duration, loop setting, and ordered steps. Each step targets a celestial object and contains explanatory text. Public finder previews can be played, paused, looped, or stepped through with previous/next controls. They are created at `/admin/dashboard/finder-previews` and can be inserted into rich-text articles with the finder-preview editor button.
+
 ---
 
 ## Writing
@@ -195,6 +199,7 @@ Navigate to `/admin` and sign in with Google. Only the configured admin email ca
 | Gallery | `/admin/dashboard/gallery` | Astro photo management |
 | Gear Library | `/admin/dashboard/astro-gear` | Equipment, software, technique management |
 | Astro Sessions | `/admin/dashboard/astro-sessions` | Schedule sky-map sessions |
+| Finder Previews | `/admin/dashboard/finder-previews` | Create guided finder-mode sky-map previews |
 | Misc Structure | `/admin/dashboard/misc` | Create, edit, and delete misc tabs and series |
 | Reading Notes | `/admin/dashboard/reading-notes` | Create books and rich-text reading notes |
 | Updates | `/admin/dashboard/updates` | Edit/delete updates |
@@ -259,6 +264,7 @@ SENTRY_AUTH_TOKEN=...
 | `astro_gear` | Equipment, software, and technique entries |
 | `gear_images` | Additional images attached to gear |
 | `astro_sessions` | Scheduled astro sessions for the night-sky map |
+| `finder_previews` | Guided finder-mode sky-map previews |
 | `book_categories` | Categories for filtering reading-note books |
 | `books` | Book entries used by reading notes |
 | `misc_tabs` | Admin-created Misc section tabs |
@@ -275,7 +281,7 @@ npm run db:push        # push to the dev database in .env.local
 npm run db:push --prod # temporarily use .env.prod.forsync, push, then restore .env.local
 ```
 
-The current astro session, reading-notes, and misc-structure features require the `astro_sessions`, `book_categories`, `books`, `reading_notes`, `misc_tabs`, and `misc_series` tables plus the `articles.misc_tab_id` and `articles.series_id` columns to exist in the target database.
+The current astro session, finder-preview, reading-notes, and misc-structure features require the `astro_sessions`, `finder_previews`, `book_categories`, `books`, `reading_notes`, `misc_tabs`, and `misc_series` tables plus the `articles.misc_tab_id` and `articles.series_id` columns to exist in the target database.
 
 ---
 

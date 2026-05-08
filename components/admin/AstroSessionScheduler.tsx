@@ -11,6 +11,7 @@ const TARGET_LABELS: Record<SkyTargetType, string> = {
   constellation: "Constellations",
   "deep-sky": "Deep-sky Objects",
   "solar-system": "Planets + Moon",
+  star: "Stars",
 };
 
 function toLocalDateTimeValue(date: Date) {
@@ -41,7 +42,7 @@ export default function AstroSessionScheduler() {
     () => SKY_TARGETS.reduce<Record<SkyTargetType, typeof SKY_TARGETS>>((acc, target) => {
       acc[target.type].push(target);
       return acc;
-    }, { constellation: [], "deep-sky": [], "solar-system": [] }),
+    }, { constellation: [], "deep-sky": [], "solar-system": [], star: [] }),
     []
   );
 

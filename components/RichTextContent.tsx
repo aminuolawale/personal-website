@@ -1,6 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+
+const FinderPreviewPlayer = dynamic(() => import("@/components/astrophotography/FinderPreviewPlayer"), { ssr: false });
 
 interface RichTextContentProps {
   html: string;
@@ -39,17 +42,25 @@ export default function RichTextContent({ html, className = "" }: RichTextConten
 
   useEffect(() => {
     let cancelled = false;
-    setRenderedHtml(html);
     renderMath(html).then((nextHtml) => {
       if (!cancelled) setRenderedHtml(nextHtml);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [html]);
 
+  const parts = renderedHtml.split(/(<div\b[^>]*data-finder-preview-id="[^"]+"[^>]*>[\s\S]*?<\/div>)/gi);
+
   return (
-    <div
-      className={`article-content ${className}`}
-      dangerouslySetInnerHTML={{ __html: renderedHtml }}
-    />
+    <div className={`article-content ${className}`}>
+      {parts.map((part, index) => {
+        const match = part.match(/data-finder-preview-id="(\d+)"/i);
+        if (match) {
+          return <FinderPreviewPlayer key={`${match[1]}-${index}`} previewId={Number(match[1])} compact />;
+        }
+        return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
+      })}
+    </div>
   );
 }
