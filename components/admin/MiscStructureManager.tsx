@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Layers, ListPlus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import type { MiscSeries, MiscTab } from "@/lib/schema";
@@ -31,6 +32,11 @@ export default function MiscStructureManager() {
   const [editingSeriesId, setEditingSeriesId] = useState<number | null>(null);
   const [editingSeriesTitle, setEditingSeriesTitle] = useState("");
   const [editingSeriesDescription, setEditingSeriesDescription] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    tabTitle, tabSlug, tabDescription, tabPosition, seriesTitle, seriesDescription,
+    editingTabTitle, editingTabSlug, editingTabDescription, editingTabPosition,
+    editingSeriesTitle, editingSeriesDescription,
+  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +79,7 @@ export default function MiscStructureManager() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Tab save failed");
+      clearDirty();
       setTabTitle("");
       setTabSlug("");
       setTabDescription("");
@@ -97,6 +104,7 @@ export default function MiscStructureManager() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Series save failed");
+      clearDirty();
       setSeriesTitle("");
       setSeriesDescription("");
       await load();
@@ -116,6 +124,7 @@ export default function MiscStructureManager() {
   }
 
   function cancelEditTab() {
+    clearDirty();
     setEditingTabId(null);
     setEditingTabTitle("");
     setEditingTabSlug("");
@@ -172,6 +181,7 @@ export default function MiscStructureManager() {
   }
 
   function cancelEditSeries() {
+    clearDirty();
     setEditingSeriesId(null);
     setEditingSeriesTitle("");
     setEditingSeriesDescription("");

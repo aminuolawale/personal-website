@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { CalendarClock, CalendarPlus, Trash2 } from "lucide-react";
 import type { AstroGear, AstroSession } from "@/lib/schema";
 import { SKY_TARGETS, type SkyTargetType } from "@/lib/sky-targets";
@@ -37,6 +38,9 @@ export default function AstroSessionScheduler() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    title, scheduledAt, targetId, JSON.stringify(selectedGearIds), notes,
+  ]);
 
   const targetGroups = useMemo(
     () => SKY_TARGETS.reduce<Record<SkyTargetType, typeof SKY_TARGETS>>((acc, target) => {
@@ -86,6 +90,7 @@ export default function AstroSessionScheduler() {
       return;
     }
 
+    clearDirty();
     setTitle("");
     setNotes("");
     setSelectedGearIds([]);

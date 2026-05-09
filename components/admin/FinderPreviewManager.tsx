@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { Plus, Save, Trash2 } from "lucide-react";
 import FinderPreviewPlayer from "@/components/astrophotography/FinderPreviewPlayer";
 import { SKY_TARGETS, type SkyTargetType } from "@/lib/sky-targets";
@@ -42,6 +43,9 @@ export default function FinderPreviewManager() {
   const [steps, setSteps] = useState<FinderPreviewStep[]>([emptyStep()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    name, description, targetId, stepDelaySeconds, loop, JSON.stringify(steps),
+  ]);
 
   const targetGroups = useMemo(
     () => SKY_TARGETS.reduce<Record<SkyTargetType, typeof SKY_TARGETS>>((acc, target) => {
@@ -75,6 +79,7 @@ export default function FinderPreviewManager() {
   }, []);
 
   function selectPreview(id: number | "new") {
+    clearDirty();
     setSelectedId(id);
     setError("");
     if (id === "new") {
@@ -126,6 +131,7 @@ export default function FinderPreviewManager() {
       return;
     }
 
+    clearDirty();
     await load();
     setSelectedId(data.id);
   }

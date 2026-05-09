@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { DEFAULT_EXPERIENCES, type WorkExperience } from "@/lib/hooks/use-experience";
 
@@ -25,6 +26,7 @@ export default function ExperienceEditor() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+  const { markDirty, clearDirty } = useUnsavedChangesGuard();
   const entryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -37,11 +39,13 @@ export default function ExperienceEditor() {
   }, []);
 
   function update(id: string, field: keyof WorkExperience, value: string | string[]) {
+    markDirty();
     setExperiences((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
     setSaved(false);
   }
 
   function remove(id: string) {
+    markDirty();
     setExperiences((prev) => prev.filter((e) => e.id !== id));
     setSaved(false);
   }
@@ -56,6 +60,7 @@ export default function ExperienceEditor() {
   }, [pendingScrollId, experiences]);
 
   function add() {
+    markDirty();
     const entry = newEntry();
     setExperiences((prev) => [entry, ...prev]);
     setPendingScrollId(entry.id);
@@ -63,6 +68,7 @@ export default function ExperienceEditor() {
   }
 
   function handleReset() {
+    markDirty();
     setExperiences(DEFAULT_EXPERIENCES);
     setSaved(false);
   }
@@ -77,6 +83,7 @@ export default function ExperienceEditor() {
         body: JSON.stringify({ key: "work-experience", value: experiences }),
       });
       if (!res.ok) throw new Error();
+      clearDirty();
       setSaved(true);
     } catch {
       setError("Failed to save");

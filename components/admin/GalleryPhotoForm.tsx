@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import Link from "next/link";
@@ -106,6 +107,10 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    name, description, imageUrl, capturedAt, published,
+    JSON.stringify(selectedEquipment), JSON.stringify(selectedSoftware), JSON.stringify(selectedTechnique),
+  ]);
 
   useEffect(() => {
     async function loadGear() {
@@ -162,6 +167,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
         { method: isEdit ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
       );
       if (!res.ok) throw new Error(await res.text());
+      clearDirty();
       router.push("/admin/dashboard/gallery");
     } catch {
       setError("Failed to save. Please try again.");

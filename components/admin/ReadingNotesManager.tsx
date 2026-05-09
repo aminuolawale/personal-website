@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { BookOpen, Pencil, Plus, Save, Trash2 } from "lucide-react";
@@ -54,6 +55,9 @@ export default function ReadingNotesManager() {
   const [editingContent, setEditingContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    selectedBookId, noteDate, noteDescription, noteContent, editingDescription, editingContent,
+  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,6 +168,7 @@ export default function ReadingNotesManager() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Note save failed");
 
+      clearDirty();
       setNoteDescription("");
       setNoteContent("");
       setNoteDate(todayDateInput());
@@ -190,6 +195,7 @@ export default function ReadingNotesManager() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Note update failed");
 
+      clearDirty();
       setEditingId(null);
       setEditingDescription("");
       setEditingContent("");
@@ -430,7 +436,7 @@ export default function ReadingNotesManager() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setEditingId(null); setEditingDescription(""); setEditingContent(""); }}
+                          onClick={() => { clearDirty(); setEditingId(null); setEditingDescription(""); setEditingContent(""); }}
                           className="font-mono text-xs text-muted/40 hover:text-muted transition-colors px-3 py-2"
                         >
                           Cancel

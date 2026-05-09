@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import Image from "next/image";
 import { Plus, Trash2, ExternalLink, ImageIcon, ChevronRight, ChevronDown, Scan, Pencil, X } from "lucide-react";
 import { upload } from "@vercel/blob/client";
@@ -655,6 +656,9 @@ export default function AstroGearPage() {
   const [publishAsUpdate, setPublish]   = useState(false);
   const [adding, setAdding]             = useState(false);
   const [addProgress, setAddProgress]   = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    newName, newLink, thumbFile, JSON.stringify(stagedImages),
+  ]);
 
   // Hidden file input to trigger when user clicks "Add image" in create form
   const stagedFileRef = useRef<HTMLInputElement>(null);
@@ -677,6 +681,7 @@ export default function AstroGearPage() {
   }, [load]);
 
   function resetCreateForm() {
+    clearDirty();
     setNewName(""); setNewLink("");
     setThumbFile(null); setThumbPreview(null);
     setStagedImages([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { Save, RotateCcw } from "lucide-react";
 import { DEFAULT_CONTENT, type SiteContent } from "@/lib/hooks/use-site-content";
 
@@ -43,6 +44,7 @@ export default function ContentEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const { markDirty, clearDirty } = useUnsavedChangesGuard();
 
   useEffect(() => {
     fetch("/api/config?key=site-content")
@@ -56,11 +58,13 @@ export default function ContentEditor() {
   }, []);
 
   function set(key: keyof SiteContent, value: string) {
+    markDirty();
     setContent((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
   }
 
   function handleReset() {
+    markDirty();
     setContent(DEFAULT_CONTENT);
     setSaved(false);
   }
@@ -75,6 +79,7 @@ export default function ContentEditor() {
         body: JSON.stringify({ key: "site-content", value: content }),
       });
       if (!res.ok) throw new Error();
+      clearDirty();
       setSaved(true);
     } catch {
       setError("Failed to save");

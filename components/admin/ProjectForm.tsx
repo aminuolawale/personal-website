@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, RefreshCw, Save } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +24,9 @@ export default function ProjectForm({ project }: { project?: Project }) {
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
+  const { clearDirty } = useUnsavedChangesGuard([
+    title, description, githubUrl, websiteUrl, imageUrl, tags, position, published,
+  ]);
 
   async function fetchFromGithub() {
     if (!githubUrl.trim()) return;
@@ -64,6 +68,7 @@ export default function ProjectForm({ project }: { project?: Project }) {
         { method: isEdit ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
       );
       if (!res.ok) throw new Error(await res.text());
+      clearDirty();
       router.push("/admin/dashboard/projects");
     } catch {
       setError("Failed to save. Please try again.");
