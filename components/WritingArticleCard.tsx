@@ -14,22 +14,22 @@ function CardContent({ article }: { article: Article }) {
   const tags = splitTags(article.tags);
 
   return (
-    <article className="bg-surface/[0.025] border border-surface/10 p-6 flex flex-col sm:flex-row sm:items-start gap-5 hover:bg-surface/[0.045] hover:border-accent/25 transition-all duration-300">
+    <article className="article-card border p-6 flex flex-col sm:flex-row sm:items-start gap-5 transition-all duration-300">
       <div className="shrink-0 sm:w-28">
-        <p className="font-mono text-xs text-muted/35">{article.date}</p>
+        <p className="font-mono text-xs article-card-meta">{article.date}</p>
         {article.readTime && (
-          <p className="font-mono text-xs text-muted/25 mt-0.5">
+          <p className="font-mono text-xs article-card-meta-subtle mt-0.5">
             {article.readTime}
           </p>
         )}
       </div>
 
       <div className="flex-1 space-y-3">
-        <h2 className="text-surface font-semibold text-lg leading-snug group-hover:text-accent transition-colors duration-200">
+        <h2 className="article-card-title font-semibold text-lg leading-snug transition-colors duration-200">
           {article.title}
         </h2>
         {article.summary && (
-          <p className="text-muted text-sm leading-relaxed">
+          <p className="article-card-summary text-sm leading-relaxed">
             {article.summary}
           </p>
         )}

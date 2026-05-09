@@ -280,10 +280,10 @@ export default function ReadingNotesTab() {
                     openNote(note, selectedBook);
                   }
                 }}
-                className="group border border-surface/10 bg-surface/[0.02] p-5 sm:p-6 cursor-pointer hover:border-accent/25 hover:bg-surface/[0.035] transition-colors"
+                className="article-card group border p-5 sm:p-6 cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <p className="font-mono text-xs text-muted/35">
+                  <p className="font-mono text-xs article-card-meta">
                     {formatNoteDate(note.createdAt)}
                   </p>
                   <span className="font-mono text-[10px] uppercase tracking-widest text-accent/55 group-hover:text-accent transition-colors">
@@ -291,7 +291,7 @@ export default function ReadingNotesTab() {
                   </span>
                 </div>
                 {note.description && (
-                  <p className="text-muted text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                  <p className="article-card-summary text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
                     {note.description}
                   </p>
                 )}

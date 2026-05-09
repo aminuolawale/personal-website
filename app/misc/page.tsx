@@ -241,7 +241,7 @@ function MiscContent() {
                                   html: article.content,
                                 });
                               }}
-                              className="group block w-full text-left border border-surface/10 bg-surface/[0.02] p-5 hover:border-accent/25 hover:bg-surface/[0.04] transition-colors"
+                              className="article-card group block w-full text-left border p-5 transition-colors"
                             >
                               <div className="flex flex-wrap items-center gap-2 mb-3">
                                 {series && (
@@ -249,12 +249,12 @@ function MiscContent() {
                                     {series.title}
                                   </span>
                                 )}
-                                {article.date && <span className="font-mono text-xs text-muted/35">{article.date}</span>}
+                                {article.date && <span className="font-mono text-xs article-card-meta">{article.date}</span>}
                               </div>
-                              <h2 className="text-surface font-semibold text-lg leading-snug group-hover:text-accent transition-colors">
+                              <h2 className="article-card-title font-semibold text-lg leading-snug transition-colors">
                                 {article.title}
                               </h2>
-                              {article.summary && <p className="text-muted/50 text-sm leading-relaxed mt-2">{article.summary}</p>}
+                              {article.summary && <p className="article-card-summary text-sm leading-relaxed mt-2">{article.summary}</p>}
                               {tags.length > 0 && (
                                 <div className="flex flex-wrap gap-2 pt-3">
                                   {tags.map((tag) => (
