@@ -23,13 +23,15 @@ export async function PUT(
   if (!(await getSession())) return unauthorized();
 
   const { id } = await params;
-  const content = cleanRichText((await req.json()).content);
+  const body = await req.json();
+  const content = cleanRichText(body.content);
+  const description = typeof body.description === "string" ? body.description.trim() : undefined;
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
 
   try {
     const [note] = await getDb()
       .update(readingNotes)
-      .set({ content, updatedAt: new Date() })
+      .set({ content, ...(description !== undefined && { description }), updatedAt: new Date() })
       .where(eq(readingNotes.id, parseInt(id)))
       .returning();
     return NextResponse.json(note);

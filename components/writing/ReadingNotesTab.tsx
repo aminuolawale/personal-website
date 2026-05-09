@@ -18,18 +18,6 @@ function formatNoteDate(value: string | Date) {
   }).format(new Date(value));
 }
 
-function richTextPreview(html: string) {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export default function ReadingNotesTab() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -302,9 +290,11 @@ export default function ReadingNotesTab() {
                     Read
                   </span>
                 </div>
-                <p className="text-muted text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
-                  {richTextPreview(note.content)}
-                </p>
+                {note.description && (
+                  <p className="text-surface text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                    {note.description}
+                  </p>
+                )}
               </article>
             ))}
           </div>

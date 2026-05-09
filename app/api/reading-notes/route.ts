@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const bookId = Number(body.bookId);
+  const description = typeof body.description === "string" ? body.description.trim() : "";
   const content = cleanRichText(body.content);
   const publishAsUpdate = body.publishAsUpdate === true;
   const createdAt = parseNoteDate(body.noteDate);
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     const [note] = await db
       .insert(readingNotes)
-      .values({ bookId, content, createdAt })
+      .values({ bookId, description, content, createdAt })
       .returning();
 
     if (publishAsUpdate) {

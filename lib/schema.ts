@@ -187,6 +187,7 @@ export type NewBook = typeof books.$inferInsert;
 export const readingNotes = pgTable("reading_notes", {
   id: serial("id").primaryKey(),
   bookId: integer("book_id").notNull(),
+  description: text("description").notNull().default(""),
   content: text("content").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

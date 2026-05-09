@@ -45,10 +45,12 @@ export default function ReadingNotesManager() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedBookId, setSelectedBookId] = useState("");
   const [noteDate, setNoteDate] = useState(todayDateInput);
+  const [noteDescription, setNoteDescription] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [noteEditorKey, setNoteEditorKey] = useState(0);
   const [publishNoteAsUpdate, setPublishNoteAsUpdate] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingDescription, setEditingDescription] = useState("");
   const [editingContent, setEditingContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -154,6 +156,7 @@ export default function ReadingNotesManager() {
         body: JSON.stringify({
           bookId: Number(selectedBookId),
           noteDate,
+          description: noteDescription,
           content: noteContent,
           publishAsUpdate: publishNoteAsUpdate,
         }),
@@ -161,6 +164,7 @@ export default function ReadingNotesManager() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Note save failed");
 
+      setNoteDescription("");
       setNoteContent("");
       setNoteDate(todayDateInput());
       setNoteEditorKey((key) => key + 1);
@@ -181,12 +185,13 @@ export default function ReadingNotesManager() {
       const res = await fetch(`/api/reading-notes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editingContent }),
+        body: JSON.stringify({ description: editingDescription, content: editingContent }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Note update failed");
 
       setEditingId(null);
+      setEditingDescription("");
       setEditingContent("");
       await load();
     } catch (err) {
@@ -302,6 +307,16 @@ export default function ReadingNotesManager() {
             />
           </div>
           <div>
+            <label className={LABEL}>Description</label>
+            <textarea
+              className={`${INPUT} resize-none`}
+              rows={2}
+              value={noteDescription}
+              onChange={(e) => setNoteDescription(e.target.value)}
+              placeholder="Short summary shown in the card list…"
+            />
+          </div>
+          <div>
             <label className={LABEL}>Note text</label>
             <TiptapEditor
               key={noteEditorKey}
@@ -368,7 +383,7 @@ export default function ReadingNotesManager() {
                       <div className="flex items-center gap-1 shrink-0 -mr-2">
                       <button
                         type="button"
-                        onClick={() => { setEditingId(note.id); setEditingContent(note.content); }}
+                        onClick={() => { setEditingId(note.id); setEditingDescription(note.description); setEditingContent(note.content); }}
                         className="p-2 text-muted/40 hover:text-accent transition-colors"
                         title="Edit note text"
                       >
@@ -388,6 +403,16 @@ export default function ReadingNotesManager() {
 
                   {editing ? (
                     <div className="space-y-3">
+                      <div>
+                        <label className={LABEL}>Description</label>
+                        <textarea
+                          className={`${INPUT} resize-none`}
+                          rows={2}
+                          value={editingDescription}
+                          onChange={(e) => setEditingDescription(e.target.value)}
+                          placeholder="Short summary shown in the card list…"
+                        />
+                      </div>
                       <TiptapEditor
                         content={editingContent}
                         onChange={setEditingContent}
@@ -405,7 +430,7 @@ export default function ReadingNotesManager() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setEditingId(null); setEditingContent(""); }}
+                          onClick={() => { setEditingId(null); setEditingDescription(""); setEditingContent(""); }}
                           className="font-mono text-xs text-muted/40 hover:text-muted transition-colors px-3 py-2"
                         >
                           Cancel
