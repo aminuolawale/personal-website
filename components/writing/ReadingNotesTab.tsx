@@ -280,7 +280,7 @@ export default function ReadingNotesTab() {
                     openNote(note, selectedBook);
                   }
                 }}
-                className="article-card group border p-5 sm:p-6 cursor-pointer transition-colors"
+                className="article-card group border p-5 sm:p-6 cursor-pointer transition-colors text-surface"
               >
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <p className="font-mono text-xs article-card-meta">

@@ -264,14 +264,13 @@ a {
 
 @layer components {
   .article-card {
-    background: color-mix(in srgb, var(--color-base) 96%, var(--color-surface));
+    background-color: color-mix(in srgb, var(--color-surface) 4%, transparent);
     border-color: color-mix(in srgb, var(--color-surface) 12%, transparent);
-    color: var(--color-muted);
   }
 
   .article-card:hover {
-    background: color-mix(in srgb, var(--color-base) 93%, var(--color-surface));
-    border-color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+    background-color: color-mix(in srgb, var(--color-surface) 8%, transparent);
+    border-color: var(--color-accent);
   }
 
   .article-card-title {
@@ -283,14 +282,16 @@ a {
   }
 
   .article-card-summary {
-    color: color-mix(in srgb, var(--color-muted) 78%, transparent);
+    color: var(--color-surface);
   }
 
   .article-card-meta {
-    color: color-mix(in srgb, var(--color-muted) 52%, transparent);
+    color: var(--color-surface);
+    opacity: 0.65;
   }
 
   .article-card-meta-subtle {
-    color: color-mix(in srgb, var(--color-muted) 40%, transparent);
+    color: var(--color-surface);
+    opacity: 0.45;
   }
 }
