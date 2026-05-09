@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
@@ -51,12 +51,31 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const isDirtyRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
     if (slugTouched) return;
     const timer = window.setTimeout(() => setSlug(slugify(title)), 0);
     return () => window.clearTimeout(timer);
   }, [title, slugTouched]);
+
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+    isDirtyRef.current = true;
+  }, [title, slug, summary, tags, date, readTime, location, miscTabId, seriesId, published, content, type]);
+
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (!isDirtyRef.current) return;
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   useEffect(() => {
     if (type !== "misc") return;
@@ -101,6 +120,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
       }
 
       if (type === "writing") setContent("");
+      isDirtyRef.current = false;
       router.push("/admin/dashboard");
       router.refresh();
     } catch (err: unknown) {
