@@ -291,7 +291,7 @@ export default function ReadingNotesTab() {
                   </span>
                 </div>
                 {note.description && (
-                  <p className="text-surface text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                  <p className="text-muted text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
                     {note.description}
                   </p>
                 )}
