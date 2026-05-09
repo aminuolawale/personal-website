@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -25,7 +25,6 @@ export default function Navbar() {
   const adminTapCountRef = useRef(0);
   const adminTapResetRef = useRef<number | null>(null);
   const pathname = usePathname();
-  const router = useRouter();
   const visibility = useSectionVisibility();
   const navItems = ALL_NAV_ITEMS.filter((item) => visibility[item.section]);
 
@@ -45,7 +44,7 @@ export default function Navbar() {
     adminTapCountRef.current += 1;
     if (adminTapCountRef.current >= 4) {
       adminTapCountRef.current = 0;
-      router.push("/admin");
+      window.open("/admin", "_blank");
       return;
     }
 
