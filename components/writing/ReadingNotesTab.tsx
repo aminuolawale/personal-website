@@ -302,7 +302,7 @@ export default function ReadingNotesTab() {
                     Read
                   </span>
                 </div>
-                <p className="text-muted/55 text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                <p className="text-muted text-sm sm:text-base leading-relaxed overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
                   {richTextPreview(note.content)}
                 </p>
               </article>

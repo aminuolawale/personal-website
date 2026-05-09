@@ -29,7 +29,7 @@ function CardContent({ article }: { article: Article }) {
           {article.title}
         </h2>
         {article.summary && (
-          <p className="text-muted/50 text-sm leading-relaxed">
+          <p className="text-muted text-sm leading-relaxed">
             {article.summary}
           </p>
         )}
