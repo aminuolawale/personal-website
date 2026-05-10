@@ -139,14 +139,14 @@ export default function ActivityTab() {
               onClick={() => setSelectedType("all")}
               className={FILTER_BTN(selectedType === "all")}
             >
-              Everything
+              All
             </button>
             <button
               type="button"
               onClick={() => setSelectedType("commit")}
               className={FILTER_BTN(selectedType === "commit")}
             >
-              VCS Activity
+              VCS
             </button>
             <button
               type="button"
