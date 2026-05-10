@@ -5,6 +5,6 @@ import { syncActivitiesToDb } from "@/lib/swe-activity-sync";
 
 export const POST = withAuth(async () => {
   const externalItems = await fetchVercelActivity();
-  await syncActivitiesToDb(externalItems);
-  return NextResponse.json({ success: true, count: externalItems.length });
+  const stats = await syncActivitiesToDb(externalItems);
+  return NextResponse.json({ success: true, stats });
 });

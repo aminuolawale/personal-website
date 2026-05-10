@@ -1,21 +1,19 @@
 // @vitest-environment node
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
-import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/lib/vercel-activity", () => ({ fetchVercelActivity: vi.fn().mockResolvedValue([]) }));
-vi.mock("@/lib/swe-activity-sync", () => ({ syncActivitiesToDb: vi.fn() }));
+vi.mock("@/lib/swe-activity-sync", () => ({
+  getSweActivitySyncState: vi.fn().mockResolvedValue({}),
+  syncActivitiesToDb: vi.fn().mockResolvedValue({ received: 0, afterCutoff: 0, deduped: 0, synced: 0, failed: 0 }),
+}));
 
 import { GET } from "@/app/api/admin/swe-activity/route";
 import { POST } from "@/app/api/admin/swe-activity/sync/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-
-function makeRequest(url: string, method = "GET"): NextRequest {
-  return new NextRequest(new URL(url, "http://localhost:3000"), { method });
-}
 
 describe("GET /api/admin/swe-activity", () => {
   it("returns 401 when not authenticated", async () => {
@@ -29,12 +27,14 @@ describe("GET /api/admin/swe-activity", () => {
     const activity = [{ id: 1, message: "pushed to main", type: "commit" }];
     vi.mocked(getDb).mockReturnValue({
       select: () => ({
-        from: () => ({ orderBy: () => ({ limit: async () => activity }) }),
+        from: () => ({ where: () => ({ orderBy: () => ({ limit: async () => activity }) }) }),
       }),
     } as any);
     const res = await GET();
     expect(res.status).toBe(200);
-    expect(await res.json()).toHaveLength(1);
+    const body = await res.json();
+    expect(body.activities).toHaveLength(1);
+    expect(body.syncState).toEqual({});
   });
 });
 
@@ -53,6 +53,6 @@ describe("POST /api/admin/swe-activity/sync", () => {
     ] as any);
     const res = await POST();
     expect(res.status).toBe(200);
-    expect((await res.json()).count).toBe(1);
+    expect((await res.json()).stats).toBeDefined();
   });
 });

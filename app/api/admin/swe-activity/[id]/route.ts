@@ -31,7 +31,8 @@ export const DELETE = withAuth(async (_req: NextRequest, { params }: { params: P
   if (!id) return badRequest("Invalid id");
 
   const [deleted] = await getDb()
-    .delete(sweActivity)
+    .update(sweActivity)
+    .set({ hidden: true, updatedAt: new Date() })
     .where(eq(sweActivity.id, id))
     .returning();
 

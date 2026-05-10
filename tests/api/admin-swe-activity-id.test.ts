@@ -88,11 +88,15 @@ describe("DELETE /api/admin/swe-activity/[id]", () => {
     expect(res.status).toBe(401);
   });
 
-  it("deletes a swe activity entry", async () => {
+  it("hides a swe activity entry", async () => {
     vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    let updateValues: any;
     vi.mocked(getDb).mockReturnValue({
-      delete: () => ({
-        where: () => ({ returning: async () => [{ id: 1 }] }),
+      update: () => ({
+        set: (values: any) => {
+          updateValues = values;
+          return { where: () => ({ returning: async () => [{ id: 1, ...values }] }) };
+        },
       }),
     } as any);
 
@@ -102,14 +106,15 @@ describe("DELETE /api/admin/swe-activity/[id]", () => {
     );
 
     expect(res.status).toBe(200);
+    expect(updateValues.hidden).toBe(true);
     expect(await res.json()).toEqual({ success: true });
   });
 
   it("returns 404 when entry does not exist", async () => {
     vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
     vi.mocked(getDb).mockReturnValue({
-      delete: () => ({
-        where: () => ({ returning: async () => [] }),
+      update: () => ({
+        set: () => ({ where: () => ({ returning: async () => [] }) }),
       }),
     } as any);
 

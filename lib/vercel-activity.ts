@@ -5,7 +5,62 @@ export type ActivityItem = {
   timestamp: string;
   url?: string;
   repo: string;
+  commitMetadata?: GitHubCommitMetadata;
 };
+
+export type GitHubCommitMetadata = {
+  sha: string;
+  shortSha: string;
+  message: string;
+  authorName: string;
+  authorEmail?: string;
+  committedAt: string;
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+};
+
+async function fetchGitHubCommitMetadata(
+  owner: string,
+  repo: string,
+  sha: string,
+): Promise<GitHubCommitMetadata | null> {
+  try {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${sha}`, {
+      headers,
+      next: { revalidate: 600 },
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json() as Record<string, unknown>;
+    const commit = data.commit as Record<string, unknown> | undefined;
+    const author = commit?.author as Record<string, unknown> | undefined;
+    const stats = data.stats as Record<string, unknown> | undefined;
+    const files = Array.isArray(data.files) ? data.files : [];
+    const message = typeof commit?.message === "string" ? commit.message.split("\n")[0] : "";
+    const committedAt = typeof author?.date === "string" ? author.date : "";
+
+    return {
+      sha,
+      shortSha: sha.slice(0, 7),
+      message,
+      authorName: typeof author?.name === "string" ? author.name : "Mohammed",
+      authorEmail: typeof author?.email === "string" ? author.email : undefined,
+      committedAt: committedAt || new Date().toISOString(),
+      additions: typeof stats?.additions === "number" ? stats.additions : undefined,
+      deletions: typeof stats?.deletions === "number" ? stats.deletions : undefined,
+      changedFiles: files.length || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -37,6 +92,7 @@ export async function fetchVercelActivity(): Promise<ActivityItem[]> {
   const data = await res.json();
   const deployments: unknown[] = data.deployments ?? [];
   const items: ActivityItem[] = [];
+  const commitMetadataCache = new Map<string, GitHubCommitMetadata | null>();
 
   for (const d of deployments) {
     if (!d || typeof d !== "object") continue;
@@ -63,20 +119,31 @@ export async function fetchVercelActivity(): Promise<ActivityItem[]> {
     });
 
     if (sha) {
+      const owner = meta?.githubCommitOrg ?? "";
+      const repo = meta?.githubCommitRepo ?? "";
+      const cacheKey = `${owner}/${repo}/${sha}`;
+      let commitMetadata = commitMetadataCache.get(cacheKey);
+      if (commitMetadata === undefined) {
+        commitMetadata = owner && repo ? await fetchGitHubCommitMetadata(owner, repo, sha) : null;
+        commitMetadataCache.set(cacheKey, commitMetadata);
+      }
+      const commitDate = commitMetadata?.committedAt ?? timestamp;
+      const commitTitle = commitMetadata?.message || commitMsg;
       const commitUrl =
-        meta?.githubCommitOrg && meta?.githubCommitRepo
-          ? `https://github.com/${meta.githubCommitOrg}/${meta.githubCommitRepo}/commit/${sha}`
+        owner && repo
+          ? `https://github.com/${owner}/${repo}/commit/${sha}`
           : undefined;
 
       items.push({
         id: `vercel-commit-${sha}`,
         type: "commit",
-        message: commitMsg
-          ? `Mohammed made the commit '${commitMsg}' to ${project}`
+        message: commitTitle
+          ? `Mohammed made the commit '${commitTitle}' to ${project}`
           : `Mohammed pushed to ${project} at ${shortSha}`,
-        timestamp,
+        timestamp: commitDate,
         url: commitUrl,
         repo: project,
+        ...(commitMetadata ? { commitMetadata } : {}),
       });
     }
   }

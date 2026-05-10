@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { GitCommit, Upload, Trash2, Save, RefreshCw, ChevronDown, ChevronRight, Zap } from "lucide-react";
-import { fetchCachedJson } from "@/lib/client-cache";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
+import type { SweActivitySyncState } from "@/lib/swe-activity-sync";
 
 /**
  * Zero-Sum Contribution Slider Component.
@@ -48,7 +48,7 @@ function ScoreBadge({ label, value, color }: { label: string; value: number; col
   );
 }
 
-function MetricsPanel({ activityId, externalId }: { activityId: number; externalId: string }) {
+function MetricsPanel({ activityId }: { activityId: number }) {
   const [open, setOpen] = useState(false);
   const [metrics, setMetrics] = useState<CommitMetrics | null | "loading" | "error">(null);
   const [recomputing, setRecomputing] = useState(false);
@@ -150,7 +150,7 @@ function MetricsPanel({ activityId, externalId }: { activityId: number; external
                 <div className="space-y-2">
                   <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">Foundation prompt</p>
                   <p className="text-[12px] text-muted/70 italic border-l border-surface/20 pl-3 line-clamp-3">
-                    "{m.foundationPrompt.text}"
+                    &ldquo;{m.foundationPrompt.text}&rdquo;
                   </p>
                   <div className="space-y-0.5 font-mono text-[10px] text-muted/40">
                     <div>Info density {m.foundationPrompt.specificity.components.informationDensity}/40 · Coherence {m.foundationPrompt.specificity.components.coherence}/30 · Language {m.foundationPrompt.specificity.components.languageQuality}/30</div>
@@ -186,6 +186,7 @@ function MetricsPanel({ activityId, externalId }: { activityId: number; external
 
 export default function ActivityManager() {
   const [activities, setActivities] = useState<SweActivity[]>([]);
+  const [syncState, setSyncState] = useState<SweActivitySyncState>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -203,7 +204,8 @@ export default function ActivityManager() {
     setIsLoading(true);
     try {
       const data = await fetch("/api/admin/swe-activity").then(res => res.json());
-      setActivities(Array.isArray(data) ? data : []);
+      setActivities(Array.isArray(data.activities) ? data.activities : []);
+      setSyncState(data.syncState ?? {});
     } finally {
       setIsLoading(false);
     }
@@ -261,9 +263,17 @@ export default function ActivityManager() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
-          SWE Activity Feed
-        </h3>
+        <div>
+          <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
+            SWE Activity Feed
+          </h3>
+          <p className="mt-1 font-mono text-[10px] text-muted/35">
+            {syncState.lastSuccessAt
+              ? `Last synced ${new Date(syncState.lastSuccessAt).toLocaleString()}`
+              : "Not synced yet"}
+            {syncState.lastStats ? ` · ${syncState.lastStats.synced}/${syncState.lastStats.deduped} rows synced` : ""}
+          </p>
+        </div>
         <button
           onClick={triggerSync}
           disabled={isSyncing}
@@ -373,11 +383,11 @@ export default function ActivityManager() {
                       )}
                       {activity.note && (
                         <p className="mt-2 text-[13px] text-muted/60 italic border-l border-surface/20 pl-3">
-                          "{activity.note}"
+                          &ldquo;{activity.note}&rdquo;
                         </p>
                       )}
                       {activity.type === "commit" && (
-                        <MetricsPanel activityId={activity.id} externalId={activity.externalId} />
+                        <MetricsPanel activityId={activity.id} />
                       )}
                     </div>
 

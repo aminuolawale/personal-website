@@ -7,11 +7,14 @@ import type { ActivityItem } from "@/lib/vercel-activity";
 const mockValues = vi.fn(() => ({
   onConflictDoUpdate: vi.fn(() => Promise.resolve()),
 }));
-const mockInsert = vi.fn(() => ({
-  values: mockValues,
-}));
+const mockInsert = vi.fn(() => ({ values: mockValues }));
 const mockDb = {
   insert: mockInsert,
+  select: vi.fn(() => ({
+    from: () => ({
+      where: async () => [],
+    }),
+  })),
 };
 
 // Mock the lib/db module to return our mock object
@@ -49,17 +52,24 @@ describe("SWE Activity Sync Engine", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDb.select.mockReturnValue({
+      from: () => ({
+        where: async () => [],
+      }),
+    });
+    mockInsert.mockReturnValue({ values: mockValues });
   });
 
   it("should only sync events on or after April 24th, 2026", async () => {
     await syncActivitiesToDb(mockActivities);
 
     // Now uses a single BATCH insert call
-    expect(mockInsert).toHaveBeenCalledTimes(1);
     expect(mockInsert).toHaveBeenCalledWith(sweActivity);
     
     // Check that values() was called with the 2 correct items
-    const valuesCall = mockValues.mock.calls[0][0];
+    const activityValuesCall = mockValues.mock.calls.find(([arg]) => Array.isArray(arg))?.[0];
+    expect(activityValuesCall).toBeDefined();
+    const valuesCall = activityValuesCall!;
     expect(valuesCall).toHaveLength(2);
     expect(valuesCall[0].externalId).toBe("new-event");
     expect(valuesCall[1].externalId).toBe("edge-event");
@@ -67,7 +77,7 @@ describe("SWE Activity Sync Engine", () => {
 
   it("should handle empty activity list gracefully", async () => {
     await syncActivitiesToDb([]);
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalledWith(sweActivity);
   });
 
   it("deduplicates repeated external IDs before batch upsert", async () => {
@@ -90,7 +100,9 @@ describe("SWE Activity Sync Engine", () => {
       },
     ]);
 
-    const valuesCall = mockValues.mock.calls[0][0];
+    const activityValuesCall = mockValues.mock.calls.find(([arg]) => Array.isArray(arg))?.[0];
+    expect(activityValuesCall).toBeDefined();
+    const valuesCall = activityValuesCall!;
     expect(valuesCall).toHaveLength(1);
     expect(valuesCall[0]).toMatchObject({
       externalId: "vercel-commit-abc123",

@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { GitCommit, Upload, User, Bot } from "lucide-react";
-import { fetchCachedJson } from "@/lib/client-cache";
 import { relativeTime } from "@/lib/vercel-activity";
 import type { SweActivity } from "@/lib/schema";
+import type { CommitMetrics } from "@/lib/coding-agents/types";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
   const idx = message.indexOf(repo);
@@ -21,6 +21,8 @@ function HighlightMessage({ message, repo }: { message: string; repo: string }) 
 function ActivityRow({ item }: { item: SweActivity }) {
   const isCommit = item.type === "commit";
   const Icon = isCommit ? GitCommit : Upload;
+  const metrics = item.metrics as CommitMetrics | null;
+  const commitMetadata = item.commitMetadata;
 
   const inner = (
     <div className="flex gap-4 group">
@@ -73,6 +75,29 @@ function ActivityRow({ item }: { item: SweActivity }) {
                 {item.note}
               </p>
             )}
+
+            {(commitMetadata || metrics) && (
+              <div className="grid gap-2 pt-1 font-mono text-[10px] text-muted/40 sm:grid-cols-2">
+                {commitMetadata && (
+                  <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
+                    <span className="text-accent/70">{commitMetadata.shortSha}</span>
+                    {commitMetadata.changedFiles ? ` · ${commitMetadata.changedFiles} files` : ""}
+                    {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number"
+                      ? ` · +${commitMetadata.additions}/-${commitMetadata.deletions}`
+                      : ""}
+                  </div>
+                )}
+                {metrics && (
+                  <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
+                    OCS <span className="text-accent/70">{metrics.scores.ocs}</span>
+                    {" · "}
+                    {metrics.tokenMetrics.totalTokens.toLocaleString()} tokens
+                    {" · "}
+                    {metrics.loc.filesChanged} files
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -103,9 +128,16 @@ export default function ActivityTab() {
   const [selectedType, setSelectedType] = useState<"all" | "commit" | "deployment">("all");
 
   useEffect(() => {
-    fetchCachedJson<SweActivity[]>("/api/github-activity", [])
-      .then(setItems)
-      .finally(() => setIsLoading(false));
+    let cancelled = false;
+    fetch("/api/github-activity", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const repos = useMemo(() => {
