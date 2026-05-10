@@ -190,7 +190,7 @@ export default function ActivityTab() {
               onClick={() => setSelectedType("commit")}
               className={FILTER_BTN(selectedType === "commit")}
             >
-              VCS Activity
+              Git
             </button>
             <button
               type="button"

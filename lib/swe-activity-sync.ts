@@ -1,27 +1,48 @@
+import fs from "fs";
+import path from "path";
 import { getDb } from "@/lib/db";
 import { sweActivity } from "@/lib/schema";
 import { sql, eq } from "drizzle-orm";
 import type { ActivityItem } from "@/lib/vercel-activity";
+import type { CommitMetrics } from "@/lib/coding-agents/types";
 
 /**
  * Persists activities to the database using an optimized batch upsert strategy.
  * Prevents overwriting manual notes/scs if the activity already exists.
  * Filters for activities on or after April 24th, 2026.
  */
+// Load cached metrics written by the git post-commit hook for a commit SHA.
+function loadCachedMetrics(sha: string): CommitMetrics | null {
+  try {
+    // Works in local dev; process.cwd() is the repo root when running via Next.js dev server.
+    const cacheFile = path.join(process.cwd(), ".git", "commit_metrics", `${sha}.json`);
+    if (!fs.existsSync(cacheFile)) return null;
+    return JSON.parse(fs.readFileSync(cacheFile, "utf8")) as CommitMetrics;
+  } catch {
+    return null;
+  }
+}
+
 export async function syncActivitiesToDb(items: ActivityItem[]) {
   const CUTOFF_DATE = new Date("2026-04-24T00:00:00Z");
 
   const filteredItems = items
     .filter(item => new Date(item.timestamp) >= CUTOFF_DATE)
-    .map(item => ({
-      externalId: item.id,
-      type: item.type,
-      message: item.message,
-      repo: item.repo,
-      timestamp: new Date(item.timestamp),
-      url: item.url,
-      // note and scs default to "" and 100 via schema
-    }));
+    .map(item => {
+      // For commit items, try to attach cached metrics written by the post-commit hook.
+      // externalId format: "vercel-commit-<sha>"
+      const sha = item.type === "commit" ? item.id.replace(/^vercel-commit-/, "") : null;
+      const metrics = sha ? loadCachedMetrics(sha) : null;
+      return {
+        externalId: item.id,
+        type: item.type,
+        message: item.message,
+        repo: item.repo,
+        timestamp: new Date(item.timestamp),
+        url: item.url,
+        ...(metrics ? { metrics } : {}),
+      };
+    });
 
   if (filteredItems.length === 0) return;
 
@@ -38,6 +59,8 @@ export async function syncActivitiesToDb(items: ActivityItem[]) {
         set: {
           message: sql`EXCLUDED.message`,
           url: sql`EXCLUDED.url`,
+          // Only write metrics on conflict if the incoming row has them and the existing row doesn't.
+          metrics: sql`COALESCE(swe_activity.metrics, EXCLUDED.metrics)`,
           updatedAt: new Date(),
         },
       });

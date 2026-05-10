@@ -1,4 +1,5 @@
-import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import type { CommitMetrics } from "./coding-agents/types";
 
 // All database tables are defined here. This is the single source of truth —
 // edit this file and run `npm run db:push` to apply changes to the database.
@@ -250,6 +251,7 @@ export const sweActivity = pgTable("swe_activity", {
   url: text("url"),                                   // link to event
   note: text("note").notNull().default(""),           // manual context
   scs: integer("scs").notNull().default(100),         // Mohammed contribution % (0-100)
+  metrics: jsonb("metrics").$type<CommitMetrics>(),   // computed at commit time via git hook
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
