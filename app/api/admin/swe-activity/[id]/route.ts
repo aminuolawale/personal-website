@@ -10,13 +10,12 @@ export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promi
   const id = parseId((await params).id);
   if (!id) return badRequest("Invalid id");
 
-  const { message, note, scs } = await req.json();
+  const { message, note } = await req.json();
   const [updated] = await getDb()
     .update(sweActivity)
     .set({
       message: message !== undefined ? message : undefined,
       note: note !== undefined ? note : undefined,
-      scs: scs !== undefined ? scs : undefined,
       updatedAt: new Date(),
     })
     .where(eq(sweActivity.id, id))

@@ -46,14 +46,15 @@ describe("PUT /api/admin/swe-activity/[id]", () => {
     const res = await PUT(
       makeRequest("http://localhost:3000/api/admin/swe-activity/1", {
         method: "PUT",
-        body: JSON.stringify({ message: "new message", note: "a note", scs: 5 }),
+        body: JSON.stringify({ message: "new message", note: "a note" }),
       }),
       { params: params("1") }
     );
 
     expect(res.status).toBe(200);
-    expect(updateValues).toMatchObject({ message: "new message", note: "a note", scs: 5 });
+    expect(updateValues).toMatchObject({ message: "new message", note: "a note" });
     expect(updateValues.updatedAt).toBeInstanceOf(Date);
+    expect(updateValues).not.toHaveProperty("scs");
   });
 
   it("returns 404 when entry does not exist", async () => {

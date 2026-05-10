@@ -29,7 +29,7 @@ export type SyncActivitiesResult = {
 
 /**
  * Persists activities to the database using an optimized batch upsert strategy.
- * Prevents overwriting manual notes/scs if the activity already exists.
+ * Prevents overwriting manual notes and hidden state if the activity already exists.
  * Filters for activities on or after April 24th, 2026.
  */
 // Load cached metrics written by the git post-commit hook for a commit SHA.
@@ -148,13 +148,13 @@ export async function syncActivitiesToDb(items: ActivityItem[]): Promise<SyncAct
   try {
     // Perform a batch upsert. 
     // We use onConflictDoUpdate to update the dynamic fields (message, url, updatedAt)
-    // while explicitly preserving user-managed fields (note, scs).
+    // while explicitly preserving user-managed fields (note and hidden state).
     await db.insert(sweActivity)
       .values(filteredItems)
       .onConflictDoUpdate({
         target: sweActivity.externalId,
         set: {
-          // Preserve admin-edited display messages, notes, contribution scores, and hidden state.
+          // Preserve admin-edited display messages, notes, and hidden state.
           url: sql`EXCLUDED.url`,
           timestamp: sql`EXCLUDED.timestamp`,
           // Only write metrics on conflict if the incoming row has them and the existing row doesn't.

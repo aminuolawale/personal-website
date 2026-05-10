@@ -23,7 +23,6 @@ describe("ActivityManager Admin Component", () => {
       message: "Initial commit",
       repo: "my-repo",
       timestamp: new Date().toISOString(),
-      scs: 100,
       note: ""
     }
   ];
@@ -57,6 +56,7 @@ describe("ActivityManager Admin Component", () => {
     fireEvent.click(editBtn);
 
     expect(screen.getByLabelText(/Display Message/i)).toBeInTheDocument();
-    expect(screen.getByText(/Mohammed vs AI Contribution/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Mohammed vs AI Contribution/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Context Note/i)).toBeInTheDocument();
   });
 });

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { GitCommit, Upload, User, Bot } from "lucide-react";
+import { GitCommit, Upload } from "lucide-react";
 import { relativeTime } from "@/lib/vercel-activity";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
+import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, deriveScsFromOcs, getOcsBucket } from "@/lib/activity-score";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
   const idx = message.indexOf(repo);
@@ -23,6 +24,9 @@ function ActivityRow({ item }: { item: SweActivity }) {
   const Icon = isCommit ? GitCommit : Upload;
   const metrics = item.metrics as CommitMetrics | null;
   const commitMetadata = item.commitMetadata;
+  const ocs = metrics?.scores.ocs ?? null;
+  const bucket = ocs === null ? null : getOcsBucket(ocs);
+  const derivedScs = ocs === null ? null : deriveScsFromOcs(ocs);
 
   const inner = (
     <div className="flex gap-4 group">
@@ -44,31 +48,18 @@ function ActivityRow({ item }: { item: SweActivity }) {
         
         {isCommit && (
           <div className="mt-3 space-y-2.5">
-            {/* Contribution Score Visualization */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 max-w-[140px] h-1 bg-surface/10 rounded-full overflow-hidden flex">
-                <div 
-                  className="bg-accent h-full transition-all duration-500" 
-                  style={{ width: `${item.scs}%` }} 
-                  title={`Mohammed: ${item.scs}%`}
-                />
-                <div 
-                  className="bg-surface/20 h-full transition-all duration-500" 
-                  style={{ width: `${100 - item.scs}%` }} 
-                  title={`AI Agent: ${100 - item.scs}%`}
-                />
-              </div>
-              <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-wider text-muted/30">
-                <span className="flex items-center gap-1.5">
-                  <User size={10} className={item.scs > 50 ? "text-accent/60" : "text-muted/20"} />
-                  {item.scs}%
+            {metrics && ocs !== null && bucket && (
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 border ${OCS_BUCKET_CLASSES[bucket]}`}>
+                  OCS {ocs}
+                  <span className="opacity-60">·</span>
+                  {OCS_BUCKET_LABELS[bucket]}
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Bot size={10} className={item.scs < 50 ? "text-surface/60" : "text-muted/20"} />
-                  {100 - item.scs}%
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-surface/15 bg-surface/[0.02] text-muted/55">
+                  Derived SCS {derivedScs}%
                 </span>
               </div>
-            </div>
+            )}
 
             {item.note && (
               <p className="text-[13px] text-muted/50 italic border-l-2 border-accent/10 pl-3 leading-relaxed">
@@ -81,6 +72,8 @@ function ActivityRow({ item }: { item: SweActivity }) {
                 {commitMetadata && (
                   <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
                     <span className="text-accent/70">{commitMetadata.shortSha}</span>
+                    {commitMetadata.authorName ? ` · ${commitMetadata.authorName}` : ""}
+                    {commitMetadata.committedAt ? ` · ${new Date(commitMetadata.committedAt).toLocaleDateString()}` : ""}
                     {commitMetadata.changedFiles ? ` · ${commitMetadata.changedFiles} files` : ""}
                     {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number"
                       ? ` · +${commitMetadata.additions}/-${commitMetadata.deletions}`

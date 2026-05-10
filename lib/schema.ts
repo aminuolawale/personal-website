@@ -241,7 +241,7 @@ export const comments = pgTable("comments", {
 export type Comment = typeof comments.$inferSelect;
 
 // SWE activity persisted from GitHub and Vercel.
-// Allows adding manual notes and Mohammed-vs-agent contribution scores (SCS).
+// Allows adding manual notes and computed commit metadata.
 export const sweActivity = pgTable("swe_activity", {
   id: serial("id").primaryKey(),
   externalId: text("external_id").notNull().unique(), // e.g. "gh-push-sha" or "vercel-uid"
@@ -251,7 +251,6 @@ export const sweActivity = pgTable("swe_activity", {
   timestamp: timestamp("timestamp").notNull(),        // original event time
   url: text("url"),                                   // link to event
   note: text("note").notNull().default(""),           // manual context
-  scs: integer("scs").notNull().default(100),         // Mohammed contribution % (0-100)
   metrics: jsonb("metrics").$type<CommitMetrics>(),   // computed at commit time via git hook
   commitMetadata: jsonb("commit_metadata").$type<GitHubCommitMetadata>(),
   hidden: boolean("hidden").notNull().default(false),

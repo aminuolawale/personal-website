@@ -5,39 +5,7 @@ import { GitCommit, Upload, Trash2, Save, RefreshCw, ChevronDown, ChevronRight, 
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
 import type { SweActivitySyncState } from "@/lib/swe-activity-sync";
-
-/**
- * Zero-Sum Contribution Slider Component.
- */
-function ContributionSlider({ 
-  value, 
-  onChange 
-}: { 
-  value: number; 
-  onChange: (val: number) => void 
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-[10px] font-mono uppercase tracking-wider text-muted/50">
-        <span>Mohammed ({value}%)</span>
-        <span>AI Agent ({100 - value}%)</span>
-      </div>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        step="5"
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-1.5 bg-surface/10 rounded-lg appearance-none cursor-pointer accent-accent"
-      />
-      <div className="h-1 w-full flex rounded-full overflow-hidden">
-        <div className="bg-accent h-full transition-all duration-300" style={{ width: `${value}%` }} />
-        <div className="bg-surface/20 h-full transition-all duration-300" style={{ width: `${100 - value}%` }} />
-      </div>
-    </div>
-  );
-}
+import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, deriveScsFromOcs, getOcsBucket } from "@/lib/activity-score";
 
 function ScoreBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -86,13 +54,19 @@ function MetricsPanel({ activityId }: { activityId: number }) {
   }
 
   const m = typeof metrics === "object" && metrics !== null ? metrics as CommitMetrics : null;
+  const bucket = m ? getOcsBucket(m.scores.ocs) : null;
+  const derivedScs = m ? deriveScsFromOcs(m.scores.ocs) : null;
 
   return (
     <div className="border-t border-surface/10 mt-3 pt-3">
       <button onClick={toggle} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/40 hover:text-accent transition-colors uppercase tracking-wider">
         {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         Commit Metrics
-        {m && <span className="ml-2 text-accent">OCS {m.scores.ocs}</span>}
+        {m && bucket && (
+          <span className={`ml-2 inline-flex items-center gap-1.5 border px-2 py-0.5 ${OCS_BUCKET_CLASSES[bucket]}`}>
+            OCS {m.scores.ocs} · {OCS_BUCKET_LABELS[bucket]}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -113,7 +87,12 @@ function MetricsPanel({ activityId }: { activityId: number }) {
             <div className="space-y-4">
               {/* Scores */}
               <div className="flex flex-wrap gap-2">
-                <ScoreBadge label="OCS" value={m.scores.ocs} color="border-accent/30 text-accent" />
+                {bucket && (
+                  <ScoreBadge label={`OCS ${OCS_BUCKET_LABELS[bucket]}`} value={m.scores.ocs} color={OCS_BUCKET_CLASSES[bucket]} />
+                )}
+                {derivedScs !== null && (
+                  <ScoreBadge label="Derived SCS" value={derivedScs} color="border-surface/20 text-muted" />
+                )}
                 <ScoreBadge label="Specificity" value={m.foundationPrompt?.specificity.total ?? 0} color="border-surface/20 text-muted" />
               </div>
 
@@ -190,10 +169,9 @@ export default function ActivityManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<{ message: string; note: string; scs: number }>({
+  const [editForm, setEditForm] = useState<{ message: string; note: string }>({
     message: "",
-    note: "",
-    scs: 100
+    note: ""
   });
 
   useEffect(() => {
@@ -225,8 +203,7 @@ export default function ActivityManager() {
     setEditingId(activity.id);
     setEditForm({
       message: activity.message,
-      note: activity.note,
-      scs: activity.scs
+      note: activity.note
     });
   }
 
@@ -320,33 +297,21 @@ export default function ActivityManager() {
                     </div>
 
                     {activity.type === "commit" && (
-                      <>
-                        <div className="space-y-1.5">
-                          <label className="block font-mono text-[10px] uppercase tracking-wider text-muted/40">
-                            Mohammed vs AI Contribution
-                          </label>
-                          <ContributionSlider 
-                            value={editForm.scs} 
-                            onChange={(val) => setEditForm({ ...editForm, scs: val })} 
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label 
-                            htmlFor={`note-${activity.id}`}
-                            className="block font-mono text-[10px] uppercase tracking-wider text-muted/40"
-                          >
-                            Context Note (Optional)
-                          </label>
-                          <textarea
-                            id={`note-${activity.id}`}
-                            value={editForm.note}
-                            onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
-                            placeholder="Add manual context about your vs the agent's work..."
-                            className="w-full bg-base border border-surface/20 px-3 py-2 text-sm focus:border-accent outline-none h-20 resize-none"
-                          />
-                        </div>
-                      </>
+                      <div className="space-y-1.5">
+                        <label
+                          htmlFor={`note-${activity.id}`}
+                          className="block font-mono text-[10px] uppercase tracking-wider text-muted/40"
+                        >
+                          Context Note (Optional)
+                        </label>
+                        <textarea
+                          id={`note-${activity.id}`}
+                          value={editForm.note}
+                          onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
+                          placeholder="Add manual context about this activity..."
+                          className="w-full bg-base border border-surface/20 px-3 py-2 text-sm focus:border-accent outline-none h-20 resize-none"
+                        />
+                      </div>
                     )}
 
                     <div className="flex justify-end gap-3 pt-2">
@@ -374,13 +339,6 @@ export default function ActivityManager() {
                       <p className="font-mono text-[11px] text-muted/30">
                         {new Date(activity.timestamp).toLocaleDateString()} · {activity.repo} · {activity.type}
                       </p>
-                      {activity.scs < 100 && (
-                        <div className="inline-flex items-center gap-2 mt-2 px-2 py-0.5 bg-surface/5 border border-surface/10 rounded font-mono text-[10px]">
-                          <span className="text-accent">Mohammed {activity.scs}%</span>
-                          <span className="text-muted/30">/</span>
-                          <span className="text-muted/60">AI {100 - activity.scs}%</span>
-                        </div>
-                      )}
                       {activity.note && (
                         <p className="mt-2 text-[13px] text-muted/60 italic border-l border-surface/20 pl-3">
                           &ldquo;{activity.note}&rdquo;
