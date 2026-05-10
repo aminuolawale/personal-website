@@ -237,3 +237,22 @@ export const comments = pgTable("comments", {
 });
 
 export type Comment = typeof comments.$inferSelect;
+
+// SWE activity persisted from GitHub and Vercel.
+// Allows adding manual notes and Mohammed-vs-agent contribution scores (SCS).
+export const sweActivity = pgTable("swe_activity", {
+  id: serial("id").primaryKey(),
+  externalId: text("external_id").notNull().unique(), // e.g. "gh-push-sha" or "vercel-uid"
+  type: text("type").notNull(),                       // "commit" | "deployment"
+  message: text("message").notNull(),                 // editable display text
+  repo: text("repo").notNull(),                       // repository/project name
+  timestamp: timestamp("timestamp").notNull(),        // original event time
+  url: text("url"),                                   // link to event
+  note: text("note").notNull().default(""),           // manual context
+  scs: integer("scs").notNull().default(100),         // Mohammed contribution % (0-100)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type SweActivity = typeof sweActivity.$inferSelect;
+export type NewSweActivity = typeof sweActivity.$inferInsert;

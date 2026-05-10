@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { GitCommit, Upload } from "lucide-react";
-import { useGithubActivity } from "@/lib/hooks/use-github-activity";
+import { useMemo, useState, useEffect } from "react";
+import { GitCommit, Upload, User, Bot } from "lucide-react";
+import { fetchCachedJson } from "@/lib/client-cache";
 import { relativeTime } from "@/lib/github-activity";
-import type { ActivityItem } from "@/lib/github-activity";
+import type { SweActivity } from "@/lib/schema";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
   const idx = message.indexOf(repo);
@@ -18,7 +18,7 @@ function HighlightMessage({ message, repo }: { message: string; repo: string }) 
   );
 }
 
-function ActivityRow({ item }: { item: ActivityItem }) {
+function ActivityRow({ item }: { item: SweActivity }) {
   const isCommit = item.type === "commit";
   const Icon = isCommit ? GitCommit : Upload;
 
@@ -35,12 +35,49 @@ function ActivityRow({ item }: { item: ActivityItem }) {
           <Icon size={13} strokeWidth={1.75} />
         </span>
       </div>
-      <div className="flex-1 pb-6 border-b border-surface/[0.06] last:border-0">
+      <div className="flex-1 pb-8 border-b border-surface/[0.06] last:border-0">
         <p className="text-sm text-muted leading-relaxed">
           <HighlightMessage message={item.message} repo={item.repo} />
         </p>
-        <p className="mt-1 font-mono text-[11px] text-muted/35" suppressHydrationWarning>
-          {relativeTime(item.timestamp)}
+        
+        {isCommit && (
+          <div className="mt-3 space-y-2.5">
+            {/* Contribution Score Visualization */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 max-w-[140px] h-1 bg-surface/10 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-accent h-full transition-all duration-500" 
+                  style={{ width: `${item.scs}%` }} 
+                  title={`Mohammed: ${item.scs}%`}
+                />
+                <div 
+                  className="bg-surface/20 h-full transition-all duration-500" 
+                  style={{ width: `${100 - item.scs}%` }} 
+                  title={`AI Agent: ${100 - item.scs}%`}
+                />
+              </div>
+              <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-wider text-muted/30">
+                <span className="flex items-center gap-1.5">
+                  <User size={10} className={item.scs > 50 ? "text-accent/60" : "text-muted/20"} />
+                  {item.scs}%
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Bot size={10} className={item.scs < 50 ? "text-surface/60" : "text-muted/20"} />
+                  {100 - item.scs}%
+                </span>
+              </div>
+            </div>
+
+            {item.note && (
+              <p className="text-[13px] text-muted/50 italic border-l-2 border-accent/10 pl-3 leading-relaxed">
+                {item.note}
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="mt-3 font-mono text-[11px] text-muted/35" suppressHydrationWarning>
+          {relativeTime(item.timestamp.toString())}
           {" · "}
           <span className={isCommit ? "text-accent/50" : "text-muted/30"}>
             {isCommit ? "commit" : "deployment"}
@@ -55,14 +92,22 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       {inner}
     </a>
   ) : (
-    <div>{inner}</div>
+    <div className="block">{inner}</div>
   );
 }
 
 export default function ActivityTab() {
-  const { items, isLoading } = useGithubActivity();
+  const [items, setItems] = useState<SweActivity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedRepo, setSelectedRepo] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<"all" | "commit" | "deployment">("all");
+
+  useEffect(() => {
+    fetch("/api/github-activity", { headers: { "Cache-Control": "no-cache" } })
+      .then(res => res.json())
+      .then(setItems)
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const repos = useMemo(() => {
     const set = new Set<string>();
@@ -101,8 +146,8 @@ export default function ActivityTab() {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-10 space-y-6">
-        {repos.length > 0 && (
+      <div className="mb-12 space-y-6">
+        {repos.length > 1 && (
           <div>
             <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2.5">
               Filter by project
@@ -139,14 +184,14 @@ export default function ActivityTab() {
               onClick={() => setSelectedType("all")}
               className={FILTER_BTN(selectedType === "all")}
             >
-              All
+              Everything
             </button>
             <button
               type="button"
               onClick={() => setSelectedType("commit")}
               className={FILTER_BTN(selectedType === "commit")}
             >
-              VCS
+              VCS Activity
             </button>
             <button
               type="button"

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
+import { sweActivity } from "@/lib/schema";
+import { desc } from "drizzle-orm";
 import { serverError } from "@/lib/api";
+import { syncActivitiesToDb } from "@/lib/swe-activity-sync";
 import type { ActivityItem } from "@/lib/github-activity";
 
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME ?? "";
@@ -111,16 +115,26 @@ async function fetchVercelActivity(): Promise<ActivityItem[]> {
 
 export async function GET() {
   try {
+    // 1. Fetch from external APIs
     const [githubItems, vercelItems] = await Promise.all([
       fetchGitHubActivity(),
       fetchVercelActivity(),
     ]);
 
-    const all = [...githubItems, ...vercelItems]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 30);
+    const externalItems = [...githubItems, ...vercelItems];
 
-    const res = NextResponse.json(all);
+    // 2. Sync to DB (upsert)
+    await syncActivitiesToDb(externalItems);
+
+    // 3. Return from DB (includes manual notes/scores)
+    const db = getDb();
+    const persisted = await db
+      .select()
+      .from(sweActivity)
+      .orderBy(desc(sweActivity.timestamp))
+      .limit(50);
+
+    const res = NextResponse.json(persisted);
     res.headers.set("Cache-Control", ACTIVITY_CACHE);
     return res;
   } catch (err) {
