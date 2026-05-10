@@ -9,12 +9,12 @@ import { unauthorized, notFound, serverError } from "@/lib/api";
  * Updates an activity entry (message, note, scs).
  * Admin-only.
  */
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return unauthorized();
 
   try {
-    const id = parseInt(params.id);
+    const id = parseInt((await params).id);
     if (isNaN(id)) return notFound();
 
     const body = await req.json();
@@ -44,12 +44,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
  * Deletes an activity entry.
  * Admin-only.
  */
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return unauthorized();
 
   try {
-    const id = parseInt(params.id);
+    const id = parseInt((await params).id);
     if (isNaN(id)) return notFound();
 
     const db = getDb();
