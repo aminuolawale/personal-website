@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/astrophotography/ArticlesTab";
 import dynamic from "next/dynamic";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
+import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
 
 const CalendarTab = dynamic(() => import("@/components/astrophotography/CalendarTab"));
 const GalleryTab = dynamic(() => import("@/components/astrophotography/GalleryTab"), {
@@ -53,29 +53,26 @@ const ASTRO_TABS: AstroTab[] = [
   },
 ];
 
-const TAB_IDS = new Set(ASTRO_TABS.map((t) => t.id));
+const TAB_IDS_SET = new Set(ASTRO_TABS.map((t) => t.id));
 
 function AstrophotographyContent() {
-  const searchParams = useSearchParams();
-  const urlTab = searchParams.get("tab");
-  const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
-
   const visibilityConfig = useSectionVisibility();
   const sectionNumber = getVisibleSectionNumber("astrophotography", visibilityConfig);
   const eyebrow = sectionNumber ? `${sectionNumber}. Astrophotography` : "Astrophotography";
 
   const { order, labels, visibility } = useTabConfig("astrophotography", ASTRO_TABS);
-  const orderedTabs = order
+  const orderedTabs = useMemo(() => order
     .map((id) => ASTRO_TABS.find((t) => t.id === id)!)
     .filter(Boolean)
     .filter((t) => visibility[t.id] !== false)
-    .map((t) => ({ ...t, label: labels[t.id] ?? t.label }));
+    .map((t) => ({ ...t, label: labels[t.id] ?? t.label })),
+  [order, labels, visibility]);
 
-  const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
+  const [activeTabId, setActiveTabId] = usePersistentTab("astrophotography", orderedTabs[0]?.id ?? ASTRO_TABS[0].id, TAB_IDS_SET);
   const { articles, isLoading } = useArticles("astrophotography");
   const { astroTitle, astroDescription } = useSiteContent();
 
-  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
+  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0] ?? ASTRO_TABS[0];
 
   return (
     <main>

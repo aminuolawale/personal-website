@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import RichTextContent from "@/components/RichTextContent";
@@ -10,6 +9,7 @@ import TabBar, { type TabConfig } from "@/components/TabBar";
 import TagBadge from "@/components/TagBadge";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
+import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
 import { trackEvent } from "@/lib/observability/client";
@@ -27,14 +27,10 @@ type DisplayTab = TabConfig & {
 };
 
 function MiscContent() {
-  const searchParams = useSearchParams();
-  const urlTab = searchParams.get("tab");
-
   const { articles, isLoading } = useArticles("misc");
   const { miscTitle, miscDescription } = useSiteContent();
   const [tabs, setTabs] = useState<MiscTab[]>([]);
   const [seriesList, setSeriesList] = useState<MiscSeries[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | "all">("all");
   const [reader, setReader] = useState<{ title: string; meta?: string; html: string } | null>(null);
 
@@ -84,15 +80,8 @@ function MiscContent() {
       .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label }))
   ), [displayTabs, labels, order, visibility]);
 
-  useEffect(() => {
-    if (orderedDisplayTabs.length === 0) return;
-    if (activeTabId && orderedDisplayTabs.some((tab) => tab.id === activeTabId)) return;
-    const validUrlTab = urlTab && orderedDisplayTabs.some((tab) => tab.id === urlTab) ? urlTab : null;
-    const timer = window.setTimeout(() => {
-      setActiveTabId(validUrlTab || orderedDisplayTabs[0].id);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [activeTabId, orderedDisplayTabs, urlTab]);
+  const validTabIds = useMemo(() => new Set(orderedDisplayTabs.map((t) => t.id)), [orderedDisplayTabs]);
+  const [activeTabId, setActiveTabId] = usePersistentTab("misc", orderedDisplayTabs[0]?.id ?? "", validTabIds);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSelectedSeriesId("all"), 0);

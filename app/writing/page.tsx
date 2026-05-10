@@ -2,14 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { m } from "framer-motion";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
+import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
 import { trackEvent } from "@/lib/observability/client";
 import { SECTION_TABS } from "@/lib/section-tabs";
 
@@ -18,12 +18,21 @@ const ReadingNotesTab = dynamic(() => import("@/components/writing/ReadingNotesT
   loading: () => <p className="font-mono text-xs text-muted/30">Loading reading notes...</p>,
 });
 
-export default function WritingPage() {
-  const searchParams = useSearchParams();
-  const urlTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(
-    SECTION_TABS.writing.some((tab) => tab.id === urlTab) ? urlTab! : "book-reviews"
-  );
+const TAB_IDS_SET = new Set(SECTION_TABS.writing.map((t) => t.id));
+
+function WritingContent() {
+  const { articles, isLoading } = useArticles("writing");
+  const { writingTitle, writingDescription } = useSiteContent();
+  const { order, labels, visibility } = useTabConfig("writing", SECTION_TABS.writing);
+  const orderedTabs = useMemo(() => order
+    .map((id) => SECTION_TABS.writing.find((tab) => tab.id === id)!)
+    .filter(Boolean)
+    .filter((tab) => visibility[tab.id] !== false)
+    .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label })),
+  [order, labels, visibility]);
+
+  const [activeTabId, setActiveTabId] = usePersistentTab("writing", orderedTabs[0]?.id ?? SECTION_TABS.writing[0].id, TAB_IDS_SET);
+
   const [reader, setReader] = useState<{
     title: string;
     meta?: string;
@@ -31,20 +40,12 @@ export default function WritingPage() {
     href?: string;
   } | null>(null);
 
-  const { articles, isLoading } = useArticles("writing");
-  const { writingTitle, writingDescription } = useSiteContent();
-  const { order, labels, visibility } = useTabConfig("writing", SECTION_TABS.writing);
-  const orderedTabs = order
-    .map((id) => SECTION_TABS.writing.find((tab) => tab.id === id)!)
-    .filter(Boolean)
-    .filter((tab) => visibility[tab.id] !== false)
-    .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label }));
-  const activeVisibleTab = orderedTabs.some((tab) => tab.id === activeTab)
-    ? activeTab
+  const activeVisibleTab = orderedTabs.some((tab) => tab.id === activeTabId)
+    ? activeTabId
     : orderedTabs[0]?.id ?? "book-reviews";
 
   function selectWritingTab(tabId: string) {
-    setActiveTab(tabId);
+    setActiveTabId(tabId);
     trackEvent({
       name: "public.writing_tab.changed",
       section: "writing",
@@ -121,5 +122,13 @@ export default function WritingPage() {
         onClose={() => setReader(null)}
       />
     </main>
+  );
+}
+
+export default function WritingPage() {
+  return (
+    <Suspense>
+      <WritingContent />
+    </Suspense>
   );
 }

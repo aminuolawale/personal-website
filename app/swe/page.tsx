@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
@@ -10,6 +9,7 @@ import ArticlesTab from "@/components/swe/ArticlesTab";
 import ActivityTab from "@/components/swe/ActivityTab";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
+import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber } from "@/lib/section-visibility";
@@ -47,29 +47,26 @@ const SWE_TABS: SweTab[] = [
   },
 ];
 
-const TAB_IDS = new Set(SWE_TABS.map((t) => t.id));
+const TAB_IDS_SET = new Set(SWE_TABS.map((t) => t.id));
 
 function SweContent() {
-  const searchParams = useSearchParams();
-  const urlTab = searchParams.get("tab");
-  const validUrlTab = urlTab && TAB_IDS.has(urlTab) ? urlTab : null;
-
   const visibilityConfig = useSectionVisibility();
   const sectionNumber = getVisibleSectionNumber("swe", visibilityConfig);
   const eyebrow = sectionNumber ? `${sectionNumber}. Engineering` : "Engineering";
 
   const { order, labels, visibility } = useTabConfig("swe", SWE_TABS);
-  const orderedTabs = order
+  const orderedTabs = useMemo(() => order
     .map((id) => SWE_TABS.find((t) => t.id === id)!)
     .filter(Boolean)
     .filter((t) => visibility[t.id] !== false)
-    .map((t) => ({ ...t, label: labels[t.id] ?? t.label }));
+    .map((t) => ({ ...t, label: labels[t.id] ?? t.label })),
+  [order, labels, visibility]);
 
-  const [activeTabId, setActiveTabId] = useState<string | null>(validUrlTab);
+  const [activeTabId, setActiveTabId] = usePersistentTab("swe", orderedTabs[0]?.id ?? SWE_TABS[0].id, TAB_IDS_SET);
   const { articles, isLoading } = useArticles("swe");
   const { sweTitle, sweDescription } = useSiteContent();
 
-  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0];
+  const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0] ?? SWE_TABS[0];
 
   return (
     <main>
