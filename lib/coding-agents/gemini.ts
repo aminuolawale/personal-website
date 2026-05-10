@@ -72,7 +72,10 @@ export function readGeminiSessions(
     if (!header.startTime) continue;
 
     const sessionStart = new Date(header.startTime);
-    if (sessionStart < fromTime || sessionStart > toTime) continue;
+    // Only skip sessions that haven't started yet. Sessions that started
+    // before fromTime can still have messages within the window (e.g. a
+    // conversation that spanned the previous commit boundary).
+    if (sessionStart > toTime) continue;
 
     const sessionId = header.sessionId ?? path.basename(file, ".jsonl");
     const turns: SessionTurn[] = [];

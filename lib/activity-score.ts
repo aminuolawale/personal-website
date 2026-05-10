@@ -1,3 +1,5 @@
+import type { AgentName, AgentTokenSummary } from "@/lib/coding-agents/types";
+
 export type OcsBucket = "poor" | "good" | "great";
 
 export const OCS_BUCKET_LABELS: Record<OcsBucket, string> = {
@@ -20,4 +22,24 @@ export function getOcsBucket(ocs: number): OcsBucket {
 
 export function deriveScsFromOcs(ocs: number): number {
   return Math.max(0, Math.min(100, Math.round(100 - ocs)));
+}
+
+export function formatTokens(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+  return String(n);
+}
+
+const AGENT_DISPLAY_NAMES: Record<AgentName, string> = {
+  "claude-code": "Claude Code",
+  gemini: "Gemini",
+  codex: "Codex",
+};
+
+export function getDominantAgent(
+  byAgent: Partial<Record<AgentName, AgentTokenSummary>>
+): string {
+  const entries = Object.entries(byAgent) as [AgentName, AgentTokenSummary][];
+  if (entries.length === 0) return "AI";
+  const [topAgent] = entries.sort((a, b) => b[1].totalTokens - a[1].totalTokens);
+  return AGENT_DISPLAY_NAMES[topAgent[0]];
 }

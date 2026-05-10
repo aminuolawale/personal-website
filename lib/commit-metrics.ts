@@ -165,9 +165,12 @@ export async function computeCommitMetrics(params: {
   if (foundationText) {
     const specificity = await scoreSpecificity(foundationText);
     foundationPrompt = { text: foundationText, specificity };
+    // Some agents (Codex) lump all tokens into inputTokens with outputTokens=0.
+    // Fall back to totalTokens so the efficiency score isn't artificially 100.
+    const effectiveOutputTokens = totalOutputTokens > 0 ? totalOutputTokens : totalTokens;
     ocs = computeOCS({
       specificityScore: specificity.total,
-      outputTokens: totalOutputTokens,
+      outputTokens: effectiveOutputTokens,
       netLOC: loc.net,
     });
   }
