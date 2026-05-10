@@ -103,8 +103,7 @@ export default function ActivityTab() {
   const [selectedType, setSelectedType] = useState<"all" | "commit" | "deployment">("all");
 
   useEffect(() => {
-    fetch("/api/github-activity", { headers: { "Cache-Control": "no-cache" } })
-      .then(res => res.json())
+    fetchCachedJson<SweActivity[]>("/api/github-activity", [])
       .then(setItems)
       .finally(() => setIsLoading(false));
   }, []);
