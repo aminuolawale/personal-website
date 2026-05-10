@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { syncActivitiesToDb } from "@/lib/swe-activity-sync";
 import { sweActivity } from "@/lib/schema";
-import type { ActivityItem } from "@/lib/github-activity";
+import type { ActivityItem } from "@/lib/vercel-activity";
 
 // Mock the DB methods
 const mockValues = vi.fn(() => ({

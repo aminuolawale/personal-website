@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db";
 import { sweActivity } from "@/lib/schema";
 import { desc } from "drizzle-orm";
 import { serverError } from "@/lib/api";
-import { fetchGitHubActivity, fetchVercelActivity } from "@/lib/github-activity";
+import { fetchVercelActivity } from "@/lib/vercel-activity";
 import { syncActivitiesToDb } from "@/lib/swe-activity-sync";
 
 const ACTIVITY_CACHE =
@@ -33,11 +33,7 @@ export async function GET() {
       // NOTE: In personal website scale, we can just await this. 
       // External APIs are fast, and batch DB upsert is now optimized.
       // This ensures the current user gets the absolute latest data.
-      const [githubItems, vercelItems] = await Promise.all([
-        fetchGitHubActivity(),
-        fetchVercelActivity(),
-      ]);
-      const externalItems = [...githubItems, ...vercelItems];
+      const externalItems = await fetchVercelActivity();
       
       if (externalItems.length > 0) {
         await syncActivitiesToDb(externalItems);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { unauthorized, serverError } from "@/lib/api";
-import { fetchGitHubActivity, fetchVercelActivity } from "@/lib/github-activity";
+import { fetchVercelActivity } from "@/lib/vercel-activity";
 import { syncActivitiesToDb } from "@/lib/swe-activity-sync";
 
 /**
@@ -13,13 +13,7 @@ export async function POST() {
   if (!session) return unauthorized();
 
   try {
-    // 1. Fetch fresh data from external APIs
-    const [githubItems, vercelItems] = await Promise.all([
-      fetchGitHubActivity(),
-      fetchVercelActivity(),
-    ]);
-
-    const externalItems = [...githubItems, ...vercelItems];
+    const externalItems = await fetchVercelActivity();
 
     // 2. Sync to DB (upsert)
     await syncActivitiesToDb(externalItems);

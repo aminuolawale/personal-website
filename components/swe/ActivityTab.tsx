@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { GitCommit, Upload, User, Bot } from "lucide-react";
 import { fetchCachedJson } from "@/lib/client-cache";
-import { relativeTime } from "@/lib/github-activity";
+import { relativeTime } from "@/lib/vercel-activity";
 import type { SweActivity } from "@/lib/schema";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {

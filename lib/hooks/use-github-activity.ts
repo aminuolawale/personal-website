@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchCachedJson } from "@/lib/client-cache";
-import type { ActivityItem } from "@/lib/github-activity";
+import type { ActivityItem } from "@/lib/vercel-activity";
 
 interface UseGithubActivityResult {
   items: ActivityItem[];

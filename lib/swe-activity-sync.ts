@@ -1,7 +1,7 @@
 import { getDb } from "@/lib/db";
 import { sweActivity } from "@/lib/schema";
 import { sql, eq } from "drizzle-orm";
-import type { ActivityItem } from "@/lib/github-activity";
+import type { ActivityItem } from "@/lib/vercel-activity";
 
 /**
  * Persists activities to the database using an optimized batch upsert strategy.
