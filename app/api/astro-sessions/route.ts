@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc, desc, gte } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { astroGear, astroSessions, type AstroGear, type AstroSession } from "@/lib/schema";
