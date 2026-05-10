@@ -87,7 +87,8 @@ describe("readClaudeCodeSessions", () => {
     const userTurn = session.turns[0];
     expect(userTurn.role).toBe("user");
     expect(userTurn.text).toBe("Implement dark mode");
-    expect(userTurn.inputTokens).toBe(10);
+    // User messages in real Claude Code JSONL carry usage={} — tokens are always 0.
+    expect(userTurn.inputTokens).toBe(0);
     expect(userTurn.outputTokens).toBe(0);
 
     const assistantTurn = session.turns[1];
@@ -168,5 +169,140 @@ describe("readClaudeCodeSessions", () => {
     mockReadFileSync.mockImplementation(() => { throw new Error("read error"); });
 
     expect(readClaudeCodeSessions(WORKING_DIR, FROM, TO)).toEqual([]);
+  });
+
+  it("counts tokens from tool-only API calls (no text content)", () => {
+    // A realistic Claude Code session: first API call produces text, second
+    // is a pure tool_use with no text. Before this fix, the tool-only call's
+    // tokens were silently dropped.
+    const userMsg = makeMsg("user", "sess-tool", "2026-04-25T10:00:00Z", "Add tests");
+    // API call 1: thinking (same usage) + text (same usage) — grouped, text adopted
+    const thinking1 = JSON.stringify({
+      type: "assistant", uuid: "a1", parentUuid: null, isSidechain: false,
+      sessionId: "sess-tool", timestamp: "2026-04-25T10:00:02Z",
+      cwd: WORKING_DIR,
+      message: { role: "assistant", content: [], usage: { input_tokens: 5, output_tokens: 150, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    });
+    const text1 = JSON.stringify({
+      type: "assistant", uuid: "a2", parentUuid: "a1", isSidechain: false,
+      sessionId: "sess-tool", timestamp: "2026-04-25T10:00:03Z",
+      cwd: WORKING_DIR,
+      message: { role: "assistant", content: "Let me look at the code", usage: { input_tokens: 5, output_tokens: 150, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    });
+    // Simulated tool_result user message (empty text — skipped)
+    const toolResult = makeMsg("user", "sess-tool", "2026-04-25T10:00:05Z", "");
+    // API call 2: pure tool_use, no text — different usage key, should be counted
+    const toolOnly = JSON.stringify({
+      type: "assistant", uuid: "a3", parentUuid: null, isSidechain: false,
+      sessionId: "sess-tool", timestamp: "2026-04-25T10:00:07Z",
+      cwd: WORKING_DIR,
+      message: { role: "assistant", content: [], usage: { input_tokens: 2, output_tokens: 60, cache_read_input_tokens: 200, cache_creation_input_tokens: 100 } },
+    });
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue([userMsg, thinking1, text1, toolResult, toolOnly].join("\n"));
+
+    const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+
+    const turns = sessions[0].turns;
+    // user(0) + assistant-group-1(1, text='Let me look...') + assistant-group-2(2, no text)
+    expect(turns).toHaveLength(3);
+
+    const group1 = turns[1];
+    expect(group1.role).toBe("assistant");
+    expect(group1.text).toBe("Let me look at the code");
+    expect(group1.outputTokens).toBe(150);
+
+    const group2 = turns[2];
+    expect(group2.role).toBe("assistant");
+    expect(group2.text).toBe("");        // no text in this API call
+    expect(group2.outputTokens).toBe(60); // tokens ARE captured
+    expect(group2.cachedTokens).toBe(300); // 200 + 100
+  });
+
+  it("deduplicates thinking+text+tool_use from the same API call into one turn", () => {
+    // Claude Code emits thinking / text / tool_use as separate messages, all with
+    // IDENTICAL usage. Only one turn should be created and tokens counted once.
+    const sharedUsage = { input_tokens: 3, output_tokens: 170, cache_read_input_tokens: 12000, cache_creation_input_tokens: 8000 };
+    const userMsg = makeMsg("user", "sess-dedup", "2026-04-25T10:00:00Z", "Disable theme rotation");
+    const thinkingMsg = JSON.stringify({
+      type: "assistant", uuid: "b1", parentUuid: null, isSidechain: false,
+      sessionId: "sess-dedup", timestamp: "2026-04-25T10:00:02Z", cwd: WORKING_DIR,
+      message: { role: "assistant", content: [], usage: sharedUsage },
+    });
+    const textMsg = JSON.stringify({
+      type: "assistant", uuid: "b2", parentUuid: "b1", isSidechain: false,
+      sessionId: "sess-dedup", timestamp: "2026-04-25T10:00:03Z", cwd: WORKING_DIR,
+      message: { role: "assistant", content: "Let me find the rotation code", usage: sharedUsage },
+    });
+    const toolMsg = JSON.stringify({
+      type: "assistant", uuid: "b3", parentUuid: "b2", isSidechain: false,
+      sessionId: "sess-dedup", timestamp: "2026-04-25T10:00:04Z", cwd: WORKING_DIR,
+      message: { role: "assistant", content: [], usage: sharedUsage },
+    });
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue([userMsg, thinkingMsg, textMsg, toolMsg].join("\n"));
+
+    const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
+    const turns = sessions[0].turns;
+
+    // user(0) + ONE assistant turn (not three)
+    expect(turns).toHaveLength(2);
+    expect(turns[1].outputTokens).toBe(170);    // counted once
+    expect(turns[1].text).toBe("Let me find the rotation code"); // text from text message
+    expect(turns[1].cachedTokens).toBe(20000);  // 12000 + 8000
+  });
+
+  // ---- active-session-at-commit-time logic ----
+
+  it("picks the session with the most recent message ≤ toTime when multiple files exist", () => {
+    const staleContent = [
+      makeMsg("user", "stale-sess", "2026-04-25T09:30:00Z", "Stale work"),
+    ].join("\n");
+    const activeContent = [
+      makeMsg("user", "active-sess", "2026-04-25T11:00:00Z", "Active work"),
+      makeMsg("assistant", "active-sess", "2026-04-25T11:01:00Z", "Active response", { input_tokens: 200, output_tokens: 100 }),
+    ].join("\n");
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["stale.jsonl", "active.jsonl"]);
+    mockReadFileSync.mockImplementation((filePath: unknown) =>
+      String(filePath).includes("stale") ? staleContent : activeContent,
+    );
+
+    const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].sessionId).toBe("active-sess");
+    expect(sessions[0].turns).toHaveLength(2);
+    expect(sessions[0].turns[0].text).toBe("Active work");
+  });
+
+  it("returns only the identified session's turns when a file contains multiple sessions", () => {
+    const staleMsg = makeMsg("user", "sess-old", "2026-04-25T09:30:00Z", "Old session message");
+    const activeMsgUser = makeMsg("user", "sess-new", "2026-04-25T11:00:00Z", "New session message");
+    const activeMsgAsst = makeMsg("assistant", "sess-new", "2026-04-25T11:01:00Z", "New response", { input_tokens: 100, output_tokens: 50 });
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue([staleMsg, activeMsgUser, activeMsgAsst].join("\n"));
+
+    const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].sessionId).toBe("sess-new");
+    expect(sessions[0].turns).toHaveLength(2);
+    expect(sessions[0].turns.every((t) => t.text !== "Old session message")).toBe(true);
+  });
+
+  it("returns [] when all messages across all files are after toTime", () => {
+    const futureMsg = makeMsg("user", "future-sess", "2026-04-26T10:00:00Z", "Future message");
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue(futureMsg);
+
+    expect(readClaudeCodeSessions(WORKING_DIR, FROM, TO)).toHaveLength(0);
   });
 });

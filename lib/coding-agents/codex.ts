@@ -10,8 +10,8 @@ function getDbPath(): string {
 interface CodexThread {
   id: string;
   cwd: string;
-  created_at: string;
-  updated_at: string;
+  created_at: number; // Unix seconds
+  updated_at: number; // Unix seconds
   tokens_used: number | null;
   git_sha: string | null;
   first_user_message: string | null;
@@ -43,36 +43,52 @@ export function readCodexSessions(
   if (!db) return [];
 
   try {
+    // updated_at is stored as Unix SECONDS (integer). Convert JS ms timestamps.
+    const fromS = Math.floor(fromTime.getTime() / 1000);
+    const toS = Math.floor(toTime.getTime() / 1000);
+
     const rows: CodexThread[] = commitSha
       ? (db
           .prepare(
             `SELECT id, cwd, created_at, updated_at, tokens_used, git_sha, first_user_message
              FROM threads
-             WHERE git_sha = ? OR (cwd = ? AND created_at BETWEEN ? AND ?)`,
+             WHERE git_sha = ? OR (cwd = ? AND updated_at BETWEEN ? AND ?)`,
           )
-          .all(
-            commitSha,
-            workingDir,
-            fromTime.toISOString(),
-            toTime.toISOString(),
-          ) as CodexThread[])
+          .all(commitSha, workingDir, fromS, toS) as CodexThread[])
       : (db
           .prepare(
             `SELECT id, cwd, created_at, updated_at, tokens_used, git_sha, first_user_message
              FROM threads
-             WHERE cwd = ? AND created_at BETWEEN ? AND ?`,
+             WHERE cwd = ? AND updated_at BETWEEN ? AND ?`,
           )
-          .all(
-            workingDir,
-            fromTime.toISOString(),
-            toTime.toISOString(),
-          ) as CodexThread[]);
+          .all(workingDir, fromS, toS) as CodexThread[]);
 
-    return rows
-      .filter((r) => r.tokens_used && r.tokens_used > 0)
-      .map((r): AgentSession => {
-        const startTime = new Date(r.created_at);
-        const endTime = new Date(r.updated_at);
+    // Separate sha-linked threads (definitively tied to this commit) from
+    // window-matched threads. For window-matched threads apply the same
+    // active-session-at-commit-time rule: pick the single thread most
+    // recently updated before toTime (mirrors the Claude Code / Gemini logic).
+    const shaLinked = commitSha ? rows.filter((r) => r.git_sha === commitSha) : [];
+    const shaLinkedIds = new Set(shaLinked.map((r) => r.id));
+    const windowOnly = rows.filter((r) => !shaLinkedIds.has(r.id));
+
+    let activeWindowThread: CodexThread | null = null;
+    let latestUpdatedS = 0;
+    for (const r of windowOnly) {
+      if (!r.tokens_used || r.tokens_used <= 0) continue;
+      if (r.updated_at <= toS && r.updated_at > latestUpdatedS) {
+        latestUpdatedS = r.updated_at;
+        activeWindowThread = r;
+      }
+    }
+
+    const selectedRows = [
+      ...shaLinked.filter((r) => r.tokens_used && r.tokens_used > 0),
+      ...(activeWindowThread ? [activeWindowThread] : []),
+    ];
+
+    return selectedRows.map((r): AgentSession => {
+        const startTime = new Date(r.created_at * 1000);
+        const endTime = new Date(r.updated_at * 1000);
         const totalTokens = r.tokens_used ?? 0;
 
         // Codex only exposes a per-thread token total — no per-turn breakdown.
@@ -94,7 +110,7 @@ export function readCodexSessions(
           role: "assistant",
           text: "",
           timestamp: endTime,
-          inputTokens: totalTokens,  // lumped into input; output unknown
+          inputTokens: totalTokens, // lumped into input; output unknown
           outputTokens: 0,
           cachedTokens: 0,
         });

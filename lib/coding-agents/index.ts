@@ -4,7 +4,7 @@ import { readCodexSessions } from "./codex";
 import type { AgentSession, AgentTokenSummary, AgentName } from "./types";
 
 export type { AgentSession, AgentTokenSummary, AgentName };
-export type { SessionTurn, PromptEntry, SpecificityScore, ChangelistDesign, CommitMetrics } from "./types";
+export type { SessionTurn, SpecificityScore, ChangelistDesign, CommitMetrics } from "./types";
 
 export interface AggregatedSessions {
   sessions: AgentSession[];

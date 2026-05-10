@@ -1,6 +1,6 @@
 # Personal Website CMS
 
-A full-stack personal website and content management system built with Next.js. The public site covers software engineering, astrophotography, writing/book reviews, categorized reading notes, structured misc pages, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, misc tabs, misc series, projects, gallery photos, gear, astro sessions, finder previews, site content, visibility, theme settings, and tab configuration.
+A full-stack personal website and content management system built with Next.js 16. The public site covers software engineering, astrophotography, writing/book reviews, reading notes, misc articles, updates, reader comments, and a custom interactive night-sky map. A Google OAuth admin panel manages articles, books, reading-note categories, reading notes, misc tabs, misc series, projects, gallery photos, gear, astro sessions, finder previews, site content, visibility, theme settings, tab configuration, and SWE activity sync/metrics.
 
 **Live site:** https://mohamedall.com  
 **Hosting:** Vercel
@@ -31,7 +31,7 @@ A full-stack personal website and content management system built with Next.js. 
 ```text
 app/
   page.tsx                         Homepage: hero, updates, section portals
-  swe/                             Software engineering section and article pages
+  swe/                             Software engineering articles, projects, experience, activity
   astrophotography/                Astro section, including gallery, gear, sky map
   writing/                         Book reviews, reading notes, and article pages
   misc/                            Misc tabs containing filterable articles
@@ -66,12 +66,17 @@ app/
     comments/                      Reader comments
     updates/                       Site updates
     config/                        JSON key-value config store
+    github-activity/                Read-only SWE activity feed
+    admin/swe-activity/             SWE activity management
+    admin/swe-activity/sync/        Manual SWE activity sync
+    cron/swe-activity/              Vercel Cron SWE activity sync
 
 components/
   admin/                           Admin forms and settings editors
   astrophotography/                Astro public tabs, gallery, gear, sky map
   swe/                             SWE article tab
   celestial/                       Decorative celestial background helpers
+  Pagination.tsx                   Shared pagination controls
   *.tsx                            Shared UI: Navbar, Hero, PageHeader, TabBar, etc.
 
 lib/
@@ -80,9 +85,13 @@ lib/
   auth.ts                          Admin and reader session helpers
   api.ts                           Shared API response helpers
   hooks/                           Client data/config hooks
+  activity-score.ts                OCS bucket labels and derived SCS helper
   section-tabs.ts                  Shared built-in tab definitions
   section-visibility.ts            Section visibility and numbering helpers
   sky-*.ts                         Night-sky data, math, engine, drawing, targets
+  vercel-activity.ts               Fetches Vercel deployments and commit metadata
+  swe-activity-sync.ts             SWE activity sync, dedupe, sync state
+  pagination.ts                   Paginated API response types
   updates.ts                       Site update helper
   utils.ts                         Shared utilities
 
@@ -109,7 +118,7 @@ vitest.config.ts                   Vitest config
 | Section | URL | Main features |
 |---|---|---|
 | Home | `/` | Hero, recent updates, visible section portals |
-| Software Engineering | `/swe` | Articles, projects, about/experience |
+| Software Engineering | `/swe` | Articles, projects, about/experience, activity feed |
 | Astrophotography | `/astrophotography` | Articles, astro calendar, gallery, gear, night-sky map |
 | Writing | `/writing` | Book reviews and reading notes |
 | Misc | `/misc` | Admin-created tabs containing articles, filterable by series |
@@ -121,6 +130,7 @@ Deep-linking to a tab works via `?tab=<tab-id>`, for example:
 /astrophotography?tab=gear
 /astrophotography?tab=sky
 /swe?tab=projects
+/swe?tab=activity
 ```
 
 Gear links can also deep-link to an equipment modal:
@@ -128,6 +138,9 @@ Gear links can also deep-link to an equipment modal:
 ```text
 /astrophotography?tab=gear&gear=<gear-id>
 ```
+
+Most article lists are paginated and support deep-linking with `?page=<n>`.
+That includes SWE articles, Astro articles, Writing book reviews, and the admin article lists.
 
 The navbar and section headers respect section visibility. When sections are hidden, visible section numbers are recalculated consistently across navigation, home cards, and page headers.
 
@@ -171,6 +184,19 @@ Book entries store a title, author, year published, and category. Categories can
 
 The shared rich-text editor supports headings, lists, links, code, images by URL, inline LaTeX, and block LaTeX. Saved formulas render through KaTeX in articles, book reviews, misc pages, and reading notes.
 
+## SWE Activity
+
+The SWE activity feed is powered by Vercel deployment data and commit metadata fetched from GitHub when available.
+
+- Public feed: `/swe?tab=activity`
+- Read-only API: `/api/github-activity`
+- Manual sync: `/api/admin/swe-activity/sync`
+- Cron sync: `/api/cron/swe-activity`
+
+Activity rows are stored in `swe_activity` with soft-hide support, manual notes, computed commit metrics, and fetched commit metadata. Commit OCS values are bucketed into `poor`, `good`, or `great`, and SCS is derived from OCS in the UI rather than edited directly.
+
+The public feed is cached briefly and the admin dashboard can trigger manual syncs, recompute commit metrics, and inspect the stored metadata.
+
 ---
 
 ## Misc
@@ -196,6 +222,7 @@ Navigate to `/admin` and sign in with Google. Only the configured admin email ca
 | New Article | `/admin/dashboard/new` | Create article with rich-text body |
 | Edit Article | `/admin/dashboard/[id]` | Edit/publish/delete article |
 | Projects | `/admin/dashboard/projects` | SWE project management |
+| SWE Activity | `/admin/dashboard/swe-activity` | SWE activity sync, notes, metrics, visibility |
 | Gallery | `/admin/dashboard/gallery` | Astro photo management |
 | Gear Library | `/admin/dashboard/astro-gear` | Equipment, software, technique management |
 | Astro Sessions | `/admin/dashboard/astro-sessions` | Schedule sky-map sessions |
@@ -217,6 +244,17 @@ The Astrophotography dashboard actions include:
 
 Several admin create flows include a “Publish as Update” toggle. When enabled, the create action also inserts a row in `site_updates`, optionally with a thumbnail and a deep link back to the content.
 
+### SWE Activity
+
+The activity manager is used to:
+
+- trigger syncs from Vercel and GitHub
+- inspect stored commit metadata and computed OCS metrics
+- edit the display message and manual note
+- hide activities from the public feed
+
+OCS badges are grouped into `poor`, `good`, and `great`. SCS is derived from OCS and is not manually edited.
+
 ---
 
 ## Monitoring
@@ -232,6 +270,7 @@ Sentry captures:
 - structured telemetry logs through `/api/telemetry/events`
 - admin write events for articles, misc tabs, misc series, and astro sessions
 - public events for page views, reader opens, writing tabs, reading-note book selections, misc tabs, and misc series filters
+- SWE activity sync state and manual sync actions
 
 Required production environment variables:
 
@@ -273,6 +312,7 @@ SENTRY_AUTH_TOKEN=...
 | `site_updates` | Homepage and `/updates` feed |
 | `site_config` | JSON config values for tabs/content/settings |
 | `comments` | Reader comments on articles |
+| `swe_activity` | SWE activity feed rows, metrics, commit metadata, visibility |
 
 ### Applying Schema Changes
 
@@ -281,7 +321,7 @@ npm run db:push        # push to the dev database in .env.local
 npm run db:push --prod # temporarily use .env.prod.forsync, push, then restore .env.local
 ```
 
-The current astro session, finder-preview, reading-notes, and misc-structure features require the `astro_sessions`, `finder_previews`, `book_categories`, `books`, `reading_notes`, `misc_tabs`, and `misc_series` tables plus the `articles.misc_tab_id` and `articles.series_id` columns to exist in the target database.
+The current astro session, finder-preview, reading-notes, misc-structure, and SWE activity features require the `astro_sessions`, `finder_previews`, `book_categories`, `books`, `reading_notes`, `misc_tabs`, `misc_series`, and `swe_activity` tables plus the `articles.misc_tab_id` and `articles.series_id` columns to exist in the target database.
 
 ---
 
@@ -319,7 +359,7 @@ Protection layers:
 1. `middleware.ts` redirects non-admins away from `/admin/dashboard/*`.
 2. API write routes call `getSession()` from `lib/auth.ts`.
 3. Public GET routes are generally unauthenticated.
-4. Reader comments can use any signed-in Google account; comment approval remains admin-controlled.
+4. Reader comments can use any signed-in Google account; comment approval is handled through the comments API.
 
 ---
 
@@ -334,6 +374,10 @@ AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 BLOB_READ_WRITE_TOKEN=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+VERCEL_TOKEN=
+VERCEL_TEAM_ID=
+CRON_SECRET=
+GITHUB_TOKEN=
 ```
 
 For production, configure the same variables in Vercel. Use the production domain for `NEXT_PUBLIC_SITE_URL`.
@@ -379,9 +423,11 @@ Current coverage includes:
 - updates API
 - astro sessions API
 - book categories, books, and reading notes API
+- SWE activity sync and admin activity routes
 - auth/comment components
 - data hooks
 - section visibility helpers
+- pagination helpers
 - sky target catalog
 - shared utilities
 

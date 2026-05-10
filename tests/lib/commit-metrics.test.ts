@@ -129,23 +129,25 @@ describe("computeCommitMetrics", () => {
     expect(metrics.loc.net).toBe(0);
   });
 
-  it("returns null foundationPrompt when there are no sessions", async () => {
+  it("returns null conversation when there are no sessions", async () => {
     setupExecSync();
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
-    expect(metrics.foundationPrompt).toBeNull();
+    expect(metrics.conversation).toBeNull();
+    expect(metrics.conversationScore).toBeNull();
     expect(metrics.scores.ocs).toBe(0);
     expect(mockScoreSpecificity).not.toHaveBeenCalled();
   });
 
-  it("scores the foundation prompt and computes OCS when sessions exist", async () => {
+  it("scores the conversation and computes OCS when sessions exist", async () => {
     setupExecSync();
     mockAggregate.mockReturnValue(makeAggregateWithSession());
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
 
     expect(mockScoreSpecificity).toHaveBeenCalledTimes(1);
     expect(mockComputeOCS).toHaveBeenCalledTimes(1);
-    expect(metrics.foundationPrompt).not.toBeNull();
-    expect(metrics.foundationPrompt?.specificity.total).toBe(75);
+    expect(metrics.conversation).not.toBeNull();
+    expect(metrics.conversationScore).not.toBeNull();
+    expect(metrics.conversationScore?.specificity.total).toBe(75);
     expect(metrics.scores.ocs).toBe(80);
   });
 

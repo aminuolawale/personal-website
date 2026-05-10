@@ -12,6 +12,7 @@ import { GET, POST } from "@/app/api/admin/swe-activity/[id]/metrics/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { computeCommitMetrics } from "@/lib/commit-metrics";
+import { execSync } from "child_process";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
   return new NextRequest(new URL(url, "http://localhost:3000"), opts as any);
@@ -23,11 +24,24 @@ const MOCK_METRICS = {
   capturedAt: "2026-04-25T11:00:00Z",
   loc: { additions: 10, deletions: 5, net: 15, filesChanged: 2 },
   tokenMetrics: { totalTokens: 800, outputTokens: 300, inputTokens: 500, cachedTokens: 100, tokensPerLOC: 53, byAgent: {} },
-  promptChain: [],
-  foundationPrompt: null,
+  conversation: null,
+  conversationScore: null,
   clDesign: null,
   scores: { ocs: 72 },
 };
+
+function mockAuthenticatedDb(rows: any[], savedRef?: { value: any }) {
+  vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+  vi.mocked(getDb).mockReturnValue({
+    select: () => ({ from: () => ({ where: async () => rows }) }),
+    update: () => ({
+      set: (values: any) => {
+        if (savedRef) savedRef.value = values;
+        return { where: async () => {} };
+      },
+    }),
+  } as any);
+}
 
 describe("GET /api/admin/swe-activity/[id]/metrics", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -111,35 +125,64 @@ describe("POST /api/admin/swe-activity/[id]/metrics", () => {
     expect(res.status).toBe(400);
   });
 
-  it("recomputes metrics and saves them to the database", async () => {
-    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
-    let savedMetrics: any;
-    vi.mocked(getDb).mockReturnValue({
-      select: () => ({ from: () => ({ where: async () => [{ externalId: "vercel-commit-abc123", type: "commit" }] }) }),
-      update: () => ({
-        set: (values: any) => {
-          savedMetrics = values;
-          return { where: async () => {} };
-        },
-      }),
-    } as any);
+  it("derives prevSha from git log and passes it to computeCommitMetrics", async () => {
+    // prevSha comes from git, not from the request body. This ensures the session
+    // window is [prevCommitTime, commitTime] and not [epoch, commitTime].
+    vi.mocked(execSync).mockReturnValue("def456\n" as any);
+    const saved: { value: any } = { value: undefined };
+    mockAuthenticatedDb([{ externalId: "vercel-commit-abc123", type: "commit" }], saved);
     vi.mocked(computeCommitMetrics).mockResolvedValue(MOCK_METRICS as any);
 
     const res = await POST(
-      makeRequest("http://localhost/api/admin/swe-activity/1/metrics", {
-        method: "POST",
-        body: JSON.stringify({ prevSha: "def456" }),
-      }),
-      { params: params("1") }
+      makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }),
+      { params: params("1") },
+    );
+
+    expect(res.status).toBe(200);
+    expect(execSync).toHaveBeenCalledWith(
+      expect.stringContaining("git log --pretty=%P -n1 abc123"),
+      expect.anything(),
+    );
+    expect(computeCommitMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({ sha: "abc123", prevSha: "def456" }),
+    );
+    // Full atomic replacement — no stale fields survive.
+    expect(saved.value).toEqual({
+      metrics: MOCK_METRICS,
+      updatedAt: expect.any(Date),
+    });
+    expect((await res.json()).metrics.scores.ocs).toBe(72);
+  });
+
+  it("uses empty prevSha for the first commit (no parent in git log)", async () => {
+    vi.mocked(execSync).mockReturnValue("" as any);
+    mockAuthenticatedDb([{ externalId: "vercel-commit-abc123", type: "commit" }]);
+    vi.mocked(computeCommitMetrics).mockResolvedValue(MOCK_METRICS as any);
+
+    await POST(
+      makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }),
+      { params: params("1") },
+    );
+
+    expect(computeCommitMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({ sha: "abc123", prevSha: "" }),
+    );
+  });
+
+  it("uses empty prevSha when git log fails (SHA not present in local checkout)", async () => {
+    vi.mocked(execSync).mockImplementation(() => { throw new Error("unknown revision"); });
+    mockAuthenticatedDb([{ externalId: "vercel-commit-abc123", type: "commit" }]);
+    vi.mocked(computeCommitMetrics).mockResolvedValue(MOCK_METRICS as any);
+
+    const res = await POST(
+      makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }),
+      { params: params("1") },
     );
 
     expect(res.status).toBe(200);
     expect(computeCommitMetrics).toHaveBeenCalledWith(
-      expect.objectContaining({ sha: "abc123", prevSha: "def456" })
+      expect.objectContaining({ sha: "abc123", prevSha: "" }),
     );
-    expect(savedMetrics.metrics).toEqual(MOCK_METRICS);
-    const body = await res.json();
-    expect(body.metrics.scores.ocs).toBe(72);
   });
 
   it("returns 400 when externalId does not contain a SHA", async () => {

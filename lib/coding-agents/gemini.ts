@@ -29,14 +29,31 @@ interface GeminiLine {
 
 function parseSessionFile(filePath: string): GeminiLine[] {
   try {
-    return fs
+    const allLines = fs
       .readFileSync(filePath, "utf8")
       .split("\n")
       .filter(Boolean)
       .map((line) => {
         try { return JSON.parse(line); } catch { return null; }
       })
-      .filter((l): l is GeminiLine => l !== null);
+      // Drop unparseable lines and MongoDB-style $set update ops.
+      .filter((l): l is GeminiLine => l !== null && !("$set" in (l as object)));
+
+    // Gemini writes every message twice: once on emission (no toolCalls) and
+    // again after the tool calls are resolved (with toolCalls populated).
+    // Both occurrences share the same `id` and identical token counts.
+    // Deduplicate by id, keeping the last occurrence (most complete data).
+    const lastById = new Map<string, GeminiLine>();
+    const insertionOrder: string[] = [];
+
+    for (const line of allLines) {
+      if (!line.id) continue; // header and other id-less lines handled below
+      if (!lastById.has(line.id)) insertionOrder.push(line.id);
+      lastById.set(line.id, line);
+    }
+
+    const idLessLines = allLines.filter((l) => !l.id); // header(s)
+    return [...idLessLines, ...insertionOrder.map((id) => lastById.get(id)!)];
   } catch {
     return [];
   }
@@ -61,74 +78,78 @@ export function readGeminiSessions(
     .filter((f) => f.endsWith(".jsonl"))
     .map((f) => path.join(chatsDir, f));
 
-  const sessions: AgentSession[] = [];
+  // Pass 1: Find the chat file most recently active at toTime (commit time).
+  // The message line with the latest timestamp ≤ toTime identifies the session
+  // that was in use when the commit was made.
+  let activeFile: string | null = null;
+  let activeLatestTs = new Date(0);
 
   for (const file of files) {
     const lines = parseSessionFile(file);
-    if (lines.length === 0) continue;
-
-    // First line is the session header: {sessionId, startTime, kind:"main"}
-    const header = lines[0];
-    if (!header.startTime) continue;
-
-    const sessionStart = new Date(header.startTime);
-    // Only skip sessions that haven't started yet. Sessions that started
-    // before fromTime can still have messages within the window (e.g. a
-    // conversation that spanned the previous commit boundary).
-    if (sessionStart > toTime) continue;
-
-    const sessionId = header.sessionId ?? path.basename(file, ".jsonl");
-    const turns: SessionTurn[] = [];
-    let idx = 0;
-
-    const messageLinesInWindow = lines.slice(1).filter((l) => {
-      if (!l.timestamp) return false;
-      const ts = new Date(l.timestamp);
-      return ts >= fromTime && ts <= toTime;
-    });
-
-    for (const line of messageLinesInWindow) {
-      if (line.type === "user") {
-        const text = extractText(line.content);
-        if (!text) continue;
-        turns.push({
-          index: idx++,
-          role: "user",
-          text,
-          timestamp: new Date(line.timestamp!),
-          inputTokens: 0,
-          outputTokens: 0,
-          cachedTokens: 0,
-        });
-      } else if (line.type === "gemini") {
-        const text = extractText(line.content);
-        const tok = line.tokens;
-        // thoughts are billed as output tokens
-        const outputTokens = (tok?.output ?? 0) + (tok?.thoughts ?? 0);
-        turns.push({
-          index: idx++,
-          role: "assistant",
-          text,
-          timestamp: new Date(line.timestamp!),
-          inputTokens: tok?.input ?? 0,
-          outputTokens,
-          cachedTokens: tok?.cached ?? 0,
-        });
+    for (const line of lines.slice(1)) { // skip header
+      if (!line.timestamp) continue;
+      const ts = new Date(line.timestamp);
+      if (ts > toTime) continue;
+      if (ts > activeLatestTs) {
+        activeLatestTs = ts;
+        activeFile = file;
       }
     }
-
-    if (turns.length === 0) continue;
-
-    const timestamps = turns.map((t) => t.timestamp.getTime());
-    sessions.push({
-      sessionId,
-      agent: "gemini",
-      startTime: new Date(Math.min(...timestamps)),
-      endTime: new Date(Math.max(...timestamps)),
-      workingDir,
-      turns,
-    });
   }
 
-  return sessions;
+  if (!activeFile) return [];
+
+  // Pass 2: Extract turns from the active session within [fromTime, toTime].
+  const lines = parseSessionFile(activeFile);
+  const header = lines[0];
+  if (!header?.startTime) return [];
+
+  const sessionId = header.sessionId ?? path.basename(activeFile, ".jsonl");
+  const turns: SessionTurn[] = [];
+  let idx = 0;
+
+  for (const line of lines.slice(1)) {
+    if (!line.timestamp) continue;
+    const ts = new Date(line.timestamp);
+    if (ts < fromTime || ts > toTime) continue;
+
+    if (line.type === "user") {
+      const text = extractText(line.content);
+      if (!text) continue;
+      turns.push({
+        index: idx++,
+        role: "user",
+        text,
+        timestamp: ts,
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedTokens: 0,
+      });
+    } else if (line.type === "gemini") {
+      const text = extractText(line.content);
+      const tok = line.tokens;
+      // thoughts are billed as output tokens
+      const outputTokens = (tok?.output ?? 0) + (tok?.thoughts ?? 0);
+      turns.push({
+        index: idx++,
+        role: "assistant",
+        text,
+        timestamp: ts,
+        inputTokens: tok?.input ?? 0,
+        outputTokens,
+        cachedTokens: tok?.cached ?? 0,
+      });
+    }
+  }
+
+  if (turns.length === 0) return [];
+
+  return [{
+    sessionId,
+    agent: "gemini",
+    startTime: turns[0].timestamp,
+    endTime: turns[turns.length - 1].timestamp,
+    workingDir,
+    turns,
+  }];
 }

@@ -101,7 +101,9 @@ describe("readGeminiSessions", () => {
     expect(sessions[0].turns[0].outputTokens).toBe(300); // 100 output + 200 thoughts
   });
 
-  it("excludes sessions whose header startTime is outside the window", () => {
+  it("returns [] when a session's only message falls before fromTime", () => {
+    // The session is the most recently active one (its message is the latest ≤ toTime),
+    // but the [fromTime, toTime] filter excludes all its turns → empty result.
     const content = makeSessionFile("gem-3", "2026-04-24T08:00:00Z", [
       {
         type: "user",
@@ -115,6 +117,61 @@ describe("readGeminiSessions", () => {
     mockReadFileSync.mockReturnValue(content);
 
     expect(readGeminiSessions(WORKING_DIR, FROM, TO)).toHaveLength(0);
+  });
+
+  it("deduplicates messages that share the same id (Gemini writes each message twice)", () => {
+    // Gemini appends a second copy of every message after resolving toolCalls.
+    // Both copies have identical id, timestamp, and token counts.
+    // We must count tokens exactly once per message.
+    const duplicate = JSON.stringify({ id: "m1", timestamp: "2026-04-25T10:00:00Z", type: "user", content: [{ text: "Run tests" }] });
+    const geminiMsg = JSON.stringify({
+      id: "m2",
+      timestamp: "2026-04-25T10:01:00Z",
+      type: "gemini",
+      content: "",
+      tokens: { input: 100, output: 80, cached: 20, thoughts: 0, total: 200 },
+    });
+    const geminiMsgUpdated = JSON.stringify({
+      id: "m2",                                  // same id as above — the "updated" copy
+      timestamp: "2026-04-25T10:01:00Z",
+      type: "gemini",
+      content: "I ran the tests",                 // now has text
+      tokens: { input: 100, output: 80, cached: 20, thoughts: 0, total: 200 },
+    });
+    const setLine = JSON.stringify({ $set: { lastUpdated: "2026-04-25T10:01:00Z" } });
+    const header = JSON.stringify({ sessionId: "gem-dedup", startTime: "2026-04-25T10:00:00Z", kind: "main" });
+    const content = [header, duplicate, geminiMsg, setLine, geminiMsgUpdated].join("\n");
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue(content);
+
+    const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    // Only one assistant turn despite two copies of m2 in the file.
+    const assistantTurns = sessions[0].turns.filter((t) => t.role === "assistant");
+    expect(assistantTurns).toHaveLength(1);
+    expect(assistantTurns[0].inputTokens).toBe(100);
+    expect(assistantTurns[0].outputTokens).toBe(80);
+    // Text comes from the deduplicated (last) copy.
+    expect(assistantTurns[0].text).toBe("I ran the tests");
+  });
+
+  it("ignores $set update-op lines (does not treat them as message turns)", () => {
+    const header = JSON.stringify({ sessionId: "gem-set", startTime: "2026-04-25T10:00:00Z", kind: "main" });
+    const userMsg = JSON.stringify({ id: "u1", timestamp: "2026-04-25T10:00:00Z", type: "user", content: [{ text: "hello" }] });
+    const setLine = JSON.stringify({ $set: { lastUpdated: "2026-04-25T10:00:00Z" } });
+    const content = [header, userMsg, setLine].join("\n");
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue(content);
+
+    const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    // Only the user turn — the $set line is not a turn.
+    expect(sessions[0].turns).toHaveLength(1);
+    expect(sessions[0].turns[0].role).toBe("user");
   });
 
   it("skips session lines without a timestamp", () => {
@@ -144,5 +201,56 @@ describe("readGeminiSessions", () => {
 
     const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
     expect(sessions[0].turns[0].text).toBe("Plain string content");
+  });
+
+  // ---- active-session-at-commit-time logic ----
+
+  it("picks the file with the most recently active message ≤ toTime when multiple files exist", () => {
+    const staleContent = makeSessionFile("gem-stale", "2026-04-25T09:00:00Z", [
+      { type: "user", id: "m1", timestamp: "2026-04-25T09:30:00Z", content: [{ text: "Stale work" }] },
+    ]);
+    const activeContent = makeSessionFile("gem-active", "2026-04-25T10:00:00Z", [
+      { type: "user", id: "m1", timestamp: "2026-04-25T11:00:00Z", content: [{ text: "Active work" }] },
+      {
+        type: "gemini", id: "m2", timestamp: "2026-04-25T11:01:00Z",
+        content: [{ text: "Active response" }],
+        tokens: { input: 100, output: 50, cached: 0, total: 150 },
+      },
+    ]);
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["stale.jsonl", "active.jsonl"]);
+    mockReadFileSync.mockImplementation((filePath: unknown) =>
+      String(filePath).includes("stale") ? staleContent : activeContent,
+    );
+
+    const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].sessionId).toBe("gem-active");
+    expect(sessions[0].turns[0].text).toBe("Active work");
+  });
+
+  it("includes only in-window turns from a session that started before fromTime", () => {
+    // A developer session that spans the previous commit boundary: started before
+    // fromTime but still has messages after it. Only the post-fromTime portion
+    // should be attributed to this commit.
+    const content = makeSessionFile("gem-cross", "2026-04-25T08:00:00Z", [
+      { type: "user", id: "m1", timestamp: "2026-04-25T08:30:00Z", content: [{ text: "Before window" }] },
+      { type: "user", id: "m2", timestamp: "2026-04-25T10:00:00Z", content: [{ text: "In window" }] },
+      {
+        type: "gemini", id: "m3", timestamp: "2026-04-25T10:01:00Z",
+        content: [{ text: "In-window response" }],
+        tokens: { input: 100, output: 50, cached: 0, total: 150 },
+      },
+    ]);
+
+    mockExistsSync.mockReturnValue(true);
+    mockReaddirSync.mockReturnValue(["session.jsonl"]);
+    mockReadFileSync.mockReturnValue(content);
+
+    const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].turns).toHaveLength(2); // "In window" user + gemini response
+    expect(sessions[0].turns[0].text).toBe("In window");
   });
 });

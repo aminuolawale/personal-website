@@ -49,16 +49,6 @@ export interface SpecificityScore {
   explanation: string;
 }
 
-// ---- Prompt chain ----
-
-export interface PromptEntry {
-  index: number;
-  role: "foundation" | "refinement" | "correction";
-  text: string;
-  timestamp: Date;
-  tokensConsumed: number;
-}
-
 // ---- Changelist Design ----
 
 export interface ChangelistDesign {
@@ -86,9 +76,8 @@ export interface CommitMetrics {
     tokensPerLOC: number;
     byAgent: Partial<Record<AgentName, AgentTokenSummary>>;
   };
-  promptChain: PromptEntry[];
-  foundationPrompt: {
-    text: string;
+  conversation: string | null;
+  conversationScore: {
     specificity: SpecificityScore;
   } | null;
   clDesign: ChangelistDesign | null;

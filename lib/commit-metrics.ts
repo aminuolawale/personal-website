@@ -4,7 +4,6 @@ import { scoreSpecificity } from "./specificity-scorer";
 import { computeOCS } from "./ocs-calculator";
 import type {
   CommitMetrics,
-  PromptEntry,
   ChangelistDesign,
   AgentSession,
   SessionTurn,
@@ -54,41 +53,30 @@ function getCommitTime(sha: string, repoPath: string): Date | null {
   }
 }
 
-// ---- Prompt chain extraction ----
+// ---- Conversation builder ----
 
-function buildPromptChain(sessions: AgentSession[]): PromptEntry[] {
-  // Flatten all user turns across sessions, sorted by timestamp.
-  const userTurns: (SessionTurn & { agentOutputTokens: number })[] = [];
+const AGENT_DISPLAY: Record<string, string> = {
+  "claude-code": "Claude Code",
+  gemini: "Gemini",
+  codex: "Codex",
+};
 
+function buildConversation(sessions: AgentSession[]): string {
+  const allTurns: { turn: SessionTurn; agent: string }[] = [];
   for (const session of sessions) {
-    for (let i = 0; i < session.turns.length; i++) {
-      const turn = session.turns[i];
-      if (turn.role !== "user") continue;
-      // Attribute the output tokens of the following assistant turn to this prompt.
-      const next = session.turns[i + 1];
-      userTurns.push({
-        ...turn,
-        agentOutputTokens: next?.role === "assistant" ? next.outputTokens : 0,
-      });
+    for (const turn of session.turns) {
+      allTurns.push({ turn, agent: session.agent });
     }
   }
+  allTurns.sort((a, b) => a.turn.timestamp.getTime() - b.turn.timestamp.getTime());
 
-  userTurns.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-  return userTurns.map((t, idx): PromptEntry => ({
-    index: idx,
-    role: idx === 0 ? "foundation" : "refinement",
-    text: t.text,
-    timestamp: t.timestamp,
-    tokensConsumed: t.agentOutputTokens,
-  }));
-}
-
-// ---- Foundation prompt ----
-
-function findFoundationPrompt(chain: PromptEntry[]): string | null {
-  const substantial = chain.find((p) => p.text.length >= 60);
-  return substantial?.text ?? chain[0]?.text ?? null;
+  const lines: string[] = [];
+  for (const { turn, agent } of allTurns) {
+    if (!turn.text.trim()) continue;
+    const speaker = turn.role === "user" ? "Mohammed" : (AGENT_DISPLAY[agent] ?? agent);
+    lines.push(`${speaker}: ${turn.text.trim()}`);
+  }
+  return lines.join("\n\n");
 }
 
 // ---- CL Design extraction ----
@@ -108,12 +96,11 @@ function isPlanMode(text: string): boolean {
 }
 
 function findClDesign(sessions: AgentSession[]): ChangelistDesign | null {
-  // Look at the first few assistant turns across all sessions.
   const candidates: (SessionTurn & { turnIndex: number })[] = [];
   for (const session of sessions) {
     for (const turn of session.turns) {
       if (turn.role !== "assistant") continue;
-      if (turn.index > 3) break; // only early turns qualify
+      if (turn.index > 3) break;
       candidates.push({ ...turn, turnIndex: turn.index });
     }
   }
@@ -121,7 +108,7 @@ function findClDesign(sessions: AgentSession[]): ChangelistDesign | null {
   candidates.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   for (const c of candidates) {
-    if (c.outputTokens < 150) continue;         // too short
+    if (c.outputTokens < 150) continue;
     if (!c.text.trim()) continue;
     return {
       text: c.text,
@@ -155,18 +142,16 @@ export async function computeCommitMetrics(params: {
   const effectiveLOC = Math.max(loc.net, 1);
   const tokensPerLOC = Math.round(totalTokens / effectiveLOC);
 
-  const chain = buildPromptChain(sessions);
-  const foundationText = findFoundationPrompt(chain);
+  const conversation = buildConversation(sessions) || null;
   const clDesign = findClDesign(sessions);
 
-  let foundationPrompt: CommitMetrics["foundationPrompt"] = null;
+  let conversationScore: CommitMetrics["conversationScore"] = null;
   let ocs = 0;
 
-  if (foundationText) {
-    const specificity = await scoreSpecificity(foundationText);
-    foundationPrompt = { text: foundationText, specificity };
-    // Some agents (Codex) lump all tokens into inputTokens with outputTokens=0.
-    // Fall back to totalTokens so the efficiency score isn't artificially 100.
+  if (conversation) {
+    const scoreText = conversation.slice(0, 3000);
+    const specificity = await scoreSpecificity(scoreText);
+    conversationScore = { specificity };
     const effectiveOutputTokens = totalOutputTokens > 0 ? totalOutputTokens : totalTokens;
     ocs = computeOCS({
       specificityScore: specificity.total,
@@ -186,8 +171,8 @@ export async function computeCommitMetrics(params: {
       tokensPerLOC,
       byAgent,
     },
-    promptChain: chain,
-    foundationPrompt,
+    conversation,
+    conversationScore,
     clDesign,
     scores: { ocs },
   };

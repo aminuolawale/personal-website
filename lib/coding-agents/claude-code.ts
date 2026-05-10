@@ -72,48 +72,92 @@ export function readClaudeCodeSessions(
     .filter((f) => f.endsWith(".jsonl"))
     .map((f) => path.join(projectDir, f));
 
-  const sessions: AgentSession[] = [];
+  // Pass 1: Find the session (file + sessionId) most recently active at toTime.
+  // The non-sidechain message with the latest timestamp ≤ toTime identifies the
+  // session that was in use when the commit was made.
+  let activeFile: string | null = null;
+  let activeSessionId: string | null = null;
+  let activeLatestTs = new Date(0);
 
   for (const file of jsonlFiles) {
-    const messages = parseSessionFile(file);
-    if (messages.length === 0) continue;
-
-    // Group by sessionId; only keep messages in this cwd and time window.
-    const bySession = new Map<string, ClaudeMessage[]>();
-    for (const msg of messages) {
+    for (const msg of parseSessionFile(file)) {
+      if (msg.isSidechain) continue;
       if (msg.cwd && msg.cwd !== workingDir) continue;
       const ts = new Date(msg.timestamp);
-      if (ts < fromTime || ts > toTime) continue;
-      const bucket = bySession.get(msg.sessionId) ?? [];
-      bucket.push(msg);
-      bySession.set(msg.sessionId, bucket);
+      if (ts > toTime) continue;
+      if (ts > activeLatestTs) {
+        activeLatestTs = ts;
+        activeFile = file;
+        activeSessionId = msg.sessionId;
+      }
     }
+  }
 
-    for (const [sessionId, msgs] of bySession) {
-      if (msgs.length === 0) continue;
-      // Drop sidechain messages to keep only the main conversation thread.
-      const mainThread = msgs.filter((m) => !m.isSidechain);
-      if (mainThread.length === 0) continue;
+  if (!activeFile || !activeSessionId) return [];
 
-      const sorted = mainThread.sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
+  // Pass 2: Extract turns from the identified session within [fromTime, toTime].
+  const msgs = parseSessionFile(activeFile)
+    .filter((m) =>
+      m.sessionId === activeSessionId &&
+      !m.isSidechain &&
+      !(m.cwd && m.cwd !== workingDir),
+    )
+    .filter((m) => {
+      const ts = new Date(m.timestamp);
+      return ts >= fromTime && ts <= toTime;
+    })
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-      const turns: SessionTurn[] = [];
-      let idx = 0;
+  const turns: SessionTurn[] = [];
+  let idx = 0;
 
-      for (const msg of sorted) {
-        const usage = msg.message?.usage;
-        const text =
-          msg.type === "user"
-            ? extractText(msg.message?.content)
-            : extractText(msg.message?.content);
+  // Claude Code stores one message per content block (thinking / text / tool_use)
+  // for each API call. Messages from the same API call share identical
+  // (input, output, cache_read, cache_creation) token counts. Group consecutive
+  // assistant messages by that usage key so every API call's tokens are counted
+  // exactly once — including tool-only calls that carry no text.
+  let pendingGroup: SessionTurn | null = null;
+  let pendingGroupKey: string | null = null;
 
-        if (!text) continue;
+  function flushGroup() {
+    if (pendingGroup) {
+      turns.push(pendingGroup);
+      pendingGroup = null;
+      pendingGroupKey = null;
+    }
+  }
 
-        turns.push({
+  for (const msg of msgs) {
+    if (msg.type === "user") {
+      flushGroup();
+      const text = extractText(msg.message?.content);
+      if (!text) continue; // tool_result messages have no user-visible text
+      turns.push({
+        index: idx++,
+        role: "user",
+        text,
+        timestamp: new Date(msg.timestamp),
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedTokens: 0,
+      });
+    } else if (msg.type === "assistant") {
+      const usage = msg.message?.usage;
+      const key = `${usage?.input_tokens ?? 0}:${usage?.output_tokens ?? 0}:${usage?.cache_read_input_tokens ?? 0}:${usage?.cache_creation_input_tokens ?? 0}`;
+      const text = extractText(msg.message?.content);
+
+      if (key === pendingGroupKey && pendingGroup) {
+        // Same API call — adopt the first text-bearing message's content.
+        if (!pendingGroup.text && text) {
+          pendingGroup.text = text;
+          pendingGroup.timestamp = new Date(msg.timestamp);
+        }
+      } else {
+        flushGroup();
+        pendingGroupKey = key;
+        pendingGroup = {
           index: idx++,
-          role: msg.type === "user" ? "user" : "assistant",
+          role: "assistant",
           text,
           timestamp: new Date(msg.timestamp),
           inputTokens: usage?.input_tokens ?? 0,
@@ -121,21 +165,20 @@ export function readClaudeCodeSessions(
           cachedTokens:
             (usage?.cache_read_input_tokens ?? 0) +
             (usage?.cache_creation_input_tokens ?? 0),
-        });
+        };
       }
-
-      if (turns.length === 0) continue;
-
-      sessions.push({
-        sessionId,
-        agent: "claude-code",
-        startTime: new Date(sorted[0].timestamp),
-        endTime: new Date(sorted[sorted.length - 1].timestamp),
-        workingDir,
-        turns,
-      });
     }
   }
+  flushGroup();
 
-  return sessions;
+  if (turns.length === 0) return [];
+
+  return [{
+    sessionId: activeSessionId,
+    agent: "claude-code",
+    startTime: turns[0].timestamp,
+    endTime: turns[turns.length - 1].timestamp,
+    workingDir,
+    turns,
+  }];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { GitCommit, Upload, X, ExternalLink } from "lucide-react";
 import { relativeTime } from "@/lib/vercel-activity";
 import type { SweActivity } from "@/lib/schema";
@@ -30,8 +30,11 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
   const commitMetadata = item.commitMetadata;
   const ocs = metrics?.scores.ocs ?? null;
   const bucket = ocs !== null ? getOcsBucket(ocs) : null;
-  const specificity = metrics?.foundationPrompt?.specificity ?? null;
+  const specificity = metrics?.conversationScore?.specificity ?? null;
   const dominantAgent = metrics ? getDominantAgent(metrics.tokenMetrics.byAgent) : "AI";
+  const [conversationExpanded, setConversationExpanded] = useState(false);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  const CONVERSATION_PREVIEW_LEN = 300;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -124,11 +127,35 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
           </div>
         )}
 
-        {/* Prompt quality */}
+        {/* Conversation */}
+        {metrics?.conversation && (
+          <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[10px] text-muted/25 uppercase tracking-wider">Conversation</p>
+              {metrics.conversation.length > CONVERSATION_PREVIEW_LEN && (
+                <button
+                  onClick={() => setConversationExpanded((v) => !v)}
+                  className="font-mono text-[10px] text-accent/50 hover:text-accent/80 transition-colors"
+                >
+                  {conversationExpanded ? "Collapse" : "Expand"}
+                </button>
+              )}
+            </div>
+            <div ref={conversationRef}>
+              <p className="text-[11px] text-muted/50 leading-relaxed whitespace-pre-wrap font-mono">
+                {conversationExpanded
+                  ? metrics.conversation
+                  : metrics.conversation.slice(0, CONVERSATION_PREVIEW_LEN) + (metrics.conversation.length > CONVERSATION_PREVIEW_LEN ? "…" : "")}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Conversation quality */}
         {specificity && (
           <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2.5">
             <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
-              <span className="text-muted/35">Prompt Quality</span>
+              <span className="text-muted/35">Conversation Quality</span>
               <span className={`px-1.5 py-0.5 border ${OCS_BUCKET_CLASSES[getOcsBucket(specificity.total)]}`}>
                 {specificity.total}
               </span>
@@ -161,16 +188,6 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
                 {specificity.explanation}
               </p>
             )}
-          </div>
-        )}
-
-        {/* Foundation prompt */}
-        {metrics?.foundationPrompt?.text && (
-          <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2">
-            <p className="font-mono text-[10px] text-muted/25 uppercase tracking-wider">Foundation Prompt</p>
-            <p className="text-[11px] text-muted/50 leading-relaxed whitespace-pre-wrap font-mono">
-              {metrics.foundationPrompt.text}
-            </p>
           </div>
         )}
 

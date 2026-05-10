@@ -15,13 +15,9 @@ export const OCS_BUCKET_CLASSES: Record<OcsBucket, string> = {
 };
 
 export function getOcsBucket(ocs: number): OcsBucket {
-  if (ocs < 50) return "poor";
+  if (ocs < 30) return "poor";
   if (ocs < 80) return "good";
   return "great";
-}
-
-export function deriveScsFromOcs(ocs: number): number {
-  return Math.max(0, Math.min(100, Math.round(100 - ocs)));
 }
 
 export function formatTokens(n: number): string {

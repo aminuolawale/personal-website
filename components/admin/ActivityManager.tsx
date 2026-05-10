@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GitCommit, Upload, Trash2, Save, RefreshCw, ChevronDown, ChevronRight, Zap } from "lucide-react";
+import { GitCommit, Upload, Trash2, Save, RefreshCw, ChevronDown, ChevronRight, Zap, X } from "lucide-react";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
 import type { SweActivitySyncState } from "@/lib/swe-activity-sync";
-import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, deriveScsFromOcs, getOcsBucket } from "@/lib/activity-score";
+import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, getOcsBucket } from "@/lib/activity-score";
 
 function ScoreBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -20,6 +20,8 @@ function MetricsPanel({ activityId }: { activityId: number }) {
   const [open, setOpen] = useState(false);
   const [metrics, setMetrics] = useState<CommitMetrics | null | "loading" | "error">(null);
   const [recomputing, setRecomputing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [conversationExpanded, setConversationExpanded] = useState(false);
 
   async function load() {
     if (metrics !== null && metrics !== "error") return;
@@ -47,6 +49,19 @@ function MetricsPanel({ activityId }: { activityId: number }) {
     }
   }
 
+  async function deleteMetrics() {
+    if (!confirm("Clear stored metrics for this commit?")) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/admin/swe-activity/${activityId}/metrics`, { method: "DELETE" });
+      setMetrics(null);
+    } catch {
+      setMetrics("error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function toggle() {
     const next = !open;
     setOpen(next);
@@ -55,7 +70,6 @@ function MetricsPanel({ activityId }: { activityId: number }) {
 
   const m = typeof metrics === "object" && metrics !== null ? metrics as CommitMetrics : null;
   const bucket = m ? getOcsBucket(m.scores.ocs) : null;
-  const derivedScs = m ? deriveScsFromOcs(m.scores.ocs) : null;
 
   return (
     <div className="border-t border-surface/10 mt-3 pt-3">
@@ -85,15 +99,9 @@ function MetricsPanel({ activityId }: { activityId: number }) {
 
           {m && (
             <div className="space-y-4">
-              {/* Scores */}
-              <div className="flex flex-wrap gap-2">
-                {bucket && (
-                  <ScoreBadge label={`OCS ${OCS_BUCKET_LABELS[bucket]}`} value={m.scores.ocs} color={OCS_BUCKET_CLASSES[bucket]} />
-                )}
-                {derivedScs !== null && (
-                  <ScoreBadge label="Derived SCS" value={derivedScs} color="border-surface/20 text-muted" />
-                )}
-                <ScoreBadge label="Specificity" value={m.foundationPrompt?.specificity.total ?? 0} color="border-surface/20 text-muted" />
+              {/* Specificity badge only — OCS is shown in the header */}
+              <div className="flex flex-wrap items-center gap-2">
+                <ScoreBadge label="Specificity" value={m.conversationScore?.specificity.total ?? 0} color="border-surface/20 text-muted" />
               </div>
 
               {/* Tokens + LOC */}
@@ -124,17 +132,31 @@ function MetricsPanel({ activityId }: { activityId: number }) {
                 </div>
               )}
 
-              {/* Foundation prompt */}
-              {m.foundationPrompt && (
+              {/* Conversation */}
+              {m.conversation && (
                 <div className="space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">Foundation prompt</p>
-                  <p className="text-[12px] text-muted/70 italic border-l border-surface/20 pl-3 line-clamp-3">
-                    &ldquo;{m.foundationPrompt.text}&rdquo;
-                  </p>
-                  <div className="space-y-0.5 font-mono text-[10px] text-muted/40">
-                    <div>Info density {m.foundationPrompt.specificity.components.informationDensity}/40 · Coherence {m.foundationPrompt.specificity.components.coherence}/30 · Language {m.foundationPrompt.specificity.components.languageQuality}/30</div>
-                    <p className="text-[11px] text-muted/60 mt-1">{m.foundationPrompt.specificity.explanation}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">Conversation</p>
+                    {m.conversation.length > 500 && (
+                      <button
+                        onClick={() => setConversationExpanded((v) => !v)}
+                        className="font-mono text-[10px] text-accent/50 hover:text-accent/80 transition-colors"
+                      >
+                        {conversationExpanded ? "Collapse" : "Expand"}
+                      </button>
+                    )}
                   </div>
+                  <p className="text-[12px] text-muted/70 border-l border-surface/20 pl-3 whitespace-pre-line">
+                    {conversationExpanded
+                      ? m.conversation
+                      : m.conversation.slice(0, 500) + (m.conversation.length > 500 ? "…" : "")}
+                  </p>
+                  {m.conversationScore && (
+                    <div className="space-y-0.5 font-mono text-[10px] text-muted/40">
+                      <div>Info density {m.conversationScore.specificity.components.informationDensity}/40 · Coherence {m.conversationScore.specificity.components.coherence}/30 · Language {m.conversationScore.specificity.components.languageQuality}/30</div>
+                      <p className="text-[11px] text-muted/60 mt-1">{m.conversationScore.specificity.explanation}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -151,10 +173,15 @@ function MetricsPanel({ activityId }: { activityId: number }) {
                 </div>
               )}
 
-              {/* Recompute button */}
-              <button onClick={recompute} disabled={recomputing} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/30 hover:text-accent transition-colors border border-surface/10 px-2 py-1 disabled:opacity-40">
-                <Zap size={9} /> {recomputing ? "Computing…" : "Recompute"}
-              </button>
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <button onClick={recompute} disabled={recomputing} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/30 hover:text-accent transition-colors border border-surface/10 px-2 py-1 disabled:opacity-40">
+                  <Zap size={9} /> {recomputing ? "Computing…" : "Recompute"}
+                </button>
+                <button onClick={deleteMetrics} disabled={deleting} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/30 hover:text-red-400 transition-colors border border-surface/10 px-2 py-1 disabled:opacity-40">
+                  <X size={9} /> {deleting ? "Clearing…" : "Clear metrics"}
+                </button>
+              </div>
             </div>
           )}
         </div>
