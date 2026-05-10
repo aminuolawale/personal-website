@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
+import Pagination from "@/components/Pagination";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import type { Article } from "@/lib/schema";
 
@@ -8,9 +9,12 @@ const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr:
 interface ArticlesTabProps {
   articles: Article[];
   isLoading: boolean;
+  page: number;
+  totalPages: number;
+  setPage: (page: number) => void;
 }
 
-export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
+export default function ArticlesTab({ articles, isLoading, page, totalPages, setPage }: ArticlesTabProps) {
   const [readerArticle, setReaderArticle] = useState<Article | null>(null);
   const closeReader = useCallback(() => setReaderArticle(null), []);
 
@@ -42,6 +46,7 @@ export default function ArticlesTab({ articles, isLoading }: ArticlesTabProps) {
           />
         ))}
       </div>
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} className="mt-8" />
       <ReaderOverlay
         open={Boolean(readerArticle)}
         title={readerArticle?.title ?? ""}

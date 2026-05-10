@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { m, AnimatePresence } from "framer-motion";
+import Pagination from "@/components/Pagination";
 import PageHeader from "@/components/PageHeader";
 import RichTextContent from "@/components/RichTextContent";
 import TabBar, { type TabConfig } from "@/components/TabBar";
@@ -10,6 +11,7 @@ import TagBadge from "@/components/TagBadge";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { fetchCachedJson } from "@/lib/client-cache";
 import { trackEvent } from "@/lib/observability/client";
@@ -27,7 +29,8 @@ type DisplayTab = TabConfig & {
 };
 
 function MiscContent() {
-  const { articles, isLoading } = useArticles("misc");
+  const { articles, isLoading } = useArticles("misc", { all: true });
+  const { page, setPage, resetPage } = useUrlPage();
   const { miscTitle, miscDescription } = useSiteContent();
   const [tabs, setTabs] = useState<MiscTab[]>([]);
   const [seriesList, setSeriesList] = useState<MiscSeries[]>([]);
@@ -109,9 +112,14 @@ function MiscContent() {
   const filteredArticles = selectedSeriesId === "all"
     ? activeArticles
     : activeArticles.filter((article) => article.seriesId === selectedSeriesId);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedArticles = filteredArticles.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   function selectTab(tabId: string) {
     setActiveTabId(tabId);
+    resetPage();
     trackEvent({
       name: "public.misc_tab.changed",
       section: "misc",
@@ -122,6 +130,7 @@ function MiscContent() {
 
   function selectSeries(seriesId: number | "all") {
     setSelectedSeriesId(seriesId);
+    resetPage();
     trackEvent({
       name: "public.misc_series.changed",
       section: "misc",
@@ -210,7 +219,7 @@ function MiscContent() {
                       </p>
                     ) : (
                       <div className="space-y-4">
-                        {filteredArticles.map((article) => {
+                        {paginatedArticles.map((article) => {
                           const tags = splitTags(article.tags);
                           const series = article.seriesId ? seriesById.get(article.seriesId) : null;
                           return (
@@ -254,6 +263,7 @@ function MiscContent() {
                             </button>
                           );
                         })}
+                        <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} className="pt-4" />
                       </div>
                     )}
                   </>

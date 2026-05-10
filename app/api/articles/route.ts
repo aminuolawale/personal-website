@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
@@ -9,11 +9,13 @@ import { withAuth } from "@/lib/with-auth";
 import { createUpdate } from "@/lib/updates";
 import { logTelemetryEvent } from "@/lib/observability/server";
 import { SECTION_LABEL, articleLink } from "@/lib/articles";
+import { paginatedResponse, paginationMeta, parsePagination } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
   const adminMode = searchParams.get("admin") === "true";
+  const allMode = searchParams.get("all") === "true";
 
   if (adminMode && !(await getSession())) return unauthorized();
 
@@ -22,14 +24,37 @@ export async function GET(req: NextRequest) {
     const conditions = [];
     if (type) conditions.push(eq(articles.type, type));
     if (!adminMode) conditions.push(eq(articles.published, true));
+    const where = conditions.length ? and(...conditions) : undefined;
+    const { page: requestedPage, pageSize } = parsePagination(searchParams, adminMode ? 20 : 10);
+
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(articles)
+      .where(where);
+    const totalItems = Number(total);
+
+    if (allMode) {
+      const rows = await db
+        .select()
+        .from(articles)
+        .where(where)
+        .orderBy(desc(articles.createdAt), desc(articles.id));
+
+      const res = NextResponse.json(paginatedResponse(rows, 1, Math.max(totalItems, 1), totalItems));
+      if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
+      return res;
+    }
+    const meta = paginationMeta(requestedPage, pageSize, totalItems);
 
     const rows = await db
       .select()
       .from(articles)
-      .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(desc(articles.createdAt));
+      .where(where)
+      .orderBy(desc(articles.createdAt), desc(articles.id))
+      .limit(pageSize)
+      .offset(meta.offset);
 
-    const res = NextResponse.json(rows);
+    const res = NextResponse.json(paginatedResponse(rows, meta.page, pageSize, meta.totalItems));
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch (err) {

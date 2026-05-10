@@ -4,9 +4,11 @@ import dynamic from "next/dynamic";
 import { m } from "framer-motion";
 import { Suspense, useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
+import Pagination from "@/components/Pagination";
 import TabBar from "@/components/TabBar";
 import WritingArticleCard from "@/components/WritingArticleCard";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
@@ -21,7 +23,8 @@ const ReadingNotesTab = dynamic(() => import("@/components/writing/ReadingNotesT
 const TAB_IDS_SET = new Set(SECTION_TABS.writing.map((t) => t.id));
 
 function WritingContent() {
-  const { articles, isLoading } = useArticles("writing");
+  const { page, setPage, resetPage } = useUrlPage();
+  const { articles, isLoading, totalPages } = useArticles("writing", { page, pageSize: 10 });
   const { writingTitle, writingDescription } = useSiteContent();
   const { order, labels, visibility } = useTabConfig("writing", SECTION_TABS.writing);
   const orderedTabs = useMemo(() => order
@@ -46,6 +49,7 @@ function WritingContent() {
 
   function selectWritingTab(tabId: string) {
     setActiveTabId(tabId);
+    resetPage();
     trackEvent({
       name: "public.writing_tab.changed",
       section: "writing",
@@ -104,6 +108,7 @@ function WritingContent() {
                       />
                     </m.div>
                   ))}
+                  <Pagination page={page} totalPages={totalPages} onPageChange={setPage} className="pt-4" />
                 </div>
               )}
             </>

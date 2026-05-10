@@ -1,4 +1,5 @@
 // @vitest-environment node
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -22,13 +23,26 @@ function makeRequest(url: string, opts?: RequestInit): NextRequest {
 
 function mockDbSelect(rows: any[]) {
   vi.mocked(getDb).mockReturnValue({
-    select: () => ({
+    select: (selection?: Record<string, unknown>) => {
+      if (selection && "total" in selection) {
+        return {
+          from: () => ({
+            where: async () => [{ total: rows.length }],
+          }),
+        };
+      }
+      return {
       from: () => ({
         where: () => ({
-          orderBy: async () => rows,
+          orderBy: () => ({
+            limit: () => ({
+              offset: async () => rows,
+            }),
+          }),
         }),
       }),
-    }),
+    };
+    },
   } as any);
 }
 
@@ -43,8 +57,9 @@ describe("GET /api/articles", () => {
     const res = await GET(req);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].published).toBe(true);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].published).toBe(true);
+    expect(body.totalItems).toBe(1);
   });
 
   it("returns 401 for admin requests when not authenticated", async () => {
@@ -59,7 +74,21 @@ describe("GET /api/articles", () => {
     const req = makeRequest("http://localhost:3000/api/articles?admin=true");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(await res.json()).toHaveLength(2);
+    expect((await res.json()).items).toHaveLength(2);
+  });
+
+  it("returns pagination metadata", async () => {
+    mockDbSelect(mockArticles);
+    const req = makeRequest("http://localhost:3000/api/articles?type=swe&page=2&pageSize=1");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      totalItems: 2,
+      totalPages: 2,
+    });
   });
 
   it("sets Cache-Control header for public requests", async () => {

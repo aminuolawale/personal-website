@@ -5,7 +5,10 @@ import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { BookOpen, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import Pagination from "@/components/Pagination";
 import RichTextContent from "@/components/RichTextContent";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
+import type { PaginatedResponse } from "@/lib/pagination";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
@@ -35,9 +38,11 @@ function todayDateInput() {
 
 export default function ReadingNotesManager() {
   const router = useRouter();
+  const { page, setPage } = useUrlPage();
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<BookCategory[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
@@ -64,7 +69,7 @@ export default function ReadingNotesManager() {
     try {
       const [bookRes, noteRes] = await Promise.all([
         fetch("/api/books?admin=true"),
-        fetch("/api/reading-notes?admin=true"),
+        fetch(`/api/reading-notes?admin=true&page=${page}&pageSize=20`),
       ]);
       const categoryRes = await fetch("/api/book-categories?admin=true");
       if (bookRes.status === 401 || noteRes.status === 401 || categoryRes.status === 401) {
@@ -78,7 +83,9 @@ export default function ReadingNotesManager() {
       ]);
       const nextBooks = Array.isArray(bookRows) ? bookRows : [];
       setBooks(nextBooks);
-      setNotes(Array.isArray(noteRows) ? noteRows : []);
+      const paginatedNotes = noteRows as PaginatedResponse<ReadingNote>;
+      setNotes(Array.isArray(paginatedNotes.items) ? paginatedNotes.items : []);
+      setTotalPages(paginatedNotes.totalPages ?? 1);
       const nextCategories = Array.isArray(categoryRows) ? categoryRows : [];
       setCategories(nextCategories);
       setBookCategoryId((current) => current || String(nextCategories[0]?.id ?? ""));
@@ -86,7 +93,7 @@ export default function ReadingNotesManager() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [page, router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void load(); }, 0);
@@ -174,6 +181,7 @@ export default function ReadingNotesManager() {
       setNoteDate(todayDateInput());
       setNoteEditorKey((key) => key + 1);
       setPublishNoteAsUpdate(false);
+      setPage(1);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Note save failed");
@@ -212,7 +220,11 @@ export default function ReadingNotesManager() {
     setSaving(true);
     await fetch(`/api/reading-notes/${id}`, { method: "DELETE" });
     setSaving(false);
-    await load();
+    if (notes.length === 1 && page > 1) {
+      setPage(page - 1);
+    } else {
+      await load();
+    }
   }
 
   return (
@@ -449,6 +461,7 @@ export default function ReadingNotesManager() {
                 </article>
               );
             })}
+            <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onPageChange={setPage} className="pt-4" />
           </div>
         )}
       </section>

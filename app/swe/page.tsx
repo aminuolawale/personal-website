@@ -8,6 +8,7 @@ import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
 import ActivityTab from "@/components/swe/ActivityTab";
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { usePersistentTab } from "@/lib/hooks/use-persistent-tab";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
@@ -23,14 +24,18 @@ const About = dynamic(() => import("@/components/About"));
 const Experience = dynamic(() => import("@/components/Experience"));
 
 type SweTab = TabConfig & {
-  renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;
+  renderContent: (
+    articles: Article[],
+    isLoading: boolean,
+    pagination: { page: number; totalPages: number; setPage: (page: number) => void }
+  ) => React.ReactNode;
 };
 
 const SWE_TABS: SweTab[] = [
   {
     ...SECTION_TABS.swe[0],
-    renderContent: (articles, isLoading) => (
-      <ArticlesTab articles={articles} isLoading={isLoading} />
+    renderContent: (articles, isLoading, pagination) => (
+      <ArticlesTab articles={articles} isLoading={isLoading} {...pagination} />
     ),
   },
   {
@@ -63,10 +68,16 @@ function SweContent() {
   [order, labels, visibility]);
 
   const [activeTabId, setActiveTabId] = usePersistentTab("swe", orderedTabs[0]?.id ?? SWE_TABS[0].id, TAB_IDS_SET);
-  const { articles, isLoading } = useArticles("swe");
+  const { page, setPage, resetPage } = useUrlPage();
+  const { articles, isLoading, totalPages } = useArticles("swe", { page, pageSize: 10 });
   const { sweTitle, sweDescription } = useSiteContent();
 
   const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0] ?? SWE_TABS[0];
+
+  function selectTab(tabId: string) {
+    setActiveTabId(tabId);
+    resetPage();
+  }
 
   return (
     <main>
@@ -78,7 +89,7 @@ function SweContent() {
         <TabBar
           tabs={orderedTabs}
           activeId={activeTab.id}
-          onChange={setActiveTabId}
+          onChange={selectTab}
         />
       </PageHeader>
 
@@ -91,7 +102,7 @@ function SweContent() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {activeTab.renderContent(articles, isLoading)}
+            {activeTab.renderContent(articles, isLoading, { page, totalPages, setPage })}
           </m.div>
         </AnimatePresence>
       </section>

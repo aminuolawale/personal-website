@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { unauthorized, badRequest, notFound, PUBLIC_CACHE, serverError } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { books, readingNotes } from "@/lib/schema";
 import { createUpdate } from "@/lib/updates";
 import { cleanText } from "@/lib/validation";
+import { paginatedResponse, paginationMeta, parsePagination } from "@/lib/pagination";
 
 function hasVisibleText(html: string) {
   return html
@@ -36,14 +37,25 @@ export async function GET(req: NextRequest) {
       if (!Number.isInteger(parsedBookId)) return badRequest("Book id must be valid");
       conditions.push(eq(readingNotes.bookId, parsedBookId));
     }
+    const where = conditions.length ? and(...conditions) : undefined;
+    const { page: requestedPage, pageSize } = parsePagination(searchParams, adminMode ? 20 : 5);
+    const db = getDb();
 
-    const rows = await getDb()
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(readingNotes)
+      .where(where);
+    const meta = paginationMeta(requestedPage, pageSize, Number(total));
+
+    const rows = await db
       .select()
       .from(readingNotes)
-      .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(desc(readingNotes.createdAt));
+      .where(where)
+      .orderBy(desc(readingNotes.createdAt), desc(readingNotes.id))
+      .limit(pageSize)
+      .offset(meta.offset);
 
-    const res = NextResponse.json(rows);
+    const res = NextResponse.json(paginatedResponse(rows, meta.page, pageSize, meta.totalItems));
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch (err) {

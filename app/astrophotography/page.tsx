@@ -18,6 +18,7 @@ const GearTab = dynamic(() => import("@/components/astrophotography/GearTab"), {
 });
 const NightSkyMap = dynamic(() => import("@/components/astrophotography/NightSkyMap"), { ssr: false });
 import { useArticles } from "@/lib/hooks/use-articles";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
 import { getVisibleSectionNumber } from "@/lib/section-visibility";
@@ -25,14 +26,18 @@ import { SECTION_TABS } from "@/lib/section-tabs";
 import type { Article } from "@/lib/schema";
 
 type AstroTab = TabConfig & {
-  renderContent: (articles: Article[], isLoading: boolean) => React.ReactNode;
+  renderContent: (
+    articles: Article[],
+    isLoading: boolean,
+    pagination: { page: number; totalPages: number; setPage: (page: number) => void }
+  ) => React.ReactNode;
 };
 
 const ASTRO_TABS: AstroTab[] = [
   {
     ...SECTION_TABS.astrophotography[0],
-    renderContent: (articles, isLoading) => (
-      <ArticlesTab articles={articles} isLoading={isLoading} />
+    renderContent: (articles, isLoading, pagination) => (
+      <ArticlesTab articles={articles} isLoading={isLoading} {...pagination} />
     ),
   },
   {
@@ -69,10 +74,16 @@ function AstrophotographyContent() {
   [order, labels, visibility]);
 
   const [activeTabId, setActiveTabId] = usePersistentTab("astrophotography", orderedTabs[0]?.id ?? ASTRO_TABS[0].id, TAB_IDS_SET);
-  const { articles, isLoading } = useArticles("astrophotography");
+  const { page, setPage, resetPage } = useUrlPage();
+  const { articles, isLoading, totalPages } = useArticles("astrophotography", { page, pageSize: 9 });
   const { astroTitle, astroDescription } = useSiteContent();
 
   const activeTab = orderedTabs.find((tab) => tab.id === activeTabId) ?? orderedTabs[0] ?? ASTRO_TABS[0];
+
+  function selectTab(tabId: string) {
+    setActiveTabId(tabId);
+    resetPage();
+  }
 
   return (
     <main>
@@ -82,7 +93,7 @@ function AstrophotographyContent() {
         description={astroDescription}
       >
         <button
-          onClick={() => setActiveTabId("sky")}
+          onClick={() => selectTab("sky")}
           className="mb-8 font-mono text-sm text-accent hover:text-accent/70 transition-colors"
         >
           See the night sky →
@@ -90,7 +101,7 @@ function AstrophotographyContent() {
         <TabBar
           tabs={orderedTabs}
           activeId={activeTab.id}
-          onChange={setActiveTabId}
+          onChange={selectTab}
         />
       </PageHeader>
 
@@ -103,7 +114,7 @@ function AstrophotographyContent() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {activeTab.renderContent(articles, isLoading)}
+            {activeTab.renderContent(articles, isLoading, { page, totalPages, setPage })}
           </m.div>
         </AnimatePresence>
       </section>

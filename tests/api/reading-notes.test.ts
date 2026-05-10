@@ -22,19 +22,30 @@ const params = (id: string) => Promise.resolve({ id });
 describe("GET /api/reading-notes", () => {
   it("returns public notes newest first with cache header", async () => {
     vi.mocked(getDb).mockReturnValue({
-      select: () => ({
-        from: () => ({
-          where: () => ({
-            orderBy: async () => [{ id: 1, bookId: 1, content: "<p>Note</p>" }],
+      select: (selection?: Record<string, unknown>) => {
+        if (selection && "total" in selection) {
+          return { from: () => ({ where: async () => [{ total: 1 }] }) };
+        }
+        return {
+          from: () => ({
+            where: () => ({
+              orderBy: () => ({
+                limit: () => ({
+                  offset: async () => [{ id: 1, bookId: 1, content: "<p>Note</p>" }],
+                }),
+              }),
+            }),
           }),
-        }),
-      }),
+        };
+      },
     } as any);
 
     const res = await GET(makeRequest("http://localhost:3000/api/reading-notes"));
     expect(res.status).toBe(200);
     expect(res.headers.get("Cache-Control")).toBeTruthy();
-    expect(await res.json()).toHaveLength(1);
+    const body = await res.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.totalItems).toBe(1);
   });
 
   it("requires auth for admin mode", async () => {

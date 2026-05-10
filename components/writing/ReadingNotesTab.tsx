@@ -4,8 +4,11 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { m } from "framer-motion";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import Pagination from "@/components/Pagination";
 import { fetchCachedJson } from "@/lib/client-cache";
 import { trackEvent } from "@/lib/observability/client";
+import { useUrlPage } from "@/lib/hooks/use-url-page";
+import type { PaginatedResponse } from "@/lib/pagination";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const ReaderOverlay = dynamic(() => import("@/components/ReaderOverlay"), { ssr: false });
@@ -20,9 +23,11 @@ function formatNoteDate(value: string | Date) {
 
 
 export default function ReadingNotesTab() {
+  const { page, setPage, resetPage } = useUrlPage();
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<BookCategory[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
+  const [notesTotalPages, setNotesTotalPages] = useState(1);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | "all">("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -33,33 +38,65 @@ export default function ReadingNotesTab() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadReadingNotes() {
+    async function loadReadingNotesFilters() {
       setNotesLoading(true);
       try {
-        const [bookRows, noteRows, categoryRows] = await Promise.all([
+        const [bookRows, categoryRows] = await Promise.all([
           fetchCachedJson<unknown>("/api/books", []),
-          fetchCachedJson<unknown>("/api/reading-notes", []),
           fetchCachedJson<unknown>("/api/book-categories", []),
         ]);
         if (cancelled) return;
         const nextBooks = Array.isArray(bookRows) ? bookRows : [];
         setBooks(nextBooks);
         setCategories(Array.isArray(categoryRows) ? categoryRows : []);
-        setNotes(Array.isArray(noteRows) ? noteRows : []);
         setSelectedBookId((current) => current ?? nextBooks[0]?.id ?? null);
       } finally {
         if (!cancelled) setNotesLoading(false);
       }
     }
 
-    loadReadingNotes();
+    loadReadingNotesFilters();
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (!selectedBookId) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setNotesLoading(true);
+      const params = new URLSearchParams({
+        bookId: String(selectedBookId),
+        page: String(page),
+        pageSize: "5",
+      });
+
+      fetchCachedJson<PaginatedResponse<ReadingNote>>(`/api/reading-notes?${params.toString()}`, {
+        items: [],
+        page,
+        pageSize: 5,
+        totalItems: 0,
+        totalPages: 1,
+      })
+        .then((data) => {
+          if (cancelled) return;
+          setNotes(Array.isArray(data.items) ? data.items : []);
+          setNotesTotalPages(data.totalPages);
+        })
+        .finally(() => {
+          if (!cancelled) setNotesLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [page, selectedBookId]);
+
   const booksWithNotesUnfiltered = useMemo(() => {
-    const noteBookIds = new Set(notes.map((note) => note.bookId));
-    return books.filter((book) => noteBookIds.has(book.id));
-  }, [books, notes]);
+    return books;
+  }, [books]);
 
   const categoriesById = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
@@ -103,12 +140,18 @@ export default function ReadingNotesTab() {
 
   function selectBook(bookId: number) {
     setSelectedBookId(bookId);
+    resetPage();
     trackEvent({
       name: "public.reading_notes.book_selected",
       section: "writing",
       targetType: "book",
       targetId: bookId,
     });
+  }
+
+  function selectCategory(categoryId: number | "all") {
+    setSelectedCategoryId(categoryId);
+    resetPage();
   }
 
   function openNote(note: ReadingNote, book: Book) {
@@ -165,7 +208,7 @@ export default function ReadingNotesTab() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedCategoryId("all")}
+                    onClick={() => selectCategory("all")}
                     className={`font-mono text-xs px-3 py-1.5 border transition-all ${
                       selectedCategoryId === "all"
                         ? "bg-accent text-base border-accent"
@@ -178,7 +221,7 @@ export default function ReadingNotesTab() {
                     <button
                       key={category.id}
                       type="button"
-                      onClick={() => setSelectedCategoryId(category.id)}
+                      onClick={() => selectCategory(category.id)}
                       className={`font-mono text-xs px-3 py-1.5 border transition-all ${
                         selectedCategoryId === category.id
                           ? "bg-accent text-base border-accent"
@@ -268,7 +311,13 @@ export default function ReadingNotesTab() {
           </div>
 
           <div className="space-y-5">
-            {selectedNotes.map((note) => (
+            {notesLoading ? (
+              <p className="font-mono text-xs text-muted/30 py-8">Loading notes...</p>
+            ) : selectedNotes.length === 0 ? (
+              <p className="font-mono text-sm text-muted/30 py-10 text-center border border-surface/10">
+                No reading notes for this book yet.
+              </p>
+            ) : selectedNotes.map((note) => (
               <article
                 key={note.id}
                 role="button"
@@ -297,6 +346,7 @@ export default function ReadingNotesTab() {
                 )}
               </article>
             ))}
+            <Pagination page={page} totalPages={notesTotalPages} onPageChange={setPage} className="pt-2" />
           </div>
         </div>
       )}
