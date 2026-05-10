@@ -38,16 +38,18 @@ async function fetchGitHubActivity(): Promise<ActivityItem[]> {
     if (e.type === "PushEvent") {
       const payload = e.payload as { commits?: { sha: string; message: string }[] };
       const commits = payload?.commits ?? [];
-      if (commits.length === 0) continue;
-      const commit = commits[commits.length - 1];
-      const shortMsg = commit.message?.split("\n")[0] ?? "";
-      items.push({
-        id: `gh-push-${e.id}`,
-        type: "commit",
-        message: `Mohammed made the commit '${shortMsg}' to ${repoName}`,
-        timestamp: createdAt,
-        url: `https://github.com/${repo?.name}/commit/${commit.sha}`,
-        repo: repoName,
+      // GitHub PushEvent payload returns commits in chronological order.
+      // We reverse them so the most recent commit in a push appears first.
+      [...commits].reverse().forEach((commit) => {
+        const shortMsg = commit.message?.split("\n")[0] ?? "";
+        items.push({
+          id: `gh-push-${commit.sha}-${e.id}`, // Unique ID for each commit
+          type: "commit",
+          message: `Mohammed made the commit '${shortMsg}' to ${repoName}`,
+          timestamp: createdAt,
+          url: `https://github.com/${repo?.name}/commit/${commit.sha}`,
+          repo: repoName,
+        });
       });
     } else if (e.type === "CreateEvent") {
       const payload = e.payload as { ref_type?: string; ref?: string };
