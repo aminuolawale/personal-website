@@ -4,12 +4,14 @@ import { sweActivity } from "@/lib/schema";
 import type { ActivityItem } from "@/lib/github-activity";
 
 // Mock the DB methods
+const mockValues = vi.fn(() => ({
+  onConflictDoUpdate: vi.fn(() => Promise.resolve()),
+}));
+const mockInsert = vi.fn(() => ({
+  values: mockValues,
+}));
 const mockDb = {
-  insert: vi.fn(() => ({
-    values: vi.fn(() => ({
-      onConflictDoUpdate: vi.fn(() => Promise.resolve()),
-    })),
-  })),
+  insert: mockInsert,
 };
 
 // Mock the lib/db module to return our mock object
@@ -52,15 +54,19 @@ describe("SWE Activity Sync Engine", () => {
   it("should only sync events on or after April 24th, 2026", async () => {
     await syncActivitiesToDb(mockActivities);
 
-    // Only 'new-event' and 'edge-event' should trigger a DB insert
-    expect(mockDb.insert).toHaveBeenCalledTimes(2);
+    // Now uses a single BATCH insert call
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+    expect(mockInsert).toHaveBeenCalledWith(sweActivity);
     
-    const calls = (mockDb.insert as any).mock.calls;
-    expect(calls).toContainEqual([sweActivity]);
+    // Check that values() was called with the 2 correct items
+    const valuesCall = mockValues.mock.calls[0][0];
+    expect(valuesCall).toHaveLength(2);
+    expect(valuesCall[0].externalId).toBe("new-event");
+    expect(valuesCall[1].externalId).toBe("edge-event");
   });
 
   it("should handle empty activity list gracefully", async () => {
     await syncActivitiesToDb([]);
-    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });
