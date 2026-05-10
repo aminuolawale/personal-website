@@ -7,6 +7,7 @@ export const SECTION_TABS: Record<SectionTabId, TabConfig[]> = {
     { id: "articles", label: "Articles" },
     { id: "projects", label: "Projects" },
     { id: "about", label: "About Me" },
+    { id: "activity", label: "Activity" },
   ],
   astrophotography: [
     { id: "articles", label: "Articles" },

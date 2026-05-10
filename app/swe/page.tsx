@@ -7,6 +7,7 @@ import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
+import ActivityTab from "@/components/swe/ActivityTab";
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useTabConfig } from "@/lib/hooks/use-tab-config";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
@@ -39,6 +40,10 @@ const SWE_TABS: SweTab[] = [
   {
     ...SECTION_TABS.swe[2],
     renderContent: () => <div><About /><Experience /></div>,
+  },
+  {
+    ...SECTION_TABS.swe[3],
+    renderContent: () => <ActivityTab />,
   },
 ];
 
