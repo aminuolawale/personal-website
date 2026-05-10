@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { GitCommit, Upload } from "lucide-react";
 import { useGithubActivity } from "@/lib/hooks/use-github-activity";
 import { relativeTime } from "@/lib/github-activity";
@@ -60,6 +61,22 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
 export default function ActivityTab() {
   const { items, isLoading } = useGithubActivity();
+  const [selectedRepo, setSelectedRepo] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<"all" | "commit" | "deployment">("all");
+
+  const repos = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((item) => set.add(item.repo));
+    return Array.from(set).sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const repoMatch = selectedRepo === "all" || item.repo === selectedRepo;
+      const typeMatch = selectedType === "all" || item.type === selectedType;
+      return repoMatch && typeMatch;
+    });
+  }, [items, selectedRepo, selectedType]);
 
   if (isLoading) {
     return (
@@ -75,11 +92,84 @@ export default function ActivityTab() {
     );
   }
 
+  const FILTER_BTN = (active: boolean) =>
+    `font-mono text-[11px] px-2.5 py-1 border transition-all ${
+      active
+        ? "bg-accent text-base border-accent"
+        : "text-muted/50 border-surface/15 hover:border-accent/40"
+    }`;
+
   return (
-    <div className="max-w-2xl space-y-0">
-      {items.map((item) => (
-        <ActivityRow key={item.id} item={item} />
-      ))}
+    <div className="max-w-2xl">
+      <div className="mb-10 space-y-6">
+        {repos.length > 0 && (
+          <div>
+            <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2.5">
+              Filter by project
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedRepo("all")}
+                className={FILTER_BTN(selectedRepo === "all")}
+              >
+                All Projects
+              </button>
+              {repos.map((repo) => (
+                <button
+                  key={repo}
+                  type="button"
+                  onClick={() => setSelectedRepo(repo)}
+                  className={FILTER_BTN(selectedRepo === repo)}
+                >
+                  {repo}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2.5">
+            Activity type
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedType("all")}
+              className={FILTER_BTN(selectedType === "all")}
+            >
+              Everything
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedType("commit")}
+              className={FILTER_BTN(selectedType === "commit")}
+            >
+              VCS Activity
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedType("deployment")}
+              className={FILTER_BTN(selectedType === "deployment")}
+            >
+              Deployments
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {filteredItems.length === 0 ? (
+        <p className="font-mono text-sm text-muted/20 py-16 text-center border border-dashed border-surface/10">
+          No activity matches your filters.
+        </p>
+      ) : (
+        <div className="space-y-0">
+          {filteredItems.map((item) => (
+            <ActivityRow key={item.id} item={item} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
