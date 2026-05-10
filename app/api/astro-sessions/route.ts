@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc, desc, gte } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { badRequest, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { astroGear, astroSessions, type AstroGear, type AstroSession } from "@/lib/schema";
 import { getSkyTargetById } from "@/lib/sky-targets";
@@ -71,42 +72,35 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
+export const POST = withAuth(async (req: NextRequest) => {
+  const { title, scheduledAt, targetId, gearIds, notes } = await req.json();
+  const target = typeof targetId === "string" ? getSkyTargetById(targetId) : null;
+  const date = new Date(scheduledAt);
 
-  try {
-    const { title, scheduledAt, targetId, gearIds, notes } = await req.json();
-    const target = typeof targetId === "string" ? getSkyTargetById(targetId) : null;
-    const date = new Date(scheduledAt);
+  if (!String(title ?? "").trim()) return badRequest("Title is required");
+  if (!target) return badRequest("A valid sky target is required");
+  if (Number.isNaN(date.getTime())) return badRequest("A valid date and time are required");
 
-    if (!String(title ?? "").trim()) return badRequest("Title is required");
-    if (!target) return badRequest("A valid sky target is required");
-    if (Number.isNaN(date.getTime())) return badRequest("A valid date and time are required");
+  const db = getDb();
+  const [session] = await db
+    .insert(astroSessions)
+    .values({
+      title: String(title).trim(),
+      scheduledAt: date,
+      targetId: target.id,
+      targetName: target.name,
+      gearIds: JSON.stringify(parseGearIds(gearIds)),
+      notes: String(notes ?? "").trim(),
+    })
+    .returning();
 
-    const db = getDb();
-    const [session] = await db
-      .insert(astroSessions)
-      .values({
-        title: String(title).trim(),
-        scheduledAt: date,
-        targetId: target.id,
-        targetName: target.name,
-        gearIds: JSON.stringify(parseGearIds(gearIds)),
-        notes: String(notes ?? "").trim(),
-      })
-      .returning();
-
-    const [sessionWithGear] = await attachGear([session]);
-    logTelemetryEvent({
-      name: "admin.astro_session.created",
-      section: "astrophotography",
-      targetType: "astro_session",
-      targetId: session.id,
-      attributes: { target_id: session.targetId, gear_count: readGearIds(session).length },
-    });
-    return NextResponse.json(sessionWithGear, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [sessionWithGear] = await attachGear([session]);
+  logTelemetryEvent({
+    name: "admin.astro_session.created",
+    section: "astrophotography",
+    targetType: "astro_session",
+    targetId: session.id,
+    attributes: { target_id: session.targetId, gear_count: readGearIds(session).length },
+  });
+  return NextResponse.json(sessionWithGear, { status: 201 });
+});

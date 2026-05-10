@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { bookCategories } from "@/lib/schema";
-
-function cleanName(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -29,20 +27,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
-  const name = cleanName((await req.json()).name);
+export const POST = withAuth(async (req: NextRequest) => {
+  const name = cleanText((await req.json()).name);
   if (!name) return badRequest("Category name is required");
 
-  try {
-    const [category] = await getDb()
-      .insert(bookCategories)
-      .values({ name })
-      .returning();
-    return NextResponse.json(category, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [category] = await getDb()
+    .insert(bookCategories)
+    .values({ name })
+    .returning();
+  return NextResponse.json(category, { status: 201 });
+});

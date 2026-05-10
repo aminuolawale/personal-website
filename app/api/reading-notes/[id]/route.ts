@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
-import { badRequest, serverError, unauthorized } from "@/lib/api";
+import { badRequest } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { readingNotes } from "@/lib/schema";
 import { cleanText, parseId } from "@/lib/validation";
@@ -13,14 +13,8 @@ function hasVisibleText(html: string) {
     .trim().length > 0;
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!(await getSession())) return unauthorized();
-
-  const { id: rawId } = await params;
-  const id = parseId(rawId);
+export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
   if (!id) return badRequest("Invalid id");
 
   const body = await req.json();
@@ -28,33 +22,18 @@ export async function PUT(
   const description = typeof body.description === "string" ? body.description.trim() : undefined;
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
 
-  try {
-    const [note] = await getDb()
-      .update(readingNotes)
-      .set({ content, ...(description !== undefined && { description }), updatedAt: new Date() })
-      .where(eq(readingNotes.id, id))
-      .returning();
-    return NextResponse.json(note);
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [note] = await getDb()
+    .update(readingNotes)
+    .set({ content, ...(description !== undefined && { description }), updatedAt: new Date() })
+    .where(eq(readingNotes.id, id))
+    .returning();
+  return NextResponse.json(note);
+});
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!(await getSession())) return unauthorized();
-
-  const { id: rawId } = await params;
-  const id = parseId(rawId);
+export const DELETE = withAuth(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
   if (!id) return badRequest("Invalid id");
-  try {
-    await getDb().delete(readingNotes).where(eq(readingNotes.id, id));
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+
+  await getDb().delete(readingNotes).where(eq(readingNotes.id, id));
+  return NextResponse.json({ ok: true });
+});

@@ -5,6 +5,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { createUpdate } from "@/lib/updates";
 import { logTelemetryEvent } from "@/lib/observability/server";
 import { SECTION_LABEL, articleLink } from "@/lib/articles";
@@ -38,35 +39,27 @@ export async function GET(req: NextRequest) {
 }
 
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
+export const POST = withAuth(async (req: NextRequest) => {
   const { publishAsUpdate, ...body } = await req.json();
   const slug = body.slug || slugify(body.title);
 
-  try {
-    const db = getDb();
-    const [article] = await db
-      .insert(articles)
-      .values({ ...body, slug })
-      .returning();
-    logTelemetryEvent({
-      name: "admin.article.created",
-      section: article.type,
-      targetType: "article",
-      targetId: article.id,
-      attributes: { published: article.published, slug: article.slug },
+  const [article] = await getDb()
+    .insert(articles)
+    .values({ ...body, slug })
+    .returning();
+  logTelemetryEvent({
+    name: "admin.article.created",
+    section: article.type,
+    targetType: "article",
+    targetId: article.id,
+    attributes: { published: article.published, slug: article.slug },
+  });
+  if (publishAsUpdate) {
+    const section = SECTION_LABEL[article.type] ?? article.type;
+    await createUpdate({
+      text: `Aminu published a new ${article.type === "writing" ? "book review" : "article"} — ${article.title} — in ${section}`,
+      linkUrl: articleLink(article),
     });
-    if (publishAsUpdate) {
-      const section = SECTION_LABEL[article.type] ?? article.type;
-      await createUpdate({
-        text: `Aminu published a new ${article.type === "writing" ? "book review" : "article"} — ${article.title} — in ${section}`,
-        linkUrl: articleLink(article),
-      });
-    }
-    return NextResponse.json(article, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
   }
-}
+  return NextResponse.json(article, { status: 201 });
+});

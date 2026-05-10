@@ -2,67 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { sweActivity } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
-import { unauthorized, notFound, badRequest, serverError } from "@/lib/api";
+import { notFound, badRequest } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { parseId } from "@/lib/validation";
 
-/**
- * Updates an activity entry (message, note, scs).
- * Admin-only.
- */
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession();
-  if (!session) return unauthorized();
+export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
+  if (!id) return badRequest("Invalid id");
 
-  try {
-    const id = parseId((await params).id);
-    if (!id) return badRequest("Invalid id");
+  const { message, note, scs } = await req.json();
+  const [updated] = await getDb()
+    .update(sweActivity)
+    .set({
+      message: message !== undefined ? message : undefined,
+      note: note !== undefined ? note : undefined,
+      scs: scs !== undefined ? scs : undefined,
+      updatedAt: new Date(),
+    })
+    .where(eq(sweActivity.id, id))
+    .returning();
 
-    const body = await req.json();
-    const { message, note, scs } = body;
+  if (!updated) return notFound();
+  return NextResponse.json(updated);
+});
 
-    const db = getDb();
-    const [updated] = await db
-      .update(sweActivity)
-      .set({
-        message: message !== undefined ? message : undefined,
-        note: note !== undefined ? note : undefined,
-        scs: scs !== undefined ? scs : undefined,
-        updatedAt: new Date(),
-      })
-      .where(eq(sweActivity.id, id))
-      .returning();
+export const DELETE = withAuth(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
+  if (!id) return badRequest("Invalid id");
 
-    if (!updated) return notFound();
-    return NextResponse.json(updated);
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [deleted] = await getDb()
+    .delete(sweActivity)
+    .where(eq(sweActivity.id, id))
+    .returning();
 
-/**
- * Deletes an activity entry.
- * Admin-only.
- */
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession();
-  if (!session) return unauthorized();
-
-  try {
-    const id = parseId((await params).id);
-    if (!id) return badRequest("Invalid id");
-
-    const db = getDb();
-    const [deleted] = await db
-      .delete(sweActivity)
-      .where(eq(sweActivity.id, id))
-      .returning();
-
-    if (!deleted) return notFound();
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  if (!deleted) return notFound();
+  return NextResponse.json({ success: true });
+});

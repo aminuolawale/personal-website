@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { unauthorized, badRequest, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { miscSeries } from "@/lib/schema";
 import { logTelemetryEvent } from "@/lib/observability/server";
@@ -27,29 +28,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
+export const POST = withAuth(async (req: NextRequest) => {
   const body = await req.json();
   const title = cleanText(body.title);
   const description = cleanText(body.description);
-
   if (!title) return badRequest("Series title is required");
 
-  try {
-    const [series] = await getDb()
-      .insert(miscSeries)
-      .values({ title, description })
-      .returning();
-    logTelemetryEvent({
-      name: "admin.misc_series.created",
-      section: "misc",
-      targetType: "misc_series",
-      targetId: series.id,
-    });
-    return NextResponse.json(series, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [series] = await getDb()
+    .insert(miscSeries)
+    .values({ title, description })
+    .returning();
+  logTelemetryEvent({
+    name: "admin.misc_series.created",
+    section: "misc",
+    targetType: "misc_series",
+    targetId: series.id,
+  });
+  return NextResponse.json(series, { status: 201 });
+});

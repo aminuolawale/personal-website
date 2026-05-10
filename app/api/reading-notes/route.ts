@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, notFound, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { unauthorized, badRequest, notFound, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { books, readingNotes } from "@/lib/schema";
 import { createUpdate } from "@/lib/updates";
@@ -51,9 +52,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
+export const POST = withAuth(async (req: NextRequest) => {
   const body = await req.json();
   const bookId = Number(body.bookId);
   const description = typeof body.description === "string" ? body.description.trim() : "";
@@ -65,26 +64,21 @@ export async function POST(req: NextRequest) {
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
   if (!createdAt) return badRequest("A valid note date is required");
 
-  try {
-    const db = getDb();
-    const [book] = await db.select().from(books).where(eq(books.id, bookId));
-    if (!book) return notFound("Book not found");
+  const db = getDb();
+  const [book] = await db.select().from(books).where(eq(books.id, bookId));
+  if (!book) return notFound("Book not found");
 
-    const [note] = await db
-      .insert(readingNotes)
-      .values({ bookId, description, content, createdAt })
-      .returning();
+  const [note] = await db
+    .insert(readingNotes)
+    .values({ bookId, description, content, createdAt })
+    .returning();
 
-    if (publishAsUpdate) {
-      await createUpdate({
-        text: `Aminu added a reading note for ${book.title} — ${book.author}`,
-        linkUrl: "/writing?tab=reading-notes",
-      });
-    }
-
-    return NextResponse.json(note, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
+  if (publishAsUpdate) {
+    await createUpdate({
+      text: `Aminu added a reading note for ${book.title} — ${book.author}`,
+      linkUrl: "/writing?tab=reading-notes",
+    });
   }
-}
+
+  return NextResponse.json(note, { status: 201 });
+});

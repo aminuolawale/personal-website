@@ -7,7 +7,8 @@ import { getDb } from "@/lib/db";
 import { siteConfig } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, badRequest, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { badRequest, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -40,19 +41,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-  try {
-    const { key, value } = await req.json();
-    const db = getDb();
-    // Upsert: insert the row, or overwrite the value if the key already exists.
-    await db
-      .insert(siteConfig)
-      .values({ key, value: JSON.stringify(value), updatedAt: new Date() })
-      .onConflictDoUpdate({ target: siteConfig.key, set: { value: JSON.stringify(value), updatedAt: new Date() } });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    return serverError("Failed to save");
-  }
-}
+export const PUT = withAuth(async (req: NextRequest) => {
+  const { key, value } = await req.json();
+  // Upsert: insert the row, or overwrite the value if the key already exists.
+  await getDb()
+    .insert(siteConfig)
+    .values({ key, value: JSON.stringify(value), updatedAt: new Date() })
+    .onConflictDoUpdate({ target: siteConfig.key, set: { value: JSON.stringify(value), updatedAt: new Date() } });
+  return NextResponse.json({ ok: true });
+});

@@ -1,71 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
-import { badRequest, notFound, serverError, unauthorized } from "@/lib/api";
+import { badRequest, notFound } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { articles, miscSeries } from "@/lib/schema";
 import { logTelemetryEvent } from "@/lib/observability/server";
 import { cleanText, parseId } from "@/lib/validation";
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) return unauthorized();
-
-  const { id: rawId } = await params;
-  const id = parseId(rawId);
+export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
   if (!id) return badRequest("Invalid series id");
 
   const body = await req.json();
   const title = cleanText(body.title);
   const description = cleanText(body.description);
-
   if (!title) return badRequest("Series title is required");
 
-  try {
-    const [series] = await getDb()
-      .update(miscSeries)
-      .set({ title, description, updatedAt: new Date() })
-      .where(eq(miscSeries.id, id))
-      .returning();
+  const [series] = await getDb()
+    .update(miscSeries)
+    .set({ title, description, updatedAt: new Date() })
+    .where(eq(miscSeries.id, id))
+    .returning();
 
-    if (!series) return notFound("Series not found");
-    logTelemetryEvent({
-      name: "admin.misc_series.updated",
-      section: "misc",
-      targetType: "misc_series",
-      targetId: series.id,
-    });
-    return NextResponse.json(series);
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  if (!series) return notFound("Series not found");
+  logTelemetryEvent({
+    name: "admin.misc_series.updated",
+    section: "misc",
+    targetType: "misc_series",
+    targetId: series.id,
+  });
+  return NextResponse.json(series);
+});
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await getSession())) return unauthorized();
-
-  const { id: rawId } = await params;
-  const id = parseId(rawId);
+export const DELETE = withAuth(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+  const id = parseId((await params).id);
   if (!id) return badRequest("Invalid series id");
 
-  try {
-    const db = getDb();
-    await db
-      .update(articles)
-      .set({ seriesId: null, updatedAt: new Date() })
-      .where(eq(articles.seriesId, id));
+  const db = getDb();
+  await db
+    .update(articles)
+    .set({ seriesId: null, updatedAt: new Date() })
+    .where(eq(articles.seriesId, id));
 
-    const [deleted] = await db.delete(miscSeries).where(eq(miscSeries.id, id)).returning();
-    if (!deleted) return notFound("Series not found");
-    logTelemetryEvent({
-      name: "admin.misc_series.deleted",
-      section: "misc",
-      targetType: "misc_series",
-      targetId: id,
-    });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [deleted] = await db.delete(miscSeries).where(eq(miscSeries.id, id)).returning();
+  if (!deleted) return notFound("Series not found");
+  logTelemetryEvent({
+    name: "admin.misc_series.deleted",
+    section: "misc",
+    targetType: "misc_series",
+    targetId: id,
+  });
+  return NextResponse.json({ ok: true });
+});

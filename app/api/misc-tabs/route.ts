@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { unauthorized, badRequest, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { miscTabs } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
@@ -28,9 +29,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
+export const POST = withAuth(async (req: NextRequest) => {
   const body = await req.json();
   const title = cleanText(body.title);
   const slug = cleanText(body.slug) || slugify(title);
@@ -41,21 +40,16 @@ export async function POST(req: NextRequest) {
   if (!slug) return badRequest("Tab slug is required");
   if (!Number.isInteger(position)) return badRequest("Position must be a whole number");
 
-  try {
-    const [tab] = await getDb()
-      .insert(miscTabs)
-      .values({ title, slug, description, position })
-      .returning();
-    logTelemetryEvent({
-      name: "admin.misc_tab.created",
-      section: "misc",
-      targetType: "misc_tab",
-      targetId: tab.id,
-      attributes: { slug: tab.slug, position: tab.position },
-    });
-    return NextResponse.json(tab, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
-}
+  const [tab] = await getDb()
+    .insert(miscTabs)
+    .values({ title, slug, description, position })
+    .returning();
+  logTelemetryEvent({
+    name: "admin.misc_tab.created",
+    section: "misc",
+    targetType: "misc_tab",
+    targetId: tab.id,
+    attributes: { slug: tab.slug, position: tab.position },
+  });
+  return NextResponse.json(tab, { status: 201 });
+});

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, notFound, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
+import { unauthorized, badRequest, notFound, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { bookCategories, books } from "@/lib/schema";
 import { cleanText } from "@/lib/validation";
@@ -23,9 +24,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-
+export const POST = withAuth(async (req: NextRequest) => {
   const body = await req.json();
   const title = cleanText(body.title);
   const author = cleanText(body.author);
@@ -43,23 +42,18 @@ export async function POST(req: NextRequest) {
     return badRequest("Book category must be valid");
   }
 
-  try {
-    const db = getDb();
-    if (categoryId !== null) {
-      const [category] = await db
-        .select()
-        .from(bookCategories)
-        .where(eq(bookCategories.id, categoryId));
-      if (!category) return notFound("Book category not found");
-    }
-
-    const [book] = await db
-      .insert(books)
-      .values({ title, author, yearPublished, categoryId })
-      .returning();
-    return NextResponse.json(book, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
+  const db = getDb();
+  if (categoryId !== null) {
+    const [category] = await db
+      .select()
+      .from(bookCategories)
+      .where(eq(bookCategories.id, categoryId));
+    if (!category) return notFound("Book category not found");
   }
-}
+
+  const [book] = await db
+    .insert(books)
+    .values({ title, author, yearPublished, categoryId })
+    .returning();
+  return NextResponse.json(book, { status: 201 });
+});

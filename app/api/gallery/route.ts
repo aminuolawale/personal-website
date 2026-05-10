@@ -4,6 +4,7 @@ import { galleryPhotos } from "@/lib/schema";
 import { eq, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { withAuth } from "@/lib/with-auth";
 import { createUpdate } from "@/lib/updates";
 
 export async function GET(req: NextRequest) {
@@ -28,22 +29,15 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  if (!(await getSession())) return unauthorized();
-  try {
-    const { publishAsUpdate, ...photoData } = await req.json();
-    const db = getDb();
-    const [photo] = await db.insert(galleryPhotos).values(photoData).returning();
-    if (publishAsUpdate) {
-      await createUpdate({
-        text: `Aminu added a new photo — ${photo.name} — to Astrophotography`,
-        linkUrl: "/astrophotography?tab=gallery",
-        thumbnailUrl: photo.imageUrl,
-      });
-    }
-    return NextResponse.json(photo, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    return serverError();
+export const POST = withAuth(async (req: NextRequest) => {
+  const { publishAsUpdate, ...photoData } = await req.json();
+  const [photo] = await getDb().insert(galleryPhotos).values(photoData).returning();
+  if (publishAsUpdate) {
+    await createUpdate({
+      text: `Aminu added a new photo — ${photo.name} — to Astrophotography`,
+      linkUrl: "/astrophotography?tab=gallery",
+      thumbnailUrl: photo.imageUrl,
+    });
   }
-}
+  return NextResponse.json(photo, { status: 201 });
+});
