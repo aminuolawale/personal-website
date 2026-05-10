@@ -1,23 +1,23 @@
 import type { AgentName, AgentTokenSummary } from "@/lib/coding-agents/types";
 
-export type OcsBucket = "poor" | "good" | "great";
+export type OcsBucket = "good" | "great" | "excellent";
 
 export const OCS_BUCKET_LABELS: Record<OcsBucket, string> = {
-  poor: "Poor",
   good: "Good",
   great: "Great",
+  excellent: "Excellent",
 };
 
 export const OCS_BUCKET_CLASSES: Record<OcsBucket, string> = {
-  poor: "border-rose-500/30 text-rose-400 bg-rose-500/5",
   good: "border-amber-400/30 text-amber-300 bg-amber-400/5",
   great: "border-emerald-400/30 text-emerald-300 bg-emerald-400/5",
+  excellent: "border-sky-400/30 text-sky-300 bg-sky-400/5",
 };
 
 export function getOcsBucket(ocs: number): OcsBucket {
-  if (ocs < 30) return "poor";
-  if (ocs <= 50) return "good";
-  return "great";
+  if (ocs < 30) return "good";
+  if (ocs <= 50) return "great";
+  return "excellent";
 }
 
 export function formatTokens(n: number): string {

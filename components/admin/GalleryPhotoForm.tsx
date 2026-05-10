@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Upload, X, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import type { GalleryPhoto, AstroGear } from "@/lib/schema";
@@ -104,6 +104,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   );
 
   const [publishAsUpdate, setPublishAsUpdate] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -190,6 +191,18 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
           <div className="flex items-center gap-3 min-w-0">
             {error && <span className="font-mono text-xs text-red-400 max-w-sm">{error}</span>}
             <button
+              type="button"
+              onClick={() => setPreviewMode((v) => !v)}
+              className={`flex items-center gap-1.5 font-mono text-xs px-3 py-2 border transition-all ${
+                previewMode
+                  ? "text-base bg-accent/80 border-accent/80"
+                  : "text-muted/40 border-surface/15 hover:border-accent/40"
+              } shrink-0`}
+            >
+              <LayoutTemplate size={13} />
+              {previewMode ? "Edit" : "Preview"}
+            </button>
+            <button
               onClick={handleSave}
               disabled={saving || uploading}
               className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
@@ -201,7 +214,49 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* Preview */}
+      {previewMode && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+          <div className="border border-surface/10 bg-surface/[0.015] px-4 py-2 mb-6 font-mono text-[10px] text-muted/30 uppercase tracking-widest">
+            Preview
+          </div>
+          <div className="border border-surface/10 bg-surface/[0.02] overflow-hidden">
+            {imageUrl ? (
+              <img src={imageUrl} alt={name} className="w-full max-h-80 object-cover" />
+            ) : (
+              <div className="w-full h-48 bg-surface/5 flex items-center justify-center">
+                <span className="font-mono text-xs text-muted/20">No image yet</span>
+              </div>
+            )}
+            <div className="p-5 space-y-2">
+              <h2 className="text-base font-semibold text-surface">{name || <span className="text-muted/25 italic">Untitled</span>}</h2>
+              {description && <p className="text-sm text-muted/55 leading-relaxed">{description}</p>}
+              {capturedAt && <p className="font-mono text-[11px] text-muted/30">{capturedAt}</p>}
+              {(selectedEquipment.length > 0 || selectedTechnique.length > 0 || selectedSoftware.length > 0) && (
+                <div className="pt-1 space-y-1">
+                  {selectedEquipment.length > 0 && (
+                    <p className="font-mono text-[10px] text-muted/35">
+                      <span className="text-muted/20">Equipment: </span>{selectedEquipment.join(", ")}
+                    </p>
+                  )}
+                  {selectedTechnique.length > 0 && (
+                    <p className="font-mono text-[10px] text-muted/35">
+                      <span className="text-muted/20">Technique: </span>{selectedTechnique.join(", ")}
+                    </p>
+                  )}
+                  {selectedSoftware.length > 0 && (
+                    <p className="font-mono text-[10px] text-muted/35">
+                      <span className="text-muted/20">Software: </span>{selectedSoftware.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6 ${previewMode ? "hidden" : ""}`}>
 
         {/* Image upload */}
         <div className="space-y-3">

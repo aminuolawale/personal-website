@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, Eye, EyeOff, LayoutTemplate } from "lucide-react";
 import dynamic from "next/dynamic";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Article, MiscSeries, MiscTab } from "@/lib/schema";
@@ -11,6 +11,7 @@ import { slugify } from "@/lib/utils";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
+const RichTextContent = dynamic(() => import("@/components/RichTextContent"), { ssr: false });
 
 interface ArticleFormProps {
   article?: Article;
@@ -52,6 +53,7 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
   const { clearDirty } = useUnsavedChangesGuard([
     title, slug, summary, tags, date, readTime, location, miscTabId, seriesId, published, content, type,
   ]);
@@ -134,6 +136,18 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={() => setPreviewMode((v) => !v)}
+              className={`flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
+                previewMode
+                  ? "text-base bg-accent/80 border-accent/80"
+                  : "text-muted/50 border-surface/15 hover:border-accent/40"
+              }`}
+            >
+              <LayoutTemplate size={13} />
+              {previewMode ? "Edit" : "Preview"}
+            </button>
+            <button
+              type="button"
               onClick={() => setPublishAsUpdate((v) => !v)}
               className={`font-mono text-xs px-3 py-1.5 border transition-all duration-200 ${
                 publishAsUpdate
@@ -169,8 +183,39 @@ export default function ArticleForm({ article, defaultType = "writing" }: Articl
         </div>
       </div>
 
+      {/* Preview */}
+      {previewMode && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+          <div className="border border-surface/10 bg-surface/[0.015] px-6 py-2 mb-6 font-mono text-[10px] text-muted/30 uppercase tracking-widest">
+            Preview — {type}
+          </div>
+          <article className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted/35">
+                {date && <span>{date}</span>}
+                {readTime && <span>{readTime}</span>}
+                {location && <span>{location}</span>}
+              </div>
+              <h1 className="text-3xl font-bold text-surface leading-tight">
+                {title || <span className="text-muted/20 italic">Untitled</span>}
+              </h1>
+              {summary && (
+                <p className="text-base text-muted/55 leading-relaxed">{summary}</p>
+              )}
+            </div>
+            {content ? (
+              <RichTextContent html={content} />
+            ) : (
+              <p className="font-mono text-sm text-muted/20 italic border border-dashed border-surface/10 py-12 text-center">
+                No content yet
+              </p>
+            )}
+          </article>
+        </div>
+      )}
+
       {/* Form */}
-      <form id="article-form" onSubmit={handleSubmit} className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
+      <form id="article-form" onSubmit={handleSubmit} className={`max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8 ${previewMode ? "hidden" : ""}`}>
         {error && (
           <p className="font-mono text-xs text-red-400 border border-red-400/30 bg-red-400/5 px-4 py-2">
             {error}

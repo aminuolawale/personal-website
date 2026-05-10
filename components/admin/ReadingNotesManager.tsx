@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { BookOpen, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import Pagination from "@/components/Pagination";
-import RichTextContent from "@/components/RichTextContent";
 import { useUrlPage } from "@/lib/hooks/use-url-page";
 import type { PaginatedResponse } from "@/lib/pagination";
 import type { Book, BookCategory, ReadingNote } from "@/lib/schema";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
+const RichTextContent = dynamic(() => import("@/components/RichTextContent"), { ssr: false });
 
 const INPUT =
   "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-muted font-mono text-sm focus:outline-none focus:border-accent/60 placeholder-muted/25 transition-colors";
@@ -58,6 +58,8 @@ export default function ReadingNotesManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingDescription, setEditingDescription] = useState("");
   const [editingContent, setEditingContent] = useState("");
+  const [notePreview, setNotePreview] = useState(false);
+  const [editPreview, setEditPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { clearDirty } = useUnsavedChangesGuard([
@@ -335,13 +337,30 @@ export default function ReadingNotesManager() {
             />
           </div>
           <div>
-            <label className={LABEL}>Note text</label>
-            <TiptapEditor
-              key={noteEditorKey}
-              content={noteContent}
-              onChange={setNoteContent}
-              placeholder="Add the reading note…"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={LABEL.replace("mb-1.5", "")}>Note text</label>
+              <button
+                type="button"
+                onClick={() => setNotePreview((v) => !v)}
+                className="font-mono text-[10px] text-muted/30 hover:text-accent transition-colors uppercase tracking-wider"
+              >
+                {notePreview ? "Edit" : "Preview"}
+              </button>
+            </div>
+            {notePreview ? (
+              <div className="border border-surface/10 bg-surface/[0.015] px-4 py-3 min-h-[120px]">
+                {noteContent
+                  ? <RichTextContent html={noteContent} />
+                  : <p className="font-mono text-xs text-muted/20 italic">No content yet</p>}
+              </div>
+            ) : (
+              <TiptapEditor
+                key={noteEditorKey}
+                content={noteContent}
+                onChange={setNoteContent}
+                placeholder="Add the reading note…"
+              />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -431,11 +450,31 @@ export default function ReadingNotesManager() {
                           placeholder="Short summary shown in the card list…"
                         />
                       </div>
-                      <TiptapEditor
-                        content={editingContent}
-                        onChange={setEditingContent}
-                        placeholder="Edit the note text…"
-                      />
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className={LABEL.replace("mb-1.5", "")}>Note text</label>
+                          <button
+                            type="button"
+                            onClick={() => setEditPreview((v) => !v)}
+                            className="font-mono text-[10px] text-muted/30 hover:text-accent transition-colors uppercase tracking-wider"
+                          >
+                            {editPreview ? "Edit" : "Preview"}
+                          </button>
+                        </div>
+                        {editPreview ? (
+                          <div className="border border-surface/10 bg-surface/[0.015] px-4 py-3 min-h-[120px]">
+                            {editingContent
+                              ? <RichTextContent html={editingContent} />
+                              : <p className="font-mono text-xs text-muted/20 italic">No content yet</p>}
+                          </div>
+                        ) : (
+                          <TiptapEditor
+                            content={editingContent}
+                            onChange={setEditingContent}
+                            placeholder="Edit the note text…"
+                          />
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
@@ -448,7 +487,7 @@ export default function ReadingNotesManager() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { clearDirty(); setEditingId(null); setEditingDescription(""); setEditingContent(""); }}
+                          onClick={() => { clearDirty(); setEditingId(null); setEditingDescription(""); setEditingContent(""); setEditPreview(false); }}
                           className="font-mono text-xs text-muted/40 hover:text-muted transition-colors px-3 py-2"
                         >
                           Cancel

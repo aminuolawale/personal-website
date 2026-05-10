@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import type { Project } from "@/lib/schema";
+import { splitTags } from "@/lib/utils";
 
 export default function ProjectForm({ project }: { project?: Project }) {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function ProjectForm({ project }: { project?: Project }) {
   const [published, setPublished] = useState(project?.published ?? true);
 
   const [publishAsUpdate, setPublishAsUpdate] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
@@ -91,6 +93,18 @@ export default function ProjectForm({ project }: { project?: Project }) {
           <div className="flex items-center gap-3 min-w-0">
             {error && <span className="font-mono text-xs text-red-400 truncate">{error}</span>}
             <button
+              type="button"
+              onClick={() => setPreviewMode((v) => !v)}
+              className={`flex items-center gap-1.5 font-mono text-xs px-3 py-2 border transition-all ${
+                previewMode
+                  ? "text-base bg-accent/80 border-accent/80"
+                  : "text-muted/40 border-surface/15 hover:border-accent/40"
+              } shrink-0`}
+            >
+              <LayoutTemplate size={13} />
+              {previewMode ? "Edit" : "Preview"}
+            </button>
+            <button
               onClick={handleSave}
               disabled={saving || !title.trim()}
               className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
@@ -102,7 +116,38 @@ export default function ProjectForm({ project }: { project?: Project }) {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* Preview */}
+      {previewMode && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+          <div className="border border-surface/10 bg-surface/[0.015] px-4 py-2 mb-6 font-mono text-[10px] text-muted/30 uppercase tracking-widest">
+            Preview
+          </div>
+          <div className="border border-surface/10 bg-surface/[0.02] overflow-hidden">
+            {imageUrl.trim() && (
+              <img src={imageUrl} alt={title} className="w-full h-48 object-cover" />
+            )}
+            <div className="p-5 space-y-3">
+              <h2 className="text-lg font-semibold text-surface">{title || <span className="text-muted/25 italic">Untitled</span>}</h2>
+              {description && <p className="text-sm text-muted/60 leading-relaxed">{description}</p>}
+              {tags.trim() && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {splitTags(tags).map((tag) => (
+                    <span key={tag} className="font-mono text-[10px] px-2 py-0.5 border border-surface/15 text-muted/40">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                {githubUrl && <span className="font-mono text-[10px] text-accent/60">GitHub →</span>}
+                {websiteUrl && <span className="font-mono text-[10px] text-accent/60">Website →</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6 ${previewMode ? "hidden" : ""}`}>
 
         {/* GitHub URL */}
         <div className="space-y-1.5">

@@ -44,6 +44,14 @@ export function usePersistentTab(section: string, defaultTab: string, validTabId
     }
   }, [urlTab, validTabIds, activeTabId]);
 
+  // When validTabIds is first populated (async tabs like misc), reset to defaultTab
+  // if the current activeTabId is not yet a valid tab.
+  useEffect(() => {
+    if (validTabIds.size > 0 && !validTabIds.has(activeTabId)) {
+      setActiveTabId(defaultTab);
+    }
+  }, [validTabIds, activeTabId, defaultTab]);
+
   // Update session storage when the tab changes
   const setPersistedActiveTabId = useCallback((id: string) => {
     setActiveTabId(id);
