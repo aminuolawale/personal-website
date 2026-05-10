@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { badRequest, notFound, serverError } from "@/lib/api";
+import { badRequest, notFound, serverError, PUBLIC_CACHE } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
 import { getDb } from "@/lib/db";
 import { finderPreviews } from "@/lib/schema";
@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .where(eq(finderPreviews.id, id));
     if (!preview) return notFound("Finder preview not found");
     const res = NextResponse.json(serializePreview(preview));
-    res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
+    res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
   } catch (err) {
     console.error(err);
