@@ -16,7 +16,7 @@ export const OCS_BUCKET_CLASSES: Record<OcsBucket, string> = {
 
 export function getOcsBucket(ocs: number): OcsBucket {
   if (ocs < 30) return "poor";
-  if (ocs < 80) return "good";
+  if (ocs <= 50) return "good";
   return "great";
 }
 

@@ -6,7 +6,7 @@ describe("activity-score", () => {
     expect(getOcsBucket(0)).toBe("poor");
     expect(getOcsBucket(29)).toBe("poor");
     expect(getOcsBucket(30)).toBe("good");
-    expect(getOcsBucket(79)).toBe("good");
-    expect(getOcsBucket(80)).toBe("great");
+    expect(getOcsBucket(50)).toBe("good");
+    expect(getOcsBucket(51)).toBe("great");
   });
 });
