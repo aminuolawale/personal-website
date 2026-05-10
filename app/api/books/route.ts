@@ -4,10 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, notFound, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { bookCategories, books } from "@/lib/schema";
-
-function cleanText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

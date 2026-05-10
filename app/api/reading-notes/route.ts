@@ -5,10 +5,7 @@ import { badRequest, notFound, PUBLIC_CACHE, serverError, unauthorized } from "@
 import { getDb } from "@/lib/db";
 import { books, readingNotes } from "@/lib/schema";
 import { createUpdate } from "@/lib/updates";
-
-function cleanRichText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText } from "@/lib/validation";
 
 function hasVisibleText(html: string) {
   return html
@@ -60,7 +57,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const bookId = Number(body.bookId);
   const description = typeof body.description === "string" ? body.description.trim() : "";
-  const content = cleanRichText(body.content);
+  const content = cleanText(body.content);
   const publishAsUpdate = body.publishAsUpdate === true;
   const createdAt = parseNoteDate(body.noteDate);
 

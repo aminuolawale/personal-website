@@ -7,6 +7,7 @@ import { slugify } from "@/lib/utils";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
 import { createUpdate } from "@/lib/updates";
 import { logTelemetryEvent } from "@/lib/observability/server";
+import { SECTION_LABEL, articleLink } from "@/lib/articles";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -36,17 +37,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-const SECTION_LABEL: Record<string, string> = {
-  writing: "Writing",
-  astrophotography: "Astrophotography",
-  swe: "SWE",
-  misc: "Misc",
-};
-
-function articleLink(article: { type: string; slug: string }) {
-  if (article.type === "misc") return `/misc?tab=${article.slug}`;
-  return `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
-}
 
 export async function POST(req: NextRequest) {
   if (!(await getSession())) return unauthorized();

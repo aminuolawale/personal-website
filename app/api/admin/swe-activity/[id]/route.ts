@@ -3,7 +3,8 @@ import { getDb } from "@/lib/db";
 import { sweActivity } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, notFound, serverError } from "@/lib/api";
+import { unauthorized, notFound, badRequest, serverError } from "@/lib/api";
+import { parseId } from "@/lib/validation";
 
 /**
  * Updates an activity entry (message, note, scs).
@@ -14,8 +15,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return unauthorized();
 
   try {
-    const id = parseInt((await params).id);
-    if (isNaN(id)) return notFound();
+    const id = parseId((await params).id);
+    if (!id) return badRequest("Invalid id");
 
     const body = await req.json();
     const { message, note, scs } = body;
@@ -49,8 +50,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session) return unauthorized();
 
   try {
-    const id = parseInt((await params).id);
-    if (isNaN(id)) return notFound();
+    const id = parseId((await params).id);
+    if (!id) return badRequest("Invalid id");
 
     const db = getDb();
     const [deleted] = await db

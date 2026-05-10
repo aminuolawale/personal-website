@@ -5,13 +5,9 @@ import { badRequest, notFound, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { finderPreviews } from "@/lib/schema";
 import { normalizeFinderPayload, parseFinderSteps } from "@/lib/finder-previews";
+import { parseId } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
 
 function serializePreview(row: typeof finderPreviews.$inferSelect) {
   return { ...row, steps: parseFinderSteps(row.steps) };

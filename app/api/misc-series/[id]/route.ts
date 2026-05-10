@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { badRequest, serverError, unauthorized } from "@/lib/api";
+import { badRequest, notFound, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { articles, miscSeries } from "@/lib/schema";
 import { logTelemetryEvent } from "@/lib/observability/server";
-
-function cleanText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { cleanText, parseId } from "@/lib/validation";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await getSession())) return unauthorized();
@@ -35,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       .where(eq(miscSeries.id, id))
       .returning();
 
-    if (!series) return NextResponse.json({ error: "Series not found" }, { status: 404 });
+    if (!series) return notFound("Series not found");
     logTelemetryEvent({
       name: "admin.misc_series.updated",
       section: "misc",
@@ -64,7 +56,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       .where(eq(articles.seriesId, id));
 
     const [deleted] = await db.delete(miscSeries).where(eq(miscSeries.id, id)).returning();
-    if (!deleted) return NextResponse.json({ error: "Series not found" }, { status: 404 });
+    if (!deleted) return notFound("Series not found");
     logTelemetryEvent({
       name: "admin.misc_series.deleted",
       section: "misc",

@@ -6,10 +6,7 @@ import { getDb } from "@/lib/db";
 import { miscTabs } from "@/lib/schema";
 import { slugify } from "@/lib/utils";
 import { logTelemetryEvent } from "@/lib/observability/server";
-
-function cleanText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

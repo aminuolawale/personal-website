@@ -4,10 +4,7 @@ import { getSession } from "@/lib/auth";
 import { badRequest, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { readingNotes } from "@/lib/schema";
-
-function cleanRichText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText, parseId } from "@/lib/validation";
 
 function hasVisibleText(html: string) {
   return html
@@ -22,9 +19,12 @@ export async function PUT(
 ) {
   if (!(await getSession())) return unauthorized();
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
+
   const body = await req.json();
-  const content = cleanRichText(body.content);
+  const content = cleanText(body.content);
   const description = typeof body.description === "string" ? body.description.trim() : undefined;
   if (!hasVisibleText(content)) return badRequest("Reading note text is required");
 
@@ -32,7 +32,7 @@ export async function PUT(
     const [note] = await getDb()
       .update(readingNotes)
       .set({ content, ...(description !== undefined && { description }), updatedAt: new Date() })
-      .where(eq(readingNotes.id, parseInt(id)))
+      .where(eq(readingNotes.id, id))
       .returning();
     return NextResponse.json(note);
   } catch (err) {
@@ -47,9 +47,11 @@ export async function DELETE(
 ) {
   if (!(await getSession())) return unauthorized();
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
-    await getDb().delete(readingNotes).where(eq(readingNotes.id, parseInt(id)));
+    await getDb().delete(readingNotes).where(eq(readingNotes.id, id));
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);

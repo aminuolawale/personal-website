@@ -5,10 +5,7 @@ import { badRequest, PUBLIC_CACHE, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { miscSeries } from "@/lib/schema";
 import { logTelemetryEvent } from "@/lib/observability/server";
-
-function cleanText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
+import { cleanText } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

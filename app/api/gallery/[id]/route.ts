@@ -3,17 +3,20 @@ import { getDb } from "@/lib/db";
 import { galleryPhotos } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, notFound, serverError } from "@/lib/api";
+import { unauthorized, notFound, badRequest, serverError } from "@/lib/api";
+import { parseId } from "@/lib/validation";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await getSession())) return unauthorized();
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
     const db = getDb();
-    const [photo] = await db.select().from(galleryPhotos).where(eq(galleryPhotos.id, Number(id)));
+    const [photo] = await db.select().from(galleryPhotos).where(eq(galleryPhotos.id, id));
     if (!photo) return notFound();
     return NextResponse.json(photo);
   } catch {
@@ -26,14 +29,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await getSession())) return unauthorized();
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
     const body = await req.json();
     const db = getDb();
     const [photo] = await db
       .update(galleryPhotos)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(galleryPhotos.id, Number(id)))
+      .where(eq(galleryPhotos.id, id))
       .returning();
     if (!photo) return notFound();
     return NextResponse.json(photo);
@@ -47,10 +52,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!(await getSession())) return unauthorized();
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
     const db = getDb();
-    await db.delete(galleryPhotos).where(eq(galleryPhotos.id, Number(id)));
+    await db.delete(galleryPhotos).where(eq(galleryPhotos.id, id));
     return NextResponse.json({ ok: true });
   } catch {
     return serverError();

@@ -3,33 +3,25 @@ import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, notFound, serverError } from "@/lib/api";
+import { unauthorized, notFound, badRequest, serverError } from "@/lib/api";
+import { parseId } from "@/lib/validation";
 import { logTelemetryEvent } from "@/lib/observability/server";
 import { createUpdate } from "@/lib/updates";
-
-const SECTION_LABEL: Record<string, string> = {
-  writing: "Writing",
-  astrophotography: "Astrophotography",
-  swe: "SWE",
-  misc: "Misc",
-};
-
-function articleLink(article: { type: string; slug: string }) {
-  if (article.type === "misc") return `/misc?tab=${article.slug}`;
-  return `/${article.type === "swe" ? "swe" : article.type}/${article.slug}`;
-}
+import { SECTION_LABEL, articleLink } from "@/lib/articles";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
     const db = getDb();
     const [article] = await db
       .select()
       .from(articles)
-      .where(eq(articles.id, parseInt(id)));
+      .where(eq(articles.id, id));
     if (!article) return notFound();
     return NextResponse.json(article);
   } catch {
@@ -43,7 +35,9 @@ export async function PUT(
 ) {
   if (!(await getSession())) return unauthorized();
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   const { publishAsUpdate, ...body } = await req.json();
 
   try {
@@ -51,7 +45,7 @@ export async function PUT(
     const [article] = await db
       .update(articles)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(articles.id, parseInt(id)))
+      .where(eq(articles.id, id))
       .returning();
     if (article) {
       logTelemetryEvent({
@@ -81,15 +75,16 @@ export async function DELETE(
 ) {
   if (!(await getSession())) return unauthorized();
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
+  if (!id) return badRequest("Invalid id");
   try {
     const db = getDb();
-    const articleId = parseInt(id);
-    await db.delete(articles).where(eq(articles.id, articleId));
+    await db.delete(articles).where(eq(articles.id, id));
     logTelemetryEvent({
       name: "admin.article.deleted",
       targetType: "article",
-      targetId: articleId,
+      targetId: id,
     });
     return NextResponse.json({ ok: true });
   } catch {

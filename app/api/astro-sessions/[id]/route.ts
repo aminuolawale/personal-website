@@ -5,13 +5,9 @@ import { badRequest, notFound, serverError, unauthorized } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { astroSessions } from "@/lib/schema";
 import { logTelemetryEvent } from "@/lib/observability/server";
+import { parseId } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
-
-function parseId(value: string): number | null {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!(await getSession())) return unauthorized();
