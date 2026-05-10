@@ -88,7 +88,7 @@ describe("fetchVercelActivity", () => {
     expect(items).toHaveLength(1);
   });
 
-  it("deduplicates commits — same SHA from two deployments yields one commit item", async () => {
+  it("emits one commit activity per deployment even when deployments share a SHA", async () => {
     const sha = "abc123def456abc123def456abc123def456abc123";
     const deployments = [
       makeDeployment({ uid: "dpl-1" }),
@@ -100,10 +100,10 @@ describe("fetchVercelActivity", () => {
     const items = await fetchVercelActivity();
     const commits = items.filter((i) => i.type === "commit");
 
-    // Both deployments share the same SHA — only one unique commit id
+    // The DB sync layer deduplicates repeated commit IDs before batch upsert.
     const ids = commits.map((c) => c.id);
     expect(ids.every((id) => id === `vercel-commit-${sha}`)).toBe(true);
-    expect(commits).toHaveLength(2); // two items with same externalId — DB upsert handles dedup
+    expect(commits).toHaveLength(2);
   });
 
   it("commit URL is omitted when org/repo metadata is missing", async () => {

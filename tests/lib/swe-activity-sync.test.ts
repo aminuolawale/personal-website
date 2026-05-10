@@ -69,4 +69,33 @@ describe("SWE Activity Sync Engine", () => {
     await syncActivitiesToDb([]);
     expect(mockInsert).not.toHaveBeenCalled();
   });
+
+  it("deduplicates repeated external IDs before batch upsert", async () => {
+    await syncActivitiesToDb([
+      {
+        id: "vercel-commit-abc123",
+        type: "commit",
+        message: "Older duplicate",
+        repo: "repo-1",
+        timestamp: "2026-05-10T10:00:00Z",
+        url: "http://github.com/old",
+      },
+      {
+        id: "vercel-commit-abc123",
+        type: "commit",
+        message: "Newer duplicate",
+        repo: "repo-1",
+        timestamp: "2026-05-10T11:00:00Z",
+        url: "http://github.com/new",
+      },
+    ]);
+
+    const valuesCall = mockValues.mock.calls[0][0];
+    expect(valuesCall).toHaveLength(1);
+    expect(valuesCall[0]).toMatchObject({
+      externalId: "vercel-commit-abc123",
+      message: "Newer duplicate",
+      url: "http://github.com/new",
+    });
+  });
 });

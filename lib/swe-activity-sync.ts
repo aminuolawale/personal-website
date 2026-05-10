@@ -23,26 +23,41 @@ function loadCachedMetrics(sha: string): CommitMetrics | null {
   }
 }
 
+function dedupeByExternalId<T extends { externalId: string; timestamp: Date }>(items: T[]): T[] {
+  const byId = new Map<string, T>();
+
+  for (const item of items) {
+    const existing = byId.get(item.externalId);
+    if (!existing || item.timestamp > existing.timestamp) {
+      byId.set(item.externalId, item);
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
 export async function syncActivitiesToDb(items: ActivityItem[]) {
   const CUTOFF_DATE = new Date("2026-04-24T00:00:00Z");
 
-  const filteredItems = items
-    .filter(item => new Date(item.timestamp) >= CUTOFF_DATE)
-    .map(item => {
-      // For commit items, try to attach cached metrics written by the post-commit hook.
-      // externalId format: "vercel-commit-<sha>"
-      const sha = item.type === "commit" ? item.id.replace(/^vercel-commit-/, "") : null;
-      const metrics = sha ? loadCachedMetrics(sha) : null;
-      return {
-        externalId: item.id,
-        type: item.type,
-        message: item.message,
-        repo: item.repo,
-        timestamp: new Date(item.timestamp),
-        url: item.url,
-        ...(metrics ? { metrics } : {}),
-      };
-    });
+  const filteredItems = dedupeByExternalId(
+    items
+      .filter(item => new Date(item.timestamp) >= CUTOFF_DATE)
+      .map(item => {
+        // For commit items, try to attach cached metrics written by the post-commit hook.
+        // externalId format: "vercel-commit-<sha>"
+        const sha = item.type === "commit" ? item.id.replace(/^vercel-commit-/, "") : null;
+        const metrics = sha ? loadCachedMetrics(sha) : null;
+        return {
+          externalId: item.id,
+          type: item.type,
+          message: item.message,
+          repo: item.repo,
+          timestamp: new Date(item.timestamp),
+          url: item.url,
+          ...(metrics ? { metrics } : {}),
+        };
+      })
+  );
 
   if (filteredItems.length === 0) return;
 
