@@ -37,6 +37,22 @@ const MAX_ZOOM = 8;
 const TARGET_ZOOM = 2.2;
 const FRAME_ANIMATION_MS = 800;
 
+type Camera = { x: number; y: number; zoom: number };
+
+type CameraTransition = {
+  from: Camera;
+  to: Camera;
+  startTick: number;
+  durationMs: number;
+};
+
+type CanvasSize = {
+  width: number;
+  height: number;
+  dpr: number;
+  ready: boolean;
+};
+
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
@@ -63,15 +79,11 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const zoomRef = useRef(MIN_ZOOM);
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
   const touchDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
-  const frameTransitionRef = useRef<{
-    fromX: number;
-    fromY: number;
-    fromZoom: number;
-    toX: number;
-    toY: number;
-    toZoom: number;
-    startTick: number;
-  } | null>(null);
+  const cameraTransitionRef = useRef<CameraTransition | null>(null);
+  const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0, dpr: 1, ready: false });
+  const reducedMotionRef = useRef(false);
+  const touchDeviceRef = useRef(false);
+  const safeActiveStepRef = useRef(0);
   const [fetchedPreview, setFetchedPreview] = useState<FinderPreview | null>(null);
   const [locationIdx, setLocationIdx] = useState(1);
   const [computed, setComputed] = useState<Computed>(() => compute(midnightTonight(), LOCATIONS[1].lat, LOCATIONS[1].lon));
@@ -108,6 +120,15 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [currentTarget]);
 
   useEffect(() => {
+    safeActiveStepRef.current = safeActiveStep;
+  }, [safeActiveStep]);
+
+  useEffect(() => {
+    reducedMotionRef.current = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    touchDeviceRef.current = window.matchMedia?.("(pointer: coarse)").matches ?? navigator.maxTouchPoints > 0;
+  }, []);
+
+  useEffect(() => {
     document.body.style.overflow = isFullscreen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isFullscreen]);
@@ -133,20 +154,20 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         ));
         zoomRef.current = newZoom;
         setZoomLevel(newZoom);
-        frameTransitionRef.current = null;
+        cameraTransitionRef.current = null;
       } else if (e.touches.length === 1 && touchDragRef.current) {
         e.preventDefault();
         const dx = e.touches[0].clientX - touchDragRef.current.startX;
         const dy = e.touches[0].clientY - touchDragRef.current.startY;
-        const dpr = window.devicePixelRatio || 1;
-        const skyRadius = getSkyRadius(canvas.width / dpr, canvas.height / dpr, isFullscreen);
+        const { width, height } = canvasSizeRef.current;
+        const skyRadius = getSkyRadius(width, height, isFullscreen);
         panRef.current = clampPan(
           zoomRef.current,
           touchDragRef.current.startPanX + dx,
           touchDragRef.current.startPanY + dy,
           skyRadius
         );
-        frameTransitionRef.current = null;
+        cameraTransitionRef.current = null;
       }
     };
     canvas.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -156,12 +177,9 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const frameStep = useCallback((index: number, requestedZoom?: number, immediate = false) => {
     if (!computed || !steps[index]) return;
     const pos = resolveComputedTargetPosition(computed, steps[index].targetId);
-    const canvas = canvasRef.current;
-    if (!pos || !canvas) return;
+    if (!pos || !canvasSizeRef.current.ready) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const width = canvas.width / dpr;
-    const height = canvas.height / dpr;
+    const { width, height } = canvasSizeRef.current;
     const skyRadius = getSkyRadius(width, height, isFullscreen);
     const stepZoom = steps[index].zoomLevel ?? TARGET_ZOOM;
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, requestedZoom ?? stepZoom));
@@ -172,18 +190,22 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     if (immediate) {
       zoomRef.current = zoom;
       panRef.current = nextPan;
-      frameTransitionRef.current = null;
+      cameraTransitionRef.current = null;
       return;
     }
 
-    frameTransitionRef.current = {
-      fromX: panRef.current.x,
-      fromY: panRef.current.y,
-      fromZoom: zoomRef.current,
-      toX: nextPan.x,
-      toY: nextPan.y,
-      toZoom: zoom,
+    if (reducedMotionRef.current) {
+      zoomRef.current = zoom;
+      panRef.current = nextPan;
+      cameraTransitionRef.current = null;
+      return;
+    }
+
+    cameraTransitionRef.current = {
+      from: { x: panRef.current.x, y: panRef.current.y, zoom: zoomRef.current },
+      to: { x: nextPan.x, y: nextPan.y, zoom },
       startTick: 0,
+      durationMs: FRAME_ANIMATION_MS,
     };
   }, [computed, isFullscreen, steps]);
 
@@ -201,17 +223,48 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const goToStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(index, steps.length - 1));
     setActiveStep(next);
-    frameStep(next);
-  }, [frameStep, steps.length]);
+  }, [steps.length]);
 
   useEffect(() => {
     frameStep(safeActiveStep);
   }, [frameStep, safeActiveStep]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => frameStep(safeActiveStep), 0);
+    const timer = window.setTimeout(() => frameStep(safeActiveStep, undefined, true), 0);
     return () => window.clearTimeout(timer);
   }, [computed, frameStep, safeActiveStep]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const canvasNode = canvas;
+
+    function resize(width: number, height: number) {
+      const dpr = window.devicePixelRatio || 1;
+      const nextWidth = Math.max(1, Math.round(width));
+      const nextHeight = Math.max(1, Math.round(height || width * 0.62));
+      const pixelWidth = Math.round(nextWidth * dpr);
+      const pixelHeight = Math.round(nextHeight * dpr);
+      const wasReady = canvasSizeRef.current.ready;
+
+      if (canvasNode.width !== pixelWidth || canvasNode.height !== pixelHeight) {
+        canvasNode.width = pixelWidth;
+        canvasNode.height = pixelHeight;
+      }
+
+      canvasSizeRef.current = { width: nextWidth, height: nextHeight, dpr, ready: true };
+      frameStep(safeActiveStepRef.current, undefined, !wasReady);
+    }
+
+    const rect = canvasNode.getBoundingClientRect();
+    if (rect.width > 0) resize(rect.width, rect.height || rect.width * 0.62);
+
+    const ro = new ResizeObserver(([entry]) => {
+      resize(entry.contentRect.width, entry.contentRect.height || entry.contentRect.width * 0.62);
+    });
+    ro.observe(canvasNode);
+    return () => ro.disconnect();
+  }, [frameStep]);
 
   useEffect(() => {
     if (!playing || steps.length === 0) return;
@@ -225,7 +278,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         setPlaying(false);
         return step;
       });
-    }, Math.max(1, preview?.stepDelaySeconds ?? 4) * 1000);
+    }, FRAME_ANIMATION_MS + Math.max(1, preview?.stepDelaySeconds ?? 4) * 1000);
 
     return () => {
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -237,35 +290,25 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width > 0) {
-        const dpr = window.devicePixelRatio || 1;
-        const width = Math.round(rect.width);
-        const height = Math.round(rect.height || rect.width * 0.62);
-        if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-          canvas.width = width * dpr;
-          canvas.height = height * dpr;
-          frameStep(safeActiveStep, undefined, true);
-        }
-      }
-
-      const transition = frameTransitionRef.current;
+      const transition = cameraTransitionRef.current;
       if (transition) {
         if (transition.startTick === 0) transition.startTick = tick;
-        const t = Math.min(1, (tick - transition.startTick) / FRAME_ANIMATION_MS);
+        const t = Math.min(1, (tick - transition.startTick) / transition.durationMs);
         const eased = easeInOut(t);
-        zoomRef.current = lerp(transition.fromZoom, transition.toZoom, eased);
+        zoomRef.current = lerp(transition.from.zoom, transition.to.zoom, eased);
         panRef.current = {
-          x: lerp(transition.fromX, transition.toX, eased),
-          y: lerp(transition.fromY, transition.toY, eased),
+          x: lerp(transition.from.x, transition.to.x, eased),
+          y: lerp(transition.from.y, transition.to.y, eased),
         };
         if (t >= 1) {
-          zoomRef.current = transition.toZoom;
-          panRef.current = { x: transition.toX, y: transition.toY };
-          frameTransitionRef.current = null;
+          zoomRef.current = transition.to.zoom;
+          panRef.current = { x: transition.to.x, y: transition.to.y };
+          setZoomLevel(transition.to.zoom);
+          cameraTransitionRef.current = null;
         }
       }
 
+      const isMoving = cameraTransitionRef.current !== null;
       draw(
         canvas,
         computed,
@@ -276,14 +319,15 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         true,
         null,
         isFullscreen,
-        highlightedConstellations
+        highlightedConstellations,
+        { quality: isMoving && touchDeviceRef.current ? "low" : "high" }
       );
       rafRef.current = requestAnimationFrame(animate);
     }
 
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [computed, frameStep, highlightedConstellations, isFullscreen, safeActiveStep]);
+  }, [computed, highlightedConstellations, isFullscreen]);
 
   if (!preview) {
     return (

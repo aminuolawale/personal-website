@@ -31,6 +31,10 @@ async function main() {
     workingDir,
     repoPath,
   });
+  if (!metrics) {
+    console.log(`[metrics] No coding-agent sessions found for ${sha.slice(0, 7)}; skipping.`);
+    return;
+  }
 
   console.log(
     `[metrics] OCS=${metrics.scores.ocs}  tokens=${metrics.tokenMetrics.totalTokens}  LOC=${metrics.loc.net}`,

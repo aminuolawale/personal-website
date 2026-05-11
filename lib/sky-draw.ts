@@ -30,6 +30,12 @@ function computeAltitudeRingStep(zoom: number) {
   if (zoom >= 5) return 5; if (zoom >= 3) return 10; if (zoom >= 2) return 15; return 30;
 }
 
+export type SkyDrawQuality = "high" | "low";
+
+export type SkyDrawOptions = {
+  quality?: SkyDrawQuality;
+};
+
 export function clampPan(zoom: number, panX: number, panY: number, skyRadius: number) {
   const maxPanOffset = skyRadius * Math.max(0, zoom - 1);
   return {
@@ -46,7 +52,10 @@ function drawSkyObjects(
   darkMode: boolean,
   selectedConstellation: string | null,
   highlightedConstellations: readonly string[],
+  quality: SkyDrawQuality,
 ) {
+  const lowQuality = quality === "low";
+
   function projectToCanvas(alt: number, az: number): [number, number] {
     const radialDistance = (1 - alt / 90) * skyRadius;
     const azimuthRad = az * DEG_TO_RAD;
@@ -82,22 +91,24 @@ function drawSkyObjects(
     }
   }
 
-  for (const object of comp.dso) {
-    const [dsoX, dsoY] = projectToCanvas(object.alt, object.az);
-    const dsoDisplayRadius = (object.type === "galaxy" ? 9 : object.type === "cluster" ? 7 : 6) * Math.min(zoom, 2);
-    const dsoAlpha = Math.max(0.1, 0.55 - object.mag * 0.06);
-    const dsoGlow = ctx.createRadialGradient(dsoX, dsoY, 0, dsoX, dsoY, dsoDisplayRadius);
-    if (darkMode) {
-      dsoGlow.addColorStop(0, object.type === "nebula" ? `rgba(180,100,200,${dsoAlpha * 1.5})` : `rgba(180,200,255,${dsoAlpha * 1.8})`);
-    } else {
-      dsoGlow.addColorStop(0, object.type === "nebula" ? `rgba(120,0,160,${dsoAlpha * 1.2})` : `rgba(10,40,140,${dsoAlpha * 1.5})`);
+  if (!lowQuality) {
+    for (const object of comp.dso) {
+      const [dsoX, dsoY] = projectToCanvas(object.alt, object.az);
+      const dsoDisplayRadius = (object.type === "galaxy" ? 9 : object.type === "cluster" ? 7 : 6) * Math.min(zoom, 2);
+      const dsoAlpha = Math.max(0.1, 0.55 - object.mag * 0.06);
+      const dsoGlow = ctx.createRadialGradient(dsoX, dsoY, 0, dsoX, dsoY, dsoDisplayRadius);
+      if (darkMode) {
+        dsoGlow.addColorStop(0, object.type === "nebula" ? `rgba(180,100,200,${dsoAlpha * 1.5})` : `rgba(180,200,255,${dsoAlpha * 1.8})`);
+      } else {
+        dsoGlow.addColorStop(0, object.type === "nebula" ? `rgba(120,0,160,${dsoAlpha * 1.2})` : `rgba(10,40,140,${dsoAlpha * 1.5})`);
+      }
+      dsoGlow.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.arc(dsoX, dsoY, dsoDisplayRadius, 0, Math.PI * 2);
+      ctx.fillStyle = dsoGlow; ctx.fill();
+      ctx.fillStyle = darkMode ? "rgba(180,200,255,0.5)" : "rgba(10,40,140,0.5)";
+      ctx.font = `8px JetBrains Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(object.name, dsoX + dsoDisplayRadius + 3, dsoY);
     }
-    dsoGlow.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(dsoX, dsoY, dsoDisplayRadius, 0, Math.PI * 2);
-    ctx.fillStyle = dsoGlow; ctx.fill();
-    ctx.fillStyle = darkMode ? "rgba(180,200,255,0.5)" : "rgba(10,40,140,0.5)";
-    ctx.font = `8px JetBrains Mono, monospace`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    ctx.fillText(object.name, dsoX + dsoDisplayRadius + 3, dsoY);
   }
 
   for (const star of comp.stars) {
@@ -105,9 +116,14 @@ function drawSkyObjects(
     const starFillColor  = darkMode ? starColorDark(star.sp, 1) : starColorLight(star.sp, 1);
     const starHaloAlpha  = darkMode ? 0.8 : 0.7;
     const starHaloColor  = darkMode ? starColorDark(star.sp, starHaloAlpha) : starColorLight(star.sp, starHaloAlpha);
-    const twinkleFactor  = star.name ? 0.85 + 0.15 * Math.sin(tick * 0.0018 + starX * 7.3) : 0.75 + 0.25 * Math.random();
+    const twinkleSeed = star.az * 12.9898 + star.alt * 78.233;
+    const twinkleFactor = lowQuality
+      ? 0.9
+      : star.name
+        ? 0.85 + 0.15 * Math.sin(tick * 0.0018 + twinkleSeed)
+        : 0.82 + 0.18 * Math.sin(tick * 0.0015 + twinkleSeed);
     const scaledStarRadius = star.r * Math.min(1 + (zoom - 1) * 0.3, 2);
-    if (scaledStarRadius > 1.2) {
+    if (!lowQuality && scaledStarRadius > 1.2) {
       const starHalo = ctx.createRadialGradient(starX, starY, 0, starX, starY, scaledStarRadius * 3.5);
       starHalo.addColorStop(0, starHaloColor.replace(/[\d.]+\)$/, `${0.35 * twinkleFactor})`));
       starHalo.addColorStop(1, "transparent");
@@ -116,7 +132,7 @@ function drawSkyObjects(
     ctx.beginPath(); ctx.arc(starX, starY, scaledStarRadius * twinkleFactor, 0, Math.PI * 2); ctx.fillStyle = starFillColor; ctx.fill();
   }
 
-  const labelMagnitudeThreshold = zoom >= 4 ? 4.5 : zoom >= 3 ? 3.5 : zoom >= 2 ? 2.5 : 1.4;
+  const labelMagnitudeThreshold = lowQuality ? -1 : zoom >= 4 ? 4.5 : zoom >= 3 ? 3.5 : zoom >= 2 ? 2.5 : 1.4;
   ctx.textBaseline = "middle";
   for (const star of comp.stars) {
     if (!star.name || star.name === "Polaris" || star.mag > labelMagnitudeThreshold) continue;
@@ -130,10 +146,12 @@ function drawSkyObjects(
     const [moonX, moonY] = projectToCanvas(comp.moon.alt, comp.moon.az);
     const { phase } = comp.moon;
     const moonDisplayRadius = 10 * Math.min(1 + (zoom - 1) * 0.4, 2);
-    const moonGlow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonDisplayRadius * 3);
+    const moonGlow = lowQuality ? null : ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonDisplayRadius * 3);
     if (darkMode) {
-      moonGlow.addColorStop(0, "rgba(230,230,200,0.25)"); moonGlow.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      if (moonGlow) {
+        moonGlow.addColorStop(0, "rgba(230,230,200,0.25)"); moonGlow.addColorStop(1, "transparent");
+        ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      }
       ctx.save();
       ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius, 0, Math.PI * 2); ctx.clip();
       ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius, 0, Math.PI * 2); ctx.fillStyle = "rgba(230,225,200,0.9)"; ctx.fill();
@@ -146,8 +164,10 @@ function drawSkyObjects(
       ctx.strokeStyle = "rgba(230,225,200,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
       ctx.fillStyle = "rgba(230,225,200,0.7)";
     } else {
-      moonGlow.addColorStop(0, "rgba(50,55,70,0.12)"); moonGlow.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      if (moonGlow) {
+        moonGlow.addColorStop(0, "rgba(50,55,70,0.12)"); moonGlow.addColorStop(1, "transparent");
+        ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius * 3, 0, Math.PI * 2); ctx.fillStyle = moonGlow; ctx.fill();
+      }
       ctx.save();
       ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius, 0, Math.PI * 2); ctx.clip();
       ctx.beginPath(); ctx.arc(moonX, moonY, moonDisplayRadius, 0, Math.PI * 2); ctx.fillStyle = "rgba(50,55,70,0.85)"; ctx.fill();
@@ -160,20 +180,26 @@ function drawSkyObjects(
       ctx.strokeStyle = "rgba(50,55,70,0.35)"; ctx.lineWidth = 0.5; ctx.stroke();
       ctx.fillStyle = "rgba(50,55,70,0.7)";
     }
-    ctx.font = `bold 9px JetBrains Mono, monospace`;
-    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("Moon", moonX + moonDisplayRadius + 4, moonY);
+    if (!lowQuality) {
+      ctx.font = `bold 9px JetBrains Mono, monospace`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("Moon", moonX + moonDisplayRadius + 4, moonY);
+    }
   }
 
   for (const planet of comp.planets) {
     const [planetX, planetY]   = projectToCanvas(planet.alt, planet.az);
     const planetDisplayRadius  = planet.radius * Math.min(1 + (zoom - 1) * 0.4, 2);
     const planetColor          = darkMode ? PLANET_STYLES[planet.name].color : (LIGHT_MODE_PLANET_COLORS[planet.name] ?? "#333");
-    const planetGlow = ctx.createRadialGradient(planetX, planetY, 0, planetX, planetY, planetDisplayRadius * 3.5);
-    planetGlow.addColorStop(0, planetColor + "66"); planetGlow.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(planetX, planetY, planetDisplayRadius * 3.5, 0, Math.PI * 2); ctx.fillStyle = planetGlow; ctx.fill();
+    if (!lowQuality) {
+      const planetGlow = ctx.createRadialGradient(planetX, planetY, 0, planetX, planetY, planetDisplayRadius * 3.5);
+      planetGlow.addColorStop(0, planetColor + "66"); planetGlow.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.arc(planetX, planetY, planetDisplayRadius * 3.5, 0, Math.PI * 2); ctx.fillStyle = planetGlow; ctx.fill();
+    }
     ctx.beginPath(); ctx.arc(planetX, planetY, planetDisplayRadius, 0, Math.PI * 2); ctx.fillStyle = planetColor; ctx.fill();
-    ctx.fillStyle = planetColor; ctx.font = `bold 9px JetBrains Mono, monospace`;
-    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(planet.name, planetX + planetDisplayRadius + 5, planetY);
+    if (!lowQuality) {
+      ctx.fillStyle = planetColor; ctx.font = `bold 9px JetBrains Mono, monospace`;
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(planet.name, planetX + planetDisplayRadius + 5, planetY);
+    }
   }
 }
 
@@ -217,7 +243,10 @@ export function draw(
   selectedConstellation: string | null,
   fullBleed = false,
   highlightedConstellations: readonly string[] = [],
+  options: SkyDrawOptions = {},
 ) {
+  const quality = options.quality ?? "high";
+  const lowQuality = quality === "low";
   const devicePixelRatio = window.devicePixelRatio || 1;
   const canvasWidth  = canvas.width  / devicePixelRatio;
   const canvasHeight = canvas.height / devicePixelRatio;
@@ -254,7 +283,7 @@ export function draw(
       ctx.strokeStyle = isMajor ? "rgba(0,0,60,0.08)" : "rgba(0,0,60,0.04)";
     }
     ctx.lineWidth = isMajor ? 0.7 : 0.4; ctx.stroke();
-    if (!isMajor && !(ringStepDegrees <= 10 && alt % (ringStepDegrees * 2) === 0)) continue;
+    if (lowQuality || (!isMajor && !(ringStepDegrees <= 10 && alt % (ringStepDegrees * 2) === 0))) continue;
     const ringLabelX = centerX + ringRadius * Math.sin(90 * DEG_TO_RAD) + panX;
     const ringLabelY = centerY - ringRadius * Math.cos(90 * DEG_TO_RAD) + panY;
     if (ringLabelX > centerX - skyRadius && ringLabelX < centerX + skyRadius && ringLabelY > centerY - skyRadius && ringLabelY < centerY + skyRadius) {
@@ -266,8 +295,8 @@ export function draw(
     }
   }
 
-  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation, highlightedConstellations);
-  drawPolarisMarker(ctx, comp, zoom, panX, panY, centerX, centerY, skyRadius, darkMode);
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation, highlightedConstellations, quality);
+  if (!lowQuality) drawPolarisMarker(ctx, comp, zoom, panX, panY, centerX, centerY, skyRadius, darkMode);
   if (!fullBleed) ctx.restore();
 
   ctx.beginPath(); ctx.arc(centerX, centerY, skyRadius, 0, Math.PI * 2);
