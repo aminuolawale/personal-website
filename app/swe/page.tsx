@@ -20,8 +20,8 @@ import type { Article } from "@/lib/schema";
 const Projects = dynamic(() => import("@/components/Projects"), {
   loading: () => <p className="font-mono text-xs text-muted/30">Loading projects…</p>,
 });
-const About = dynamic(() => import("@/components/About"));
-const Experience = dynamic(() => import("@/components/Experience"));
+const About = dynamic(() => import("@/components/About"), { loading: () => null });
+const Experience = dynamic(() => import("@/components/Experience"), { loading: () => null });
 
 type SweTab = TabConfig & {
   renderContent: (
