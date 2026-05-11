@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { GitCommit, X, ExternalLink } from "lucide-react";
 import { relativeTime } from "@/lib/utils";
 import type { SweActivity } from "@/lib/schema";
-import type { CommitMetrics } from "@/lib/coding-agents/types";
+import type { CommitMetrics, SpecificityScore } from "@/lib/coding-agents/types";
 import {
   OCS_BUCKET_CLASSES,
   OCS_BUCKET_LABELS,
@@ -12,6 +12,33 @@ import {
   formatTokens,
   getDominantAgent,
 } from "@/lib/activity-score";
+
+type LegacySpecificityComponents = {
+  informationDensity?: number;
+  coherence?: number;
+  languageQuality?: number;
+};
+
+function getTaskControlRows(specificity: SpecificityScore) {
+  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
+  return [
+    ["Intent", components.taskIntentClarity, 25],
+    ["Context", components.contextQuality, 20],
+    ["Acceptance", components.constraintsAndAcceptance, 20],
+    ["Actionability", components.actionability, 20],
+    ["Steering", components.iterativeSteering, 10],
+    ["Hygiene", components.communicationHygiene, 5],
+  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
+}
+
+function getLegacySpecificityRows(specificity: SpecificityScore) {
+  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
+  return [
+    ["Info Density", components.informationDensity, 40],
+    ["Coherence", components.coherence, 30],
+    ["Language Quality", components.languageQuality, 30],
+  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
+}
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
   const idx = message.indexOf(repo);
@@ -155,37 +182,38 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
         {specificity && (
           <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2.5">
             <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
-              <span className="text-muted/35">Conversation Quality</span>
+              <span className="text-muted/35">Task Control</span>
               <span className={`px-1.5 py-0.5 border ${OCS_BUCKET_CLASSES[getOcsBucket(specificity.total)]}`}>
                 {specificity.total}
               </span>
             </div>
             <div className="space-y-1.5 font-mono text-[10px] text-muted/35">
-              <div className="flex justify-between">
-                <span>Information Density</span>
-                <span>
-                  {specificity.components.informationDensity}
-                  <span className="text-muted/20">/40</span>
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Coherence</span>
-                <span>
-                  {specificity.components.coherence}
-                  <span className="text-muted/20">/30</span>
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Language Quality</span>
-                <span>
-                  {specificity.components.languageQuality}
-                  <span className="text-muted/20">/30</span>
-                </span>
-              </div>
+              {(getTaskControlRows(specificity).length > 0
+                ? getTaskControlRows(specificity)
+                : getLegacySpecificityRows(specificity)
+              ).map(([label, value, max]) => (
+                <div key={label} className="flex justify-between">
+                  <span>{label}</span>
+                  <span>
+                    {value}
+                    <span className="text-muted/20">/{max}</span>
+                  </span>
+                </div>
+              ))}
             </div>
+            {specificity.mode && (
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted/25">
+                {specificity.mode.replace(/_/g, " ")}
+              </p>
+            )}
             {specificity.explanation && (
               <p className="text-[11px] text-muted/45 leading-relaxed border-t border-surface/10 pt-2.5">
                 {specificity.explanation}
+              </p>
+            )}
+            {specificity.improvement && (
+              <p className="text-[11px] text-muted/40 leading-relaxed">
+                Improve: {specificity.improvement}
               </p>
             )}
           </div>

@@ -33,13 +33,18 @@ const WORKING_DIR = "/projects/myapp";
 
 const MOCK_SPECIFICITY = {
   total: 75,
-  components: { informationDensity: 35, coherence: 20, languageQuality: 20 },
-  penalties: {
-    typos: { count: 0, deduction: 0 },
-    incorrectUsage: { count: 0, deduction: 0 },
-    grammarQuality: { severity: "none", deduction: 0 },
+  mode: "implementation_request",
+  components: {
+    taskIntentClarity: 20,
+    contextQuality: 15,
+    constraintsAndAcceptance: 15,
+    actionability: 16,
+    iterativeSteering: 5,
+    communicationHygiene: 4,
   },
   explanation: "Solid prompt.",
+  confidence: 0.8,
+  improvement: "Name the acceptance checks.",
 };
 
 function makeEmptyAggregate() {

@@ -68,8 +68,18 @@ describe("POST /api/admin/swe-activity/sync", () => {
       conversationScore: {
         specificity: {
           total: 80,
-          components: { informationDensity: 30, coherence: 25, languageQuality: 25 },
+          mode: "implementation_request",
+          components: {
+            taskIntentClarity: 20,
+            contextQuality: 15,
+            constraintsAndAcceptance: 16,
+            actionability: 18,
+            iterativeSteering: 7,
+            communicationHygiene: 4,
+          },
+          confidence: 0.86,
           explanation: "specific",
+          improvement: "Add acceptance checks.",
         },
       },
       scores: { ocs: 86, scs: 90 },

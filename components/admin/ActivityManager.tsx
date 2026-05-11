@@ -3,8 +3,35 @@
 import { useState, useEffect } from "react";
 import { GitCommit, Trash2, Save, ChevronDown, ChevronRight, Zap, X, RefreshCw } from "lucide-react";
 import type { SweActivity } from "@/lib/schema";
-import type { CommitMetrics } from "@/lib/coding-agents/types";
+import type { CommitMetrics, SpecificityScore } from "@/lib/coding-agents/types";
 import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, getOcsBucket } from "@/lib/activity-score";
+
+type LegacySpecificityComponents = {
+  informationDensity?: number;
+  coherence?: number;
+  languageQuality?: number;
+};
+
+function getTaskControlRows(specificity: SpecificityScore) {
+  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
+  return [
+    ["Intent", components.taskIntentClarity, 25],
+    ["Context", components.contextQuality, 20],
+    ["Acceptance", components.constraintsAndAcceptance, 20],
+    ["Actionability", components.actionability, 20],
+    ["Steering", components.iterativeSteering, 10],
+    ["Hygiene", components.communicationHygiene, 5],
+  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
+}
+
+function getLegacySpecificityRows(specificity: SpecificityScore) {
+  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
+  return [
+    ["Info density", components.informationDensity, 40],
+    ["Coherence", components.coherence, 30],
+    ["Language", components.languageQuality, 30],
+  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
+}
 
 function ScoreBadge({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -113,7 +140,7 @@ function MetricsPanel({ activityId }: { activityId: number }) {
             <div className="space-y-4">
               {/* Specificity badge only — OCS is shown in the header */}
               <div className="flex flex-wrap items-center gap-2">
-                <ScoreBadge label="Specificity" value={m.conversationScore?.specificity.total ?? 0} color="border-surface/20 text-muted" />
+                <ScoreBadge label="Task control" value={m.conversationScore?.specificity.total ?? 0} color="border-surface/20 text-muted" />
               </div>
 
               {/* Tokens + LOC */}
@@ -164,9 +191,22 @@ function MetricsPanel({ activityId }: { activityId: number }) {
                       : m.conversation.slice(0, 500) + (m.conversation.length > 500 ? "…" : "")}
                   </p>
                   {m.conversationScore && (
-                    <div className="space-y-0.5 font-mono text-[10px] text-muted/40">
-                      <div>Info density {m.conversationScore.specificity.components.informationDensity}/40 · Coherence {m.conversationScore.specificity.components.coherence}/30 · Language {m.conversationScore.specificity.components.languageQuality}/30</div>
+                    <div className="space-y-1 font-mono text-[10px] text-muted/40">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {(getTaskControlRows(m.conversationScore.specificity).length > 0
+                          ? getTaskControlRows(m.conversationScore.specificity)
+                          : getLegacySpecificityRows(m.conversationScore.specificity)
+                        ).map(([label, value, max]) => (
+                          <span key={label}>{label} {value}/{max}</span>
+                        ))}
+                      </div>
+                      {m.conversationScore.specificity.mode && (
+                        <p className="uppercase tracking-wider text-muted/30">{m.conversationScore.specificity.mode.replace(/_/g, " ")}</p>
+                      )}
                       <p className="text-[11px] text-muted/60 mt-1">{m.conversationScore.specificity.explanation}</p>
+                      {m.conversationScore.specificity.improvement && (
+                        <p className="text-[11px] text-muted/45">Improve: {m.conversationScore.specificity.improvement}</p>
+                      )}
                     </div>
                   )}
                 </div>

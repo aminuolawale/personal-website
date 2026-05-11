@@ -27,26 +27,30 @@ export interface AgentTokenSummary {
   sessionCount: number;
 }
 
-// ---- Specificity Score ----
+// ---- Specificity / Task Control Score ----
 
-export interface SpecificityPenalties {
-  typos: { count: number; deduction: number };
-  incorrectUsage: { count: number; deduction: number };
-  grammarQuality: {
-    severity: "none" | "minor" | "moderate" | "poor";
-    deduction: number;
-  };
-}
+export type PromptMode =
+  | "bug_report"
+  | "implementation_request"
+  | "design_request"
+  | "review_request"
+  | "approval_or_redirect"
+  | "mixed";
 
 export interface SpecificityScore {
   total: number;
+  mode: PromptMode;
   components: {
-    informationDensity: number;
-    coherence: number;
-    languageQuality: number;
+    taskIntentClarity: number;
+    contextQuality: number;
+    constraintsAndAcceptance: number;
+    actionability: number;
+    iterativeSteering: number;
+    communicationHygiene: number;
   };
-  penalties: SpecificityPenalties;
+  confidence: number;
   explanation: string;
+  improvement: string;
 }
 
 // ---- Changelist Design ----

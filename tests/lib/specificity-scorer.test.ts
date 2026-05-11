@@ -19,13 +19,18 @@ import { scoreSpecificity } from "@/lib/specificity-scorer";
 
 const MOCK_SCORE = {
   total: 72,
-  components: { informationDensity: 30, coherence: 22, languageQuality: 20 },
-  penalties: {
-    typos: { count: 0, deduction: 0 },
-    incorrectUsage: { count: 0, deduction: 0 },
-    grammarQuality: { severity: "none", deduction: 0 },
+  mode: "implementation_request",
+  components: {
+    taskIntentClarity: 20,
+    contextQuality: 14,
+    constraintsAndAcceptance: 12,
+    actionability: 16,
+    iterativeSteering: 6,
+    communicationHygiene: 4,
   },
-  explanation: "Clear and well-scoped prompt.",
+  confidence: 0.82,
+  explanation: "You gave a clear implementation target and enough context to start.",
+  improvement: "Add explicit acceptance criteria.",
 };
 
 describe("scoreSpecificity", () => {
@@ -52,10 +57,11 @@ describe("scoreSpecificity", () => {
     });
     const result = await scoreSpecificity("Add pagination to the user list endpoint");
     expect(result.total).toBe(72);
-    expect(result.components.informationDensity).toBe(30);
-    expect(result.components.coherence).toBe(22);
-    expect(result.penalties.grammarQuality.severity).toBe("none");
-    expect(result.explanation).toBe("Clear and well-scoped prompt.");
+    expect(result.mode).toBe("implementation_request");
+    expect(result.components.taskIntentClarity).toBe(20);
+    expect(result.components.actionability).toBe(16);
+    expect(result.confidence).toBe(0.82);
+    expect(result.improvement).toBe("Add explicit acceptance criteria.");
   });
 
   it("strips markdown code fences before parsing JSON", async () => {
