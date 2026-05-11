@@ -193,7 +193,7 @@ The SWE activity feed is powered by Vercel deployment data and commit metadata f
 - Manual sync: `/api/admin/swe-activity/sync`
 - Cron sync: `/api/cron/swe-activity`
 
-Activity rows are stored in `swe_activity` with soft-hide support, manual notes, computed commit metrics, and fetched commit metadata. Commit OCS values are bucketed into `poor`, `good`, or `great`, and SCS is derived from OCS in the UI rather than edited directly.
+Activity rows are stored in `swe_activity` with soft-hide support, manual notes, computed commit metrics, and fetched commit metadata. Commit OCS values are bucketed into `okay`, `good`, `great`, or `excellent`, and SCS is derived from OCS in the UI rather than edited directly.
 
 The public feed is cached briefly and the admin dashboard can trigger manual syncs, recompute commit metrics, and inspect the stored metadata.
 
@@ -253,7 +253,7 @@ The activity manager is used to:
 - edit the display message and manual note
 - hide activities from the public feed
 
-OCS badges are grouped into `poor`, `good`, and `great`. SCS is derived from OCS and is not manually edited.
+OCS badges are grouped into `okay` (0-29), `good` (30-50), `great` (51-80), and `excellent` (>80). SCS is derived from OCS and is not manually edited.
 
 ---
 

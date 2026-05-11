@@ -34,7 +34,7 @@ PENALTIES (record separately for transparency):
 
 TOTAL = informationDensity + coherence + languageQuality_after_penalties, clamped to [0, 100].
 
-Write a 2–4 sentence explanation citing specific examples from the developer's messages. You should refer to the developer in the second person ("you").
+Write a 2–4 sentence explanation citing specific examples from the developer's messages. You should ALWAYS refer to the developer in the second person ("you"). You must never use any other pronoun or phrase to refer to them.
 
 Respond with ONLY this JSON shape:
 {
