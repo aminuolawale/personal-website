@@ -14,6 +14,18 @@ export function splitTags(tags: string): string[] {
   return tags.split(",").map((tag) => tag.trim()).filter(Boolean);
 }
 
+/** Returns a human-readable relative time string (long form), e.g. "3 hours ago". */
+export function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 /** Returns a human-readable relative time string, e.g. "3d ago", "2mo ago". */
 export function timeAgo(date: string | Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);

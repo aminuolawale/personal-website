@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { GitCommit, Upload, X, ExternalLink } from "lucide-react";
-import { relativeTime } from "@/lib/vercel-activity";
+import { GitCommit, X, ExternalLink } from "lucide-react";
+import { relativeTime } from "@/lib/utils";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
 import {
@@ -228,8 +228,6 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
 }
 
 function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void }) {
-  const isCommit = item.type === "commit";
-  const Icon = isCommit ? GitCommit : Upload;
   const metrics = item.metrics as CommitMetrics | null;
   const commitMetadata = item.commitMetadata;
   const ocs = metrics?.scores.ocs ?? null;
@@ -237,16 +235,10 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
   const dominantAgent = metrics ? getDominantAgent(metrics.tokenMetrics.byAgent) : "AI";
 
   const inner = (
-    <div className={`flex gap-4 group ${isCommit ? "cursor-pointer" : ""}`}>
+    <div className="flex gap-4 group cursor-pointer">
       <div className="mt-0.5 shrink-0 flex flex-col items-center">
-        <span
-          className={`inline-flex items-center justify-center w-7 h-7 rounded-full border ${
-            isCommit
-              ? "border-accent/40 text-accent bg-accent/5 group-hover:bg-accent/10"
-              : "border-surface/20 text-muted/50 bg-surface/5"
-          } transition-colors`}
-        >
-          <Icon size={13} strokeWidth={1.75} />
+        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-accent/40 text-accent bg-accent/5 group-hover:bg-accent/10 transition-colors">
+          <GitCommit size={13} strokeWidth={1.75} />
         </span>
       </div>
       <div className="flex-1 pb-8 border-b border-surface/[0.06] last:border-0">
@@ -254,8 +246,7 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
           <HighlightMessage message={item.message} repo={item.repo} />
         </p>
 
-        {isCommit && (
-          <div className="mt-3 space-y-2.5">
+        <div className="mt-3 space-y-2.5">
             {metrics && ocs !== null && bucket && (
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
@@ -311,35 +302,27 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
               </div>
             )}
           </div>
-        )}
 
         <p className="mt-3 font-mono text-[11px] text-muted/35" suppressHydrationWarning>
           {relativeTime(item.timestamp.toString())}
           {" · "}
-          <span className={isCommit ? "text-accent/50" : "text-muted/30"}>
-            {isCommit ? "commit" : "deployment"}
-          </span>
+          <span className="text-accent/50">commit</span>
         </p>
       </div>
     </div>
   );
 
-  if (isCommit) {
-    return (
-      <button type="button" className="block w-full text-left" onClick={onOpen}>
-        {inner}
-      </button>
-    );
-  }
-
-  return <div className="block">{inner}</div>;
+  return (
+    <button type="button" className="block w-full text-left" onClick={onOpen}>
+      {inner}
+    </button>
+  );
 }
 
 export default function ActivityTab() {
   const [items, setItems] = useState<SweActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRepo, setSelectedRepo] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<"all" | "commit" | "deployment">("all");
   const [selectedActivity, setSelectedActivity] = useState<SweActivity | null>(null);
 
   useEffect(() => {
@@ -362,12 +345,8 @@ export default function ActivityTab() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const repoMatch = selectedRepo === "all" || item.repo === selectedRepo;
-      const typeMatch = selectedType === "all" || item.type === selectedType;
-      return repoMatch && typeMatch;
-    });
-  }, [items, selectedRepo, selectedType]);
+    return items.filter((item) => selectedRepo === "all" || item.repo === selectedRepo);
+  }, [items, selectedRepo]);
 
   const handleClose = useCallback(() => setSelectedActivity(null), []);
 
@@ -426,34 +405,6 @@ export default function ActivityTab() {
             </div>
           )}
 
-          <div>
-            <p className="font-mono text-[10px] text-muted/35 uppercase tracking-widest mb-2.5">
-              Activity type
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedType("all")}
-                className={FILTER_BTN(selectedType === "all")}
-              >
-                Everything
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedType("commit")}
-                className={FILTER_BTN(selectedType === "commit")}
-              >
-                Git
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedType("deployment")}
-                className={FILTER_BTN(selectedType === "deployment")}
-              >
-                Deployments
-              </button>
-            </div>
-          </div>
         </div>
 
         {filteredItems.length === 0 ? (
@@ -466,7 +417,7 @@ export default function ActivityTab() {
               <ActivityRow
                 key={item.id}
                 item={item}
-                onOpen={item.type === "commit" ? () => setSelectedActivity(item) : undefined}
+                onOpen={() => setSelectedActivity(item)}
               />
             ))}
           </div>

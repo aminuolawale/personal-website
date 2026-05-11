@@ -1,17 +1,22 @@
 // @vitest-environment node
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/lib/commit-metrics", () => ({ computeCommitMetrics: vi.fn() }));
+vi.mock("@/lib/commit-metrics-cache", () => ({
+  readCommitMetricsCache: vi.fn().mockResolvedValue(null),
+  upsertCommitMetricsCache: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("child_process", () => ({ execSync: vi.fn() }));
 
 import { GET, POST } from "@/app/api/admin/swe-activity/[id]/metrics/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { computeCommitMetrics } from "@/lib/commit-metrics";
+import { readCommitMetricsCache, upsertCommitMetricsCache } from "@/lib/commit-metrics-cache";
 import { execSync } from "child_process";
 
 function makeRequest(url: string, opts?: RequestInit): NextRequest {
@@ -30,6 +35,10 @@ const MOCK_METRICS = {
   scores: { ocs: 72 },
 };
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 function mockAuthenticatedDb(rows: any[], savedRef?: { value: any }) {
   vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
   vi.mocked(getDb).mockReturnValue({
@@ -44,7 +53,10 @@ function mockAuthenticatedDb(rows: any[], savedRef?: { value: any }) {
 }
 
 describe("GET /api/admin/swe-activity/[id]/metrics", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(readCommitMetricsCache).mockResolvedValue(null);
+  });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
@@ -60,16 +72,6 @@ describe("GET /api/admin/swe-activity/[id]/metrics", () => {
 
     const res = await GET(makeRequest("http://localhost/api/admin/swe-activity/99/metrics"), { params: params("99") });
     expect(res.status).toBe(404);
-  });
-
-  it("returns 400 when the activity type is not 'commit'", async () => {
-    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
-    vi.mocked(getDb).mockReturnValue({
-      select: () => ({ from: () => ({ where: async () => [{ metrics: null, externalId: "vercel-deploy-x", type: "deployment" }] }) }),
-    } as any);
-
-    const res = await GET(makeRequest("http://localhost/api/admin/swe-activity/1/metrics"), { params: params("1") });
-    expect(res.status).toBe(400);
   });
 
   it("returns stored metrics when authenticated and activity is a commit", async () => {
@@ -94,10 +96,36 @@ describe("GET /api/admin/swe-activity/[id]/metrics", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).metrics).toBeNull();
   });
+
+  it("hydrates stored metrics from the durable cache when the activity row is empty", async () => {
+    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
+    const saved: { value: any } = { value: undefined };
+    vi.mocked(getDb).mockReturnValue({
+      select: () => ({ from: () => ({ where: async () => [{ metrics: null, externalId: "vercel-commit-abc123", type: "commit" }] }) }),
+      update: () => ({
+        set: (values: any) => {
+          saved.value = values;
+          return { where: async () => {} };
+        },
+      }),
+    } as any);
+    vi.mocked(readCommitMetricsCache).mockResolvedValue(MOCK_METRICS as any);
+
+    const res = await GET(makeRequest("http://localhost/api/admin/swe-activity/1/metrics"), { params: params("1") });
+
+    expect(res.status).toBe(200);
+    expect(readCommitMetricsCache).toHaveBeenCalledWith("abc123");
+    expect(saved.value).toEqual({ metrics: MOCK_METRICS, updatedAt: expect.any(Date) });
+    expect((await res.json()).metrics.scores.ocs).toBe(72);
+  });
 });
 
 describe("POST /api/admin/swe-activity/[id]/metrics", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.mocked(readCommitMetricsCache).mockResolvedValue(null);
+  });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
@@ -113,16 +141,6 @@ describe("POST /api/admin/swe-activity/[id]/metrics", () => {
 
     const res = await POST(makeRequest("http://localhost/api/admin/swe-activity/99/metrics", { method: "POST" }), { params: params("99") });
     expect(res.status).toBe(404);
-  });
-
-  it("returns 400 when the activity type is not 'commit'", async () => {
-    vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
-    vi.mocked(getDb).mockReturnValue({
-      select: () => ({ from: () => ({ where: async () => [{ externalId: "vercel-deploy-x", type: "deployment" }] }) }),
-    } as any);
-
-    const res = await POST(makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }), { params: params("1") });
-    expect(res.status).toBe(400);
   });
 
   it("derives prevSha from git log and passes it to computeCommitMetrics", async () => {
@@ -151,6 +169,7 @@ describe("POST /api/admin/swe-activity/[id]/metrics", () => {
       metrics: MOCK_METRICS,
       updatedAt: expect.any(Date),
     });
+    expect(upsertCommitMetricsCache).toHaveBeenCalledWith("abc123", MOCK_METRICS);
     expect((await res.json()).metrics.scores.ocs).toBe(72);
   });
 
@@ -193,5 +212,31 @@ describe("POST /api/admin/swe-activity/[id]/metrics", () => {
 
     const res = await POST(makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }), { params: params("1") });
     expect(res.status).toBe(400);
+  });
+
+  it("returns cached metrics in production instead of recomputing locally", async () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const saved: { value: any } = { value: undefined };
+    mockAuthenticatedDb([{ externalId: "vercel-commit-abc123", type: "commit" }], saved);
+    vi.mocked(readCommitMetricsCache).mockResolvedValue(MOCK_METRICS as any);
+
+    const res = await POST(makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }), { params: params("1") });
+
+    expect(res.status).toBe(200);
+    expect(computeCommitMetrics).not.toHaveBeenCalled();
+    expect(saved.value).toEqual({ metrics: MOCK_METRICS, updatedAt: expect.any(Date) });
+    expect((await res.json()).metrics.scores.ocs).toBe(72);
+  });
+
+  it("returns 409 in production when no cached metrics exist", async () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    mockAuthenticatedDb([{ externalId: "vercel-commit-abc123", type: "commit" }]);
+    vi.mocked(readCommitMetricsCache).mockResolvedValue(null);
+
+    const res = await POST(makeRequest("http://localhost/api/admin/swe-activity/1/metrics", { method: "POST" }), { params: params("1") });
+
+    expect(res.status).toBe(409);
+    expect(computeCommitMetrics).not.toHaveBeenCalled();
+    expect((await res.json()).error).toMatch(/computed locally/i);
   });
 });

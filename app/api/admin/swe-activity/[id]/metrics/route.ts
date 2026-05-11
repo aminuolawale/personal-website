@@ -6,6 +6,7 @@ import { notFound, badRequest, serverError } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
 import { parseId } from "@/lib/validation";
 import { computeCommitMetrics } from "@/lib/commit-metrics";
+import { readCommitMetricsCache, upsertCommitMetricsCache } from "@/lib/commit-metrics-cache";
 import { execSync } from "child_process";
 
 type Params = { params: Promise<{ id: string }> };
@@ -22,8 +23,21 @@ export const GET = withAuth(async (_req: NextRequest, { params }: Params) => {
 
   if (!row) return notFound();
   if (row.type !== "commit") return badRequest("Metrics are only available for commit activities");
+  if (row.metrics) return NextResponse.json({ metrics: row.metrics });
 
-  return NextResponse.json({ metrics: row.metrics ?? null });
+  const sha = row.externalId.replace(/^vercel-commit-/, "");
+  if (!sha || sha === row.externalId) return NextResponse.json({ metrics: null });
+
+  const cachedMetrics = await readCommitMetricsCache(sha);
+  if (cachedMetrics) {
+    await getDb()
+      .update(sweActivity)
+      .set({ metrics: cachedMetrics, updatedAt: new Date() })
+      .where(eq(sweActivity.id, id));
+    return NextResponse.json({ metrics: cachedMetrics });
+  }
+
+  return NextResponse.json({ metrics: null });
 });
 
 // DELETE — clear stored metrics for a commit activity.
@@ -63,6 +77,21 @@ export const POST = withAuth(async (_req: NextRequest, { params }: Params) => {
   // externalId is "vercel-commit-<sha>"
   const sha = row.externalId.replace(/^vercel-commit-/, "");
   if (!sha || sha === row.externalId) return badRequest("Cannot derive SHA from externalId");
+  if (process.env.VERCEL_ENV === "production") {
+    const cachedMetrics = await readCommitMetricsCache(sha);
+    if (cachedMetrics) {
+      await getDb()
+        .update(sweActivity)
+        .set({ metrics: cachedMetrics, updatedAt: new Date() })
+        .where(eq(sweActivity.id, id));
+      return NextResponse.json({ metrics: cachedMetrics });
+    }
+
+    return NextResponse.json(
+      { error: "Metrics must be computed locally and uploaded to production." },
+      { status: 409 },
+    );
+  }
 
   // Always derive prevSha from git — never trust the caller to supply it.
   // Passing the wrong parent SHA collapses the session window to [epoch, commitTime],
@@ -82,6 +111,7 @@ export const POST = withAuth(async (_req: NextRequest, { params }: Params) => {
 
     // null means the commit was too small to meter — store null and surface that to the caller.
     const metrics = await computeCommitMetrics({ sha, prevSha, workingDir, repoPath });
+    if (metrics) await upsertCommitMetricsCache(sha, metrics);
 
     await getDb()
       .update(sweActivity)

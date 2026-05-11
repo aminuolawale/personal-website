@@ -1,6 +1,17 @@
 import { pgTable, serial, text, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 import type { CommitMetrics } from "./coding-agents/types";
-import type { GitHubCommitMetadata } from "./vercel-activity";
+
+export type GitHubCommitMetadata = {
+  sha: string;
+  shortSha: string;
+  message: string;
+  authorName: string;
+  authorEmail?: string;
+  committedAt: string;
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+};
 
 // All database tables are defined here. This is the single source of truth —
 // edit this file and run `npm run db:push` to apply changes to the database.
@@ -240,12 +251,24 @@ export const comments = pgTable("comments", {
 
 export type Comment = typeof comments.$inferSelect;
 
-// SWE activity persisted from GitHub and Vercel.
+// Durable cache for commit metrics computed locally. Production sync can attach
+// these to swe_activity rows without needing local git history or agent sessions.
+export const commitMetricsCache = pgTable("commit_metrics_cache", {
+  sha: text("sha").primaryKey(),
+  metrics: jsonb("metrics").$type<CommitMetrics>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type CommitMetricsCache = typeof commitMetricsCache.$inferSelect;
+export type NewCommitMetricsCache = typeof commitMetricsCache.$inferInsert;
+
+// SWE commit activity — one row per git commit, persisted from the sync pipeline.
 // Allows adding manual notes and computed commit metadata.
 export const sweActivity = pgTable("swe_activity", {
   id: serial("id").primaryKey(),
-  externalId: text("external_id").notNull().unique(), // e.g. "gh-push-sha" or "vercel-uid"
-  type: text("type").notNull(),                       // "commit" | "deployment"
+  externalId: text("external_id").notNull().unique(), // e.g. "vercel-commit-<sha>"
+  type: text("type").notNull(),                       // "commit"
   message: text("message").notNull(),                 // editable display text
   repo: text("repo").notNull(),                       // repository/project name
   timestamp: timestamp("timestamp").notNull(),        // original event time

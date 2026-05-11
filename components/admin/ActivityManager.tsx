@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GitCommit, Upload, Trash2, Save, RefreshCw, ChevronDown, ChevronRight, Zap, X } from "lucide-react";
+import { GitCommit, Trash2, Save, ChevronDown, ChevronRight, Zap, X } from "lucide-react";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
-import type { SweActivitySyncState } from "@/lib/swe-activity-sync";
 import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, getOcsBucket } from "@/lib/activity-score";
 
 function ScoreBadge({ label, value, color }: { label: string; value: number; color: string }) {
@@ -22,13 +21,20 @@ function MetricsPanel({ activityId }: { activityId: number }) {
   const [recomputing, setRecomputing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [conversationExpanded, setConversationExpanded] = useState(false);
+  const [metricsMessage, setMetricsMessage] = useState("");
 
   async function load() {
     if (metrics !== null && metrics !== "error") return;
     setMetrics("loading");
+    setMetricsMessage("");
     try {
       const res = await fetch(`/api/admin/swe-activity/${activityId}/metrics`);
-      if (!res.ok) { setMetrics(null); return; }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMetricsMessage(data.error ?? "Could not load metrics.");
+        setMetrics(null);
+        return;
+      }
       const data = await res.json();
       setMetrics(data.metrics ?? null);
     } catch {
@@ -38,9 +44,14 @@ function MetricsPanel({ activityId }: { activityId: number }) {
 
   async function recompute() {
     setRecomputing(true);
+    setMetricsMessage("");
     try {
       const res = await fetch(`/api/admin/swe-activity/${activityId}/metrics`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
       const data = await res.json();
+      if (!res.ok) {
+        setMetricsMessage(data.error ?? "Metrics computation failed.");
+        return;
+      }
       setMetrics(data.metrics ?? null);
     } catch {
       setMetrics("error");
@@ -87,6 +98,7 @@ function MetricsPanel({ activityId }: { activityId: number }) {
         <div className="mt-3 space-y-4">
           {metrics === "loading" && <p className="font-mono text-[11px] text-muted/30">Loading…</p>}
           {metrics === "error" && <p className="font-mono text-[11px] text-red-400">Failed to load metrics.</p>}
+          {metricsMessage && <p className="font-mono text-[11px] text-amber-300">{metricsMessage}</p>}
           {metrics === null && !recomputing && (
             <div className="space-y-2">
               <p className="font-mono text-[11px] text-muted/30">No metrics yet for this commit.</p>
@@ -192,9 +204,7 @@ function MetricsPanel({ activityId }: { activityId: number }) {
 
 export default function ActivityManager() {
   const [activities, setActivities] = useState<SweActivity[]>([]);
-  const [syncState, setSyncState] = useState<SweActivitySyncState>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{ message: string; note: string }>({
     message: "",
@@ -210,19 +220,8 @@ export default function ActivityManager() {
     try {
       const data = await fetch("/api/admin/swe-activity").then(res => res.json());
       setActivities(Array.isArray(data.activities) ? data.activities : []);
-      setSyncState(data.syncState ?? {});
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  async function triggerSync() {
-    setIsSyncing(true);
-    try {
-      await fetch("/api/admin/swe-activity/sync", { method: "POST" });
-      await loadActivities();
-    } finally {
-      setIsSyncing(false);
     }
   }
 
@@ -266,26 +265,10 @@ export default function ActivityManager() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
-            SWE Activity Feed
-          </h3>
-          <p className="mt-1 font-mono text-[10px] text-muted/35">
-            {syncState.lastSuccessAt
-              ? `Last synced ${new Date(syncState.lastSuccessAt).toLocaleString()}`
-              : "Not synced yet"}
-            {syncState.lastStats ? ` · ${syncState.lastStats.synced}/${syncState.lastStats.deduped} rows synced` : ""}
-          </p>
-        </div>
-        <button
-          onClick={triggerSync}
-          disabled={isSyncing}
-          className="flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 border border-accent/30 text-accent hover:bg-accent/5 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-          {isSyncing ? "Syncing..." : "Sync from GitHub/Vercel"}
-        </button>
+      <div>
+        <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
+          SWE Activity Feed
+        </h3>
       </div>
 
       <div className="space-y-4">
@@ -298,11 +281,7 @@ export default function ActivityManager() {
           >
             <div className="flex items-start gap-4">
               <div className="mt-1">
-                {activity.type === "commit" ? (
-                  <GitCommit size={14} className="text-accent" />
-                ) : (
-                  <Upload size={14} className="text-muted/40" />
-                )}
+                <GitCommit size={14} className="text-accent" />
               </div>
 
               <div className="flex-1 space-y-4">
