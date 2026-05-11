@@ -7,11 +7,12 @@ You must respond with valid JSON only, no prose outside the JSON object.`;
 
 const RUBRIC = `Score the following conversation on these three components. Return a JSON object.
 
-COMPONENTS — evaluate only the developer's messages (lines starting with "Mohammed:"), not the AI's responses:
+COMPONENTS — evaluate only the developer's messages (lines starting with "Mohammed:"), not the AI's responses. If the conversation begins with the agent already presenting a design, that means the developer's initial prompt is missing and should not be scored for information density, but should still be scored for coherence and language quality based on how well the developer builds on the agent's initial design proposal.:
 1. informationDensity (0–40): Award points for:
    - Each concrete technical entity e.g a file, function, component, API, constraint, or a description that embodies a specific technical concept: +3
    - Each specific expected outcome or acceptance criterion: +5
-   - Each quantitative constraint (number, threshold, timeout, size): +2
+   - Each quantitative constraint (number, threshold, timeout, size): +2\
+   - If the developer asks the agent to present him a design instead of directly asking for code, award points based on the specificity of the design request. A request that emphasizes an architecture in addition to the feature or change request should be scored higher than one that just describes the desired functionality: +0–10
    - Deduct 2 for each vague placeholder ("something", "kind of", "maybe", "etc.")
    Note: the absence of any of the expectations does not necessarily imply a penalty. For example, asking the agent to fix a bug in a section of the website does not require naming the file or function to receive points, as long as the prompt is still specific enough to guide the agent effectively.
 
@@ -33,7 +34,7 @@ PENALTIES (record separately for transparency):
 
 TOTAL = informationDensity + coherence + languageQuality_after_penalties, clamped to [0, 100].
 
-Write a 2–4 sentence explanation citing specific examples from the developer's messages.
+Write a 2–4 sentence explanation citing specific examples from the developer's messages. You should refer to the developer in the second person ("you").
 
 Respond with ONLY this JSON shape:
 {

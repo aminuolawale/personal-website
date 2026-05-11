@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GitCommit, Trash2, Save, ChevronDown, ChevronRight, Zap, X } from "lucide-react";
+import { GitCommit, Trash2, Save, ChevronDown, ChevronRight, Zap, X, RefreshCw } from "lucide-react";
 import type { SweActivity } from "@/lib/schema";
 import type { CommitMetrics } from "@/lib/coding-agents/types";
 import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, getOcsBucket } from "@/lib/activity-score";
@@ -205,6 +205,8 @@ function MetricsPanel({ activityId }: { activityId: number }) {
 export default function ActivityManager() {
   const [activities, setActivities] = useState<SweActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{ message: string; note: string }>({
     message: "",
@@ -222,6 +224,25 @@ export default function ActivityManager() {
       setActivities(Array.isArray(data.activities) ? data.activities : []);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function syncLatestCommits() {
+    setIsSyncing(true);
+    setSyncMessage("");
+    try {
+      const res = await fetch("/api/admin/swe-activity/sync", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSyncMessage(data.error ?? "GitHub sync failed.");
+        return;
+      }
+      setSyncMessage(`Synced ${data.synced ?? 0} latest commits from ${data.repo ?? "GitHub"}.`);
+      await loadActivities();
+    } catch {
+      setSyncMessage("GitHub sync failed.");
+    } finally {
+      setIsSyncing(false);
     }
   }
 
@@ -265,10 +286,23 @@ export default function ActivityManager() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
-          SWE Activity Feed
-        </h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h3 className="font-mono text-sm font-semibold uppercase tracking-widest text-surface">
+            SWE Activity Feed
+          </h3>
+          {syncMessage && (
+            <p className="font-mono text-[11px] text-muted/50">{syncMessage}</p>
+          )}
+        </div>
+        <button
+          onClick={syncLatestCommits}
+          disabled={isSyncing}
+          className="inline-flex items-center justify-center gap-2 border border-surface/15 px-3 py-1.5 font-mono text-[11px] text-muted/60 transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+          {isSyncing ? "Syncing..." : "Sync GitHub"}
+        </button>
       </div>
 
       <div className="space-y-4">
