@@ -257,44 +257,44 @@ describe("readClaudeCodeSessions", () => {
     expect(turns[1].cachedTokens).toBe(20000);  // 12000 + 8000
   });
 
-  // ---- active-session-at-commit-time logic ----
+  // ---- multi-session capture ----
 
-  it("picks the session with the most recent message ≤ toTime when multiple files exist", () => {
-    const staleContent = [
-      makeMsg("user", "stale-sess", "2026-04-25T09:30:00Z", "Stale work"),
+  it("returns all sessions with in-window activity across multiple files", () => {
+    const sessionAContent = [
+      makeMsg("user", "sess-a", "2026-04-25T09:30:00Z", "Earlier work"),
     ].join("\n");
-    const activeContent = [
-      makeMsg("user", "active-sess", "2026-04-25T11:00:00Z", "Active work"),
-      makeMsg("assistant", "active-sess", "2026-04-25T11:01:00Z", "Active response", { input_tokens: 200, output_tokens: 100 }),
+    const sessionBContent = [
+      makeMsg("user", "sess-b", "2026-04-25T11:00:00Z", "Later work"),
+      makeMsg("assistant", "sess-b", "2026-04-25T11:01:00Z", "Later response", { input_tokens: 200, output_tokens: 100 }),
     ].join("\n");
 
     mockExistsSync.mockReturnValue(true);
-    mockReaddirSync.mockReturnValue(["stale.jsonl", "active.jsonl"]);
+    mockReaddirSync.mockReturnValue(["a.jsonl", "b.jsonl"]);
     mockReadFileSync.mockImplementation((filePath: unknown) =>
-      String(filePath).includes("stale") ? staleContent : activeContent,
+      String(filePath).includes("/a.") ? sessionAContent : sessionBContent,
     );
 
     const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].sessionId).toBe("active-sess");
-    expect(sessions[0].turns).toHaveLength(2);
-    expect(sessions[0].turns[0].text).toBe("Active work");
+    expect(sessions).toHaveLength(2);
+    const ids = sessions.map((s) => s.sessionId);
+    expect(ids).toContain("sess-a");
+    expect(ids).toContain("sess-b");
   });
 
-  it("returns only the identified session's turns when a file contains multiple sessions", () => {
-    const staleMsg = makeMsg("user", "sess-old", "2026-04-25T09:30:00Z", "Old session message");
-    const activeMsgUser = makeMsg("user", "sess-new", "2026-04-25T11:00:00Z", "New session message");
-    const activeMsgAsst = makeMsg("assistant", "sess-new", "2026-04-25T11:01:00Z", "New response", { input_tokens: 100, output_tokens: 50 });
+  it("returns all in-window sessions when a file contains multiple session IDs", () => {
+    const msgA = makeMsg("user", "sess-old", "2026-04-25T09:30:00Z", "Old session message");
+    const msgBUser = makeMsg("user", "sess-new", "2026-04-25T11:00:00Z", "New session message");
+    const msgBAsst = makeMsg("assistant", "sess-new", "2026-04-25T11:01:00Z", "New response", { input_tokens: 100, output_tokens: 50 });
 
     mockExistsSync.mockReturnValue(true);
     mockReaddirSync.mockReturnValue(["session.jsonl"]);
-    mockReadFileSync.mockReturnValue([staleMsg, activeMsgUser, activeMsgAsst].join("\n"));
+    mockReadFileSync.mockReturnValue([msgA, msgBUser, msgBAsst].join("\n"));
 
     const sessions = readClaudeCodeSessions(WORKING_DIR, FROM, TO);
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].sessionId).toBe("sess-new");
-    expect(sessions[0].turns).toHaveLength(2);
-    expect(sessions[0].turns.every((t) => t.text !== "Old session message")).toBe(true);
+    expect(sessions).toHaveLength(2);
+    const ids = sessions.map((s) => s.sessionId);
+    expect(ids).toContain("sess-old");
+    expect(ids).toContain("sess-new");
   });
 
   it("returns [] when all messages across all files are after toTime", () => {

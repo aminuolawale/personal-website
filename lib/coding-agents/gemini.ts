@@ -5,6 +5,8 @@ import type { AgentSession, SessionTurn } from "./types";
 
 // Gemini stores sessions under ~/.gemini/tmp/<project-name>/chats/
 // where <project-name> is the basename of the working directory.
+// Note: two projects with the same directory name share this folder — no fix
+// is possible without Gemini changing its storage scheme.
 function getChatsDir(workingDir: string): string {
   const projectName = path.basename(workingDir);
   return path.join(os.homedir(), ".gemini", "tmp", projectName, "chats");
@@ -78,78 +80,64 @@ export function readGeminiSessions(
     .filter((f) => f.endsWith(".jsonl"))
     .map((f) => path.join(chatsDir, f));
 
-  // Pass 1: Find the chat file most recently active at toTime (commit time).
-  // The message line with the latest timestamp ≤ toTime identifies the session
-  // that was in use when the commit was made.
-  let activeFile: string | null = null;
-  let activeLatestTs = new Date(0);
+  const result: AgentSession[] = [];
 
+  // Every chat file with any activity in [fromTime, toTime] contributes to
+  // the commit's conversation. Return one AgentSession per such file.
   for (const file of files) {
     const lines = parseSessionFile(file);
-    for (const line of lines.slice(1)) { // skip header
+    const header = lines[0];
+    if (!header?.startTime) continue;
+
+    const sessionId = header.sessionId ?? path.basename(file, ".jsonl");
+    const turns: SessionTurn[] = [];
+    let idx = 0;
+
+    for (const line of lines.slice(1)) {
       if (!line.timestamp) continue;
       const ts = new Date(line.timestamp);
-      if (ts > toTime) continue;
-      if (ts > activeLatestTs) {
-        activeLatestTs = ts;
-        activeFile = file;
+      if (ts < fromTime || ts > toTime) continue;
+
+      if (line.type === "user") {
+        const text = extractText(line.content);
+        if (!text) continue;
+        turns.push({
+          index: idx++,
+          role: "user",
+          text,
+          timestamp: ts,
+          inputTokens: 0,
+          outputTokens: 0,
+          cachedTokens: 0,
+        });
+      } else if (line.type === "gemini") {
+        const text = extractText(line.content);
+        const tok = line.tokens;
+        // thoughts are billed as output tokens
+        const outputTokens = (tok?.output ?? 0) + (tok?.thoughts ?? 0);
+        turns.push({
+          index: idx++,
+          role: "assistant",
+          text,
+          timestamp: ts,
+          inputTokens: tok?.input ?? 0,
+          outputTokens,
+          cachedTokens: tok?.cached ?? 0,
+        });
       }
     }
+
+    if (turns.length === 0) continue;
+
+    result.push({
+      sessionId,
+      agent: "gemini",
+      startTime: turns[0].timestamp,
+      endTime: turns[turns.length - 1].timestamp,
+      workingDir,
+      turns,
+    });
   }
 
-  if (!activeFile) return [];
-
-  // Pass 2: Extract turns from the active session within [fromTime, toTime].
-  const lines = parseSessionFile(activeFile);
-  const header = lines[0];
-  if (!header?.startTime) return [];
-
-  const sessionId = header.sessionId ?? path.basename(activeFile, ".jsonl");
-  const turns: SessionTurn[] = [];
-  let idx = 0;
-
-  for (const line of lines.slice(1)) {
-    if (!line.timestamp) continue;
-    const ts = new Date(line.timestamp);
-    if (ts < fromTime || ts > toTime) continue;
-
-    if (line.type === "user") {
-      const text = extractText(line.content);
-      if (!text) continue;
-      turns.push({
-        index: idx++,
-        role: "user",
-        text,
-        timestamp: ts,
-        inputTokens: 0,
-        outputTokens: 0,
-        cachedTokens: 0,
-      });
-    } else if (line.type === "gemini") {
-      const text = extractText(line.content);
-      const tok = line.tokens;
-      // thoughts are billed as output tokens
-      const outputTokens = (tok?.output ?? 0) + (tok?.thoughts ?? 0);
-      turns.push({
-        index: idx++,
-        role: "assistant",
-        text,
-        timestamp: ts,
-        inputTokens: tok?.input ?? 0,
-        outputTokens,
-        cachedTokens: tok?.cached ?? 0,
-      });
-    }
-  }
-
-  if (turns.length === 0) return [];
-
-  return [{
-    sessionId,
-    agent: "gemini",
-    startTime: turns[0].timestamp,
-    endTime: turns[turns.length - 1].timestamp,
-    workingDir,
-    turns,
-  }];
+  return result;
 }

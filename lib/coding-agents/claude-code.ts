@@ -72,113 +72,104 @@ export function readClaudeCodeSessions(
     .filter((f) => f.endsWith(".jsonl"))
     .map((f) => path.join(projectDir, f));
 
-  // Pass 1: Find the session (file + sessionId) most recently active at toTime.
-  // The non-sidechain message with the latest timestamp ≤ toTime identifies the
-  // session that was in use when the commit was made.
-  let activeFile: string | null = null;
-  let activeSessionId: string | null = null;
-  let activeLatestTs = new Date(0);
+  // Collect all in-window turns grouped by sessionId.
+  // Every session with any activity in [fromTime, toTime] for this workspace
+  // contributes to the commit's conversation.
+  const sessionTurns = new Map<string, ClaudeMessage[]>();
 
   for (const file of jsonlFiles) {
     for (const msg of parseSessionFile(file)) {
       if (msg.isSidechain) continue;
       if (msg.cwd && msg.cwd !== workingDir) continue;
       const ts = new Date(msg.timestamp);
-      if (ts > toTime) continue;
-      if (ts > activeLatestTs) {
-        activeLatestTs = ts;
-        activeFile = file;
-        activeSessionId = msg.sessionId;
+      if (ts < fromTime || ts > toTime) continue;
+      const existing = sessionTurns.get(msg.sessionId) ?? [];
+      existing.push(msg);
+      sessionTurns.set(msg.sessionId, existing);
+    }
+  }
+
+  const result: AgentSession[] = [];
+
+  for (const [sessionId, msgs] of sessionTurns) {
+    const sorted = [...msgs].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+
+    const turns: SessionTurn[] = [];
+    let idx = 0;
+
+    // Claude Code stores one message per content block (thinking / text / tool_use)
+    // for each API call. Messages from the same API call share identical
+    // (input, output, cache_read, cache_creation) token counts. Group consecutive
+    // assistant messages by that usage key so every API call's tokens are counted
+    // exactly once — including tool-only calls that carry no text.
+    let pendingGroup: SessionTurn | null = null;
+    let pendingGroupKey: string | null = null;
+
+    const flushGroup = () => {
+      if (pendingGroup) {
+        turns.push(pendingGroup);
+        pendingGroup = null;
+        pendingGroupKey = null;
       }
-    }
-  }
+    };
 
-  if (!activeFile || !activeSessionId) return [];
-
-  // Pass 2: Extract turns from the identified session within [fromTime, toTime].
-  const msgs = parseSessionFile(activeFile)
-    .filter((m) =>
-      m.sessionId === activeSessionId &&
-      !m.isSidechain &&
-      !(m.cwd && m.cwd !== workingDir),
-    )
-    .filter((m) => {
-      const ts = new Date(m.timestamp);
-      return ts >= fromTime && ts <= toTime;
-    })
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  const turns: SessionTurn[] = [];
-  let idx = 0;
-
-  // Claude Code stores one message per content block (thinking / text / tool_use)
-  // for each API call. Messages from the same API call share identical
-  // (input, output, cache_read, cache_creation) token counts. Group consecutive
-  // assistant messages by that usage key so every API call's tokens are counted
-  // exactly once — including tool-only calls that carry no text.
-  let pendingGroup: SessionTurn | null = null;
-  let pendingGroupKey: string | null = null;
-
-  function flushGroup() {
-    if (pendingGroup) {
-      turns.push(pendingGroup);
-      pendingGroup = null;
-      pendingGroupKey = null;
-    }
-  }
-
-  for (const msg of msgs) {
-    if (msg.type === "user") {
-      flushGroup();
-      const text = extractText(msg.message?.content);
-      if (!text) continue; // tool_result messages have no user-visible text
-      turns.push({
-        index: idx++,
-        role: "user",
-        text,
-        timestamp: new Date(msg.timestamp),
-        inputTokens: 0,
-        outputTokens: 0,
-        cachedTokens: 0,
-      });
-    } else if (msg.type === "assistant") {
-      const usage = msg.message?.usage;
-      const key = `${usage?.input_tokens ?? 0}:${usage?.output_tokens ?? 0}:${usage?.cache_read_input_tokens ?? 0}:${usage?.cache_creation_input_tokens ?? 0}`;
-      const text = extractText(msg.message?.content);
-
-      if (key === pendingGroupKey && pendingGroup) {
-        // Same API call — adopt the first text-bearing message's content.
-        if (!pendingGroup.text && text) {
-          pendingGroup.text = text;
-          pendingGroup.timestamp = new Date(msg.timestamp);
-        }
-      } else {
+    for (const msg of sorted) {
+      if (msg.type === "user") {
         flushGroup();
-        pendingGroupKey = key;
-        pendingGroup = {
+        const text = extractText(msg.message?.content);
+        if (!text) continue; // tool_result messages have no user-visible text
+        turns.push({
           index: idx++,
-          role: "assistant",
+          role: "user",
           text,
           timestamp: new Date(msg.timestamp),
-          inputTokens: usage?.input_tokens ?? 0,
-          outputTokens: usage?.output_tokens ?? 0,
-          cachedTokens:
-            (usage?.cache_read_input_tokens ?? 0) +
-            (usage?.cache_creation_input_tokens ?? 0),
-        };
+          inputTokens: 0,
+          outputTokens: 0,
+          cachedTokens: 0,
+        });
+      } else if (msg.type === "assistant") {
+        const usage = msg.message?.usage;
+        const key = `${usage?.input_tokens ?? 0}:${usage?.output_tokens ?? 0}:${usage?.cache_read_input_tokens ?? 0}:${usage?.cache_creation_input_tokens ?? 0}`;
+        const text = extractText(msg.message?.content);
+
+        if (key === pendingGroupKey && pendingGroup) {
+          // Same API call — adopt the first text-bearing message's content.
+          if (!pendingGroup.text && text) {
+            pendingGroup.text = text;
+            pendingGroup.timestamp = new Date(msg.timestamp);
+          }
+        } else {
+          flushGroup();
+          pendingGroupKey = key;
+          pendingGroup = {
+            index: idx++,
+            role: "assistant",
+            text,
+            timestamp: new Date(msg.timestamp),
+            inputTokens: usage?.input_tokens ?? 0,
+            outputTokens: usage?.output_tokens ?? 0,
+            cachedTokens:
+              (usage?.cache_read_input_tokens ?? 0) +
+              (usage?.cache_creation_input_tokens ?? 0),
+          };
+        }
       }
     }
+    flushGroup();
+
+    if (turns.length === 0) continue;
+
+    result.push({
+      sessionId,
+      agent: "claude-code",
+      startTime: turns[0].timestamp,
+      endTime: turns[turns.length - 1].timestamp,
+      workingDir,
+      turns,
+    });
   }
-  flushGroup();
 
-  if (turns.length === 0) return [];
-
-  return [{
-    sessionId: activeSessionId,
-    agent: "claude-code",
-    startTime: turns[0].timestamp,
-    endTime: turns[turns.length - 1].timestamp,
-    workingDir,
-    turns,
-  }];
+  return result;
 }

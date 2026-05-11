@@ -64,26 +64,15 @@ export function readCodexSessions(
           .all(workingDir, fromS, toS) as CodexThread[]);
 
     // Separate sha-linked threads (definitively tied to this commit) from
-    // window-matched threads. For window-matched threads apply the same
-    // active-session-at-commit-time rule: pick the single thread most
-    // recently updated before toTime (mirrors the Claude Code / Gemini logic).
+    // window-matched threads. All window-matched threads with token activity
+    // are included — multiple conversations may have contributed to a commit.
     const shaLinked = commitSha ? rows.filter((r) => r.git_sha === commitSha) : [];
     const shaLinkedIds = new Set(shaLinked.map((r) => r.id));
     const windowOnly = rows.filter((r) => !shaLinkedIds.has(r.id));
 
-    let activeWindowThread: CodexThread | null = null;
-    let latestUpdatedS = 0;
-    for (const r of windowOnly) {
-      if (!r.tokens_used || r.tokens_used <= 0) continue;
-      if (r.updated_at <= toS && r.updated_at > latestUpdatedS) {
-        latestUpdatedS = r.updated_at;
-        activeWindowThread = r;
-      }
-    }
-
     const selectedRows = [
       ...shaLinked.filter((r) => r.tokens_used && r.tokens_used > 0),
-      ...(activeWindowThread ? [activeWindowThread] : []),
+      ...windowOnly.filter((r) => r.tokens_used && r.tokens_used > 0),
     ];
 
     return selectedRows.map((r): AgentSession => {

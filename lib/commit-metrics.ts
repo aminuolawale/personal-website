@@ -128,13 +128,16 @@ export async function computeCommitMetrics(params: {
   prevSha: string;
   workingDir: string;
   repoPath: string;
-}): Promise<CommitMetrics> {
+}): Promise<CommitMetrics | null> {
   const { sha, prevSha, workingDir, repoPath } = params;
 
   const commitTime = getCommitTime(sha, repoPath) ?? new Date();
   const prevCommitTime = prevSha ? (getCommitTime(prevSha, repoPath) ?? new Date(0)) : new Date(0);
 
   const loc = getLoc(sha, prevSha, repoPath);
+
+  // Skip metrics for trivially small commits (single-file change under 15 net lines).
+  if (loc.filesChanged === 1 && loc.net < 15) return null;
 
   const { sessions, byAgent, totalInputTokens, totalOutputTokens, totalCachedTokens, totalTokens } =
     aggregateSessions(workingDir, prevCommitTime, commitTime, sha);

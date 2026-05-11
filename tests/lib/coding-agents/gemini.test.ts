@@ -203,31 +203,32 @@ describe("readGeminiSessions", () => {
     expect(sessions[0].turns[0].text).toBe("Plain string content");
   });
 
-  // ---- active-session-at-commit-time logic ----
+  // ---- multi-session capture ----
 
-  it("picks the file with the most recently active message ≤ toTime when multiple files exist", () => {
-    const staleContent = makeSessionFile("gem-stale", "2026-04-25T09:00:00Z", [
-      { type: "user", id: "m1", timestamp: "2026-04-25T09:30:00Z", content: [{ text: "Stale work" }] },
+  it("returns all files with in-window activity, not just the most recently active", () => {
+    const sessionAContent = makeSessionFile("gem-a", "2026-04-25T09:00:00Z", [
+      { type: "user", id: "m1", timestamp: "2026-04-25T09:30:00Z", content: [{ text: "Earlier work" }] },
     ]);
-    const activeContent = makeSessionFile("gem-active", "2026-04-25T10:00:00Z", [
-      { type: "user", id: "m1", timestamp: "2026-04-25T11:00:00Z", content: [{ text: "Active work" }] },
+    const sessionBContent = makeSessionFile("gem-b", "2026-04-25T10:00:00Z", [
+      { type: "user", id: "m1", timestamp: "2026-04-25T11:00:00Z", content: [{ text: "Later work" }] },
       {
         type: "gemini", id: "m2", timestamp: "2026-04-25T11:01:00Z",
-        content: [{ text: "Active response" }],
+        content: [{ text: "Later response" }],
         tokens: { input: 100, output: 50, cached: 0, total: 150 },
       },
     ]);
 
     mockExistsSync.mockReturnValue(true);
-    mockReaddirSync.mockReturnValue(["stale.jsonl", "active.jsonl"]);
+    mockReaddirSync.mockReturnValue(["a.jsonl", "b.jsonl"]);
     mockReadFileSync.mockImplementation((filePath: unknown) =>
-      String(filePath).includes("stale") ? staleContent : activeContent,
+      String(filePath).includes("/a.") ? sessionAContent : sessionBContent,
     );
 
     const sessions = readGeminiSessions(WORKING_DIR, FROM, TO);
-    expect(sessions).toHaveLength(1);
-    expect(sessions[0].sessionId).toBe("gem-active");
-    expect(sessions[0].turns[0].text).toBe("Active work");
+    expect(sessions).toHaveLength(2);
+    const ids = sessions.map((s) => s.sessionId);
+    expect(ids).toContain("gem-a");
+    expect(ids).toContain("gem-b");
   });
 
   it("includes only in-window turns from a session that started before fromTime", () => {

@@ -80,6 +80,7 @@ export const POST = withAuth(async (_req: NextRequest, { params }: Params) => {
     const repoPath = process.cwd();
     const workingDir = repoPath;
 
+    // null means the commit was too small to meter — store null and surface that to the caller.
     const metrics = await computeCommitMetrics({ sha, prevSha, workingDir, repoPath });
 
     await getDb()

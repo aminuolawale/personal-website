@@ -109,12 +109,36 @@ describe("computeCommitMetrics", () => {
     mockComputeOCS.mockReturnValue(80);
   });
 
+  it("returns null for small commits (1 file changed, < 15 net lines)", async () => {
+    // 5 additions + 2 deletions in one file → net=7, filesChanged=1 → too small
+    mockExecSync
+      .mockReturnValueOnce("2026-04-25T11:00:00+00:00\n")
+      .mockReturnValueOnce("2026-04-25T10:00:00+00:00\n")
+      .mockReturnValueOnce("5\t2\tsrc/config.ts\n");
+
+    const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
+    expect(metrics).toBeNull();
+    expect(mockAggregate).not.toHaveBeenCalled();
+    expect(mockScoreSpecificity).not.toHaveBeenCalled();
+  });
+
+  it("does not skip metrics for single-file changes with >= 15 net lines", async () => {
+    // 10 additions + 8 deletions in one file → net=18, filesChanged=1 → not small
+    mockExecSync
+      .mockReturnValueOnce("2026-04-25T11:00:00+00:00\n")
+      .mockReturnValueOnce("2026-04-25T10:00:00+00:00\n")
+      .mockReturnValueOnce("10\t8\tsrc/feature.ts\n");
+
+    const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
+    expect(metrics).not.toBeNull();
+  });
+
   it("returns metrics with correct LOC values", async () => {
     setupExecSync();
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
-    expect(metrics.loc.additions).toBe(13);
-    expect(metrics.loc.deletions).toBe(6);
-    expect(metrics.loc.filesChanged).toBe(2);
+    expect(metrics!.loc.additions).toBe(13);
+    expect(metrics!.loc.deletions).toBe(6);
+    expect(metrics!.loc.filesChanged).toBe(2);
   });
 
   it("returns zero LOC values when git diff command fails", async () => {
@@ -123,18 +147,19 @@ describe("computeCommitMetrics", () => {
       .mockReturnValueOnce("2026-04-25T10:00:00+00:00\n")
       .mockImplementationOnce(() => { throw new Error("git error"); });
 
+    // filesChanged=0 when git fails — small-commit guard does not fire
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
-    expect(metrics.loc.additions).toBe(0);
-    expect(metrics.loc.deletions).toBe(0);
-    expect(metrics.loc.net).toBe(0);
+    expect(metrics!.loc.additions).toBe(0);
+    expect(metrics!.loc.deletions).toBe(0);
+    expect(metrics!.loc.net).toBe(0);
   });
 
   it("returns null conversation when there are no sessions", async () => {
     setupExecSync();
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
-    expect(metrics.conversation).toBeNull();
-    expect(metrics.conversationScore).toBeNull();
-    expect(metrics.scores.ocs).toBe(0);
+    expect(metrics!.conversation).toBeNull();
+    expect(metrics!.conversationScore).toBeNull();
+    expect(metrics!.scores.ocs).toBe(0);
     expect(mockScoreSpecificity).not.toHaveBeenCalled();
   });
 
@@ -145,10 +170,10 @@ describe("computeCommitMetrics", () => {
 
     expect(mockScoreSpecificity).toHaveBeenCalledTimes(1);
     expect(mockComputeOCS).toHaveBeenCalledTimes(1);
-    expect(metrics.conversation).not.toBeNull();
-    expect(metrics.conversationScore).not.toBeNull();
-    expect(metrics.conversationScore?.specificity.total).toBe(75);
-    expect(metrics.scores.ocs).toBe(80);
+    expect(metrics!.conversation).not.toBeNull();
+    expect(metrics!.conversationScore).not.toBeNull();
+    expect(metrics!.conversationScore?.specificity.total).toBe(75);
+    expect(metrics!.scores.ocs).toBe(80);
   });
 
   it("identifies a CL design from an early assistant turn with enough output tokens", async () => {
@@ -156,9 +181,9 @@ describe("computeCommitMetrics", () => {
     mockAggregate.mockReturnValue(makeAggregateWithSession());
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
 
-    expect(metrics.clDesign).not.toBeNull();
-    expect(metrics.clDesign?.isPlanMode).toBe(true); // has markdown headings
-    expect(metrics.clDesign?.outputTokens).toBe(300);
+    expect(metrics!.clDesign).not.toBeNull();
+    expect(metrics!.clDesign?.isPlanMode).toBe(true); // has markdown headings
+    expect(metrics!.clDesign?.outputTokens).toBe(300);
   });
 
   it("populates tokenMetrics correctly from aggregated sessions", async () => {
@@ -166,16 +191,16 @@ describe("computeCommitMetrics", () => {
     mockAggregate.mockReturnValue(makeAggregateWithSession());
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
 
-    expect(metrics.tokenMetrics.totalTokens).toBe(800);
-    expect(metrics.tokenMetrics.outputTokens).toBe(300);
-    expect(metrics.tokenMetrics.inputTokens).toBe(500);
-    expect(metrics.tokenMetrics.byAgent["claude-code"]).toBeDefined();
+    expect(metrics!.tokenMetrics.totalTokens).toBe(800);
+    expect(metrics!.tokenMetrics.outputTokens).toBe(300);
+    expect(metrics!.tokenMetrics.inputTokens).toBe(500);
+    expect(metrics!.tokenMetrics.byAgent["claude-code"]).toBeDefined();
   });
 
   it("includes capturedAt as an ISO date string", async () => {
     setupExecSync();
     const metrics = await computeCommitMetrics({ sha: SHA, prevSha: PREV, workingDir: WORKING_DIR, repoPath: WORKING_DIR });
-    expect(() => new Date(metrics.capturedAt)).not.toThrow();
-    expect(metrics.capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(() => new Date(metrics!.capturedAt)).not.toThrow();
+    expect(metrics!.capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });

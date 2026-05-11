@@ -208,34 +208,35 @@ describe("readCodexSessions", () => {
 
     // ---- active-session-at-commit-time ----
 
-    it("returns only the most recently active window-matched thread, not all of them", () => {
-      // Two threads both active in window — only the one updated latest is returned.
+    it("returns all window-matched threads, not just the most recently active", () => {
       db = new Database(DB_PATH);
       seedDb(db, [
         {
-          id: "stale-thread",
+          id: "thread-a",
           cwd: WORKING_DIR,
           created_at: FROM_S + 1800,        // 09:30
-          updated_at: FROM_S + 3600,        // 10:00 — earlier
+          updated_at: FROM_S + 3600,        // 10:00
           tokens_used: 800,
           git_sha: null,
-          first_user_message: "Stale task",
+          first_user_message: "Task A",
         },
         {
-          id: "active-thread",
+          id: "thread-b",
           cwd: WORKING_DIR,
           created_at: FROM_S + 3600,        // 10:00
-          updated_at: FROM_S + 7200,        // 11:00 — most recently active
+          updated_at: FROM_S + 7200,        // 11:00
           tokens_used: 1200,
           git_sha: null,
-          first_user_message: "Active task",
+          first_user_message: "Task B",
         },
       ]);
       db.close();
 
       const sessions = readCodexSessions(WORKING_DIR, FROM, TO);
-      expect(sessions).toHaveLength(1);
-      expect(sessions[0].sessionId).toBe("active-thread");
+      expect(sessions).toHaveLength(2);
+      const ids = sessions.map((s) => s.sessionId);
+      expect(ids).toContain("thread-a");
+      expect(ids).toContain("thread-b");
     });
 
     it("includes all sha-linked threads even when a window-matched thread also exists", () => {
