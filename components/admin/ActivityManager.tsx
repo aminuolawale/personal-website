@@ -1,246 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GitCommit, Trash2, Save, ChevronDown, ChevronRight, Zap, X, RefreshCw } from "lucide-react";
+import { GitCommit, Trash2, Save, RefreshCw } from "lucide-react";
 import type { SweActivity } from "@/lib/schema";
-import type { CommitMetrics, SpecificityScore } from "@/lib/coding-agents/types";
-import { OCS_BUCKET_CLASSES, OCS_BUCKET_LABELS, getOcsBucket } from "@/lib/activity-score";
-
-type LegacySpecificityComponents = {
-  informationDensity?: number;
-  coherence?: number;
-  languageQuality?: number;
-};
-
-function getTaskControlRows(specificity: SpecificityScore) {
-  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
-  return [
-    ["Intent", components.taskIntentClarity, 25],
-    ["Context", components.contextQuality, 20],
-    ["Acceptance", components.constraintsAndAcceptance, 20],
-    ["Actionability", components.actionability, 20],
-    ["Steering", components.iterativeSteering, 10],
-    ["Hygiene", components.communicationHygiene, 5],
-  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
-}
-
-function getLegacySpecificityRows(specificity: SpecificityScore) {
-  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
-  return [
-    ["Info density", components.informationDensity, 40],
-    ["Coherence", components.coherence, 30],
-    ["Language", components.languageQuality, 30],
-  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
-}
-
-function ScoreBadge({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] ${color}`}>
-      <span className="opacity-50 uppercase tracking-wider">{label}</span>
-      <span className="font-bold">{value}</span>
-    </div>
-  );
-}
-
-function MetricsPanel({ activityId }: { activityId: number }) {
-  const [open, setOpen] = useState(false);
-  const [metrics, setMetrics] = useState<CommitMetrics | null | "loading" | "error">(null);
-  const [recomputing, setRecomputing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [conversationExpanded, setConversationExpanded] = useState(false);
-  const [metricsMessage, setMetricsMessage] = useState("");
-
-  async function load() {
-    if (metrics !== null && metrics !== "error") return;
-    setMetrics("loading");
-    setMetricsMessage("");
-    try {
-      const res = await fetch(`/api/admin/swe-activity/${activityId}/metrics`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setMetricsMessage(data.error ?? "Could not load metrics.");
-        setMetrics(null);
-        return;
-      }
-      const data = await res.json();
-      setMetrics(data.metrics ?? null);
-    } catch {
-      setMetrics("error");
-    }
-  }
-
-  async function recompute() {
-    setRecomputing(true);
-    setMetricsMessage("");
-    try {
-      const res = await fetch(`/api/admin/swe-activity/${activityId}/metrics`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
-      const data = await res.json();
-      if (!res.ok) {
-        setMetricsMessage(data.error ?? "Metrics computation failed.");
-        return;
-      }
-      setMetrics(data.metrics ?? null);
-    } catch {
-      setMetrics("error");
-    } finally {
-      setRecomputing(false);
-    }
-  }
-
-  async function deleteMetrics() {
-    if (!confirm("Clear stored metrics for this commit?")) return;
-    setDeleting(true);
-    try {
-      await fetch(`/api/admin/swe-activity/${activityId}/metrics`, { method: "DELETE" });
-      setMetrics(null);
-    } catch {
-      setMetrics("error");
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  function toggle() {
-    const next = !open;
-    setOpen(next);
-    if (next) load();
-  }
-
-  const m = typeof metrics === "object" && metrics !== null ? metrics as CommitMetrics : null;
-  const bucket = m ? getOcsBucket(m.scores.ocs) : null;
-
-  return (
-    <div className="border-t border-surface/10 mt-3 pt-3">
-      <button onClick={toggle} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/40 hover:text-accent transition-colors uppercase tracking-wider">
-        {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        Commit Metrics
-        {m && bucket && (
-          <span className={`ml-2 inline-flex items-center gap-1.5 border px-2 py-0.5 ${OCS_BUCKET_CLASSES[bucket]}`}>
-            OCS {m.scores.ocs} · {OCS_BUCKET_LABELS[bucket]}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div className="mt-3 space-y-4">
-          {metrics === "loading" && <p className="font-mono text-[11px] text-muted/30">Loading…</p>}
-          {metrics === "error" && <p className="font-mono text-[11px] text-red-400">Failed to load metrics.</p>}
-          {metricsMessage && <p className="font-mono text-[11px] text-amber-300">{metricsMessage}</p>}
-          {metrics === null && !recomputing && (
-            <div className="space-y-2">
-              <p className="font-mono text-[11px] text-muted/30">No metrics yet for this commit.</p>
-              <button onClick={recompute} className="flex items-center gap-1.5 font-mono text-[10px] text-accent border border-accent/20 px-2.5 py-1 hover:bg-accent/5 transition-colors">
-                <Zap size={10} /> Compute now
-              </button>
-            </div>
-          )}
-          {recomputing && <p className="font-mono text-[11px] text-muted/30">Computing… (may take ~10s)</p>}
-
-          {m && (
-            <div className="space-y-4">
-              {/* Specificity badge only — OCS is shown in the header */}
-              <div className="flex flex-wrap items-center gap-2">
-                <ScoreBadge label="Task control" value={m.conversationScore?.specificity.total ?? 0} color="border-surface/20 text-muted" />
-              </div>
-
-              {/* Tokens + LOC */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-[11px]">
-                <div className="text-muted/40">Total tokens</div>
-                <div className="text-surface">{m.tokenMetrics.totalTokens.toLocaleString()}</div>
-                <div className="text-muted/40">Output tokens</div>
-                <div className="text-surface">{m.tokenMetrics.outputTokens.toLocaleString()}</div>
-                <div className="text-muted/40">Cached tokens</div>
-                <div className="text-surface">{m.tokenMetrics.cachedTokens.toLocaleString()}</div>
-                <div className="text-muted/40">Tokens / LOC</div>
-                <div className="text-surface">{m.tokenMetrics.tokensPerLOC}</div>
-                <div className="text-muted/40">Net LOC</div>
-                <div className="text-surface">+{m.loc.additions} / -{m.loc.deletions} ({m.loc.filesChanged} files)</div>
-              </div>
-
-              {/* Per-agent */}
-              {Object.keys(m.tokenMetrics.byAgent).length > 0 && (
-                <div className="space-y-1">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">By agent</p>
-                  {Object.entries(m.tokenMetrics.byAgent).map(([agent, s]) => s && (
-                    <div key={agent} className="flex items-center gap-3 font-mono text-[11px]">
-                      <span className="text-accent w-24">{agent}</span>
-                      <span className="text-surface">{s.totalTokens.toLocaleString()} tokens</span>
-                      <span className="text-muted/30">({s.sessionCount} session{s.sessionCount !== 1 ? "s" : ""})</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Conversation */}
-              {m.conversation && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">Conversation</p>
-                    {m.conversation.length > 500 && (
-                      <button
-                        onClick={() => setConversationExpanded((v) => !v)}
-                        className="font-mono text-[10px] text-accent/50 hover:text-accent/80 transition-colors"
-                      >
-                        {conversationExpanded ? "Collapse" : "Expand"}
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[12px] text-muted/70 border-l border-surface/20 pl-3 whitespace-pre-line">
-                    {conversationExpanded
-                      ? m.conversation
-                      : m.conversation.slice(0, 500) + (m.conversation.length > 500 ? "…" : "")}
-                  </p>
-                  {m.conversationScore && (
-                    <div className="space-y-1 font-mono text-[10px] text-muted/40">
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        {(getTaskControlRows(m.conversationScore.specificity).length > 0
-                          ? getTaskControlRows(m.conversationScore.specificity)
-                          : getLegacySpecificityRows(m.conversationScore.specificity)
-                        ).map(([label, value, max]) => (
-                          <span key={label}>{label} {value}/{max}</span>
-                        ))}
-                      </div>
-                      {m.conversationScore.specificity.mode && (
-                        <p className="uppercase tracking-wider text-muted/30">{m.conversationScore.specificity.mode.replace(/_/g, " ")}</p>
-                      )}
-                      <p className="text-[11px] text-muted/60 mt-1">{m.conversationScore.specificity.explanation}</p>
-                      {m.conversationScore.specificity.improvement && (
-                        <p className="text-[11px] text-muted/45">Improve: {m.conversationScore.specificity.improvement}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* CL Design */}
-              {m.clDesign && (
-                <div className="space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-muted/30">
-                    CL Design {m.clDesign.isPlanMode && <span className="text-accent ml-1">[plan mode]</span>}
-                  </p>
-                  <p className="text-[12px] text-muted/70 border-l border-surface/20 pl-3 line-clamp-4 whitespace-pre-line">
-                    {m.clDesign.text.slice(0, 400)}{m.clDesign.text.length > 400 ? "…" : ""}
-                  </p>
-                  <p className="font-mono text-[10px] text-muted/30">{m.clDesign.outputTokens.toLocaleString()} output tokens</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                <button onClick={recompute} disabled={recomputing} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/30 hover:text-accent transition-colors border border-surface/10 px-2 py-1 disabled:opacity-40">
-                  <Zap size={9} /> {recomputing ? "Computing…" : "Recompute"}
-                </button>
-                <button onClick={deleteMetrics} disabled={deleting} className="flex items-center gap-1.5 font-mono text-[10px] text-muted/30 hover:text-red-400 transition-colors border border-surface/10 px-2 py-1 disabled:opacity-40">
-                  <X size={9} /> {deleting ? "Clearing…" : "Clear metrics"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function ActivityManager() {
   const [activities, setActivities] = useState<SweActivity[]>([]);
@@ -347,8 +109,8 @@ export default function ActivityManager() {
 
       <div className="space-y-4">
         {activities.map((activity) => (
-          <div 
-            key={activity.id} 
+          <div
+            key={activity.id}
             className={`border p-4 transition-colors ${
               editingId === activity.id ? "border-accent bg-accent/[0.02]" : "border-surface/10 bg-surface/[0.01]"
             }`}
@@ -362,7 +124,7 @@ export default function ActivityManager() {
                 {editingId === activity.id ? (
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label 
+                      <label
                         htmlFor={`msg-${activity.id}`}
                         className="block font-mono text-[10px] uppercase tracking-wider text-muted/40"
                       >
@@ -423,9 +185,6 @@ export default function ActivityManager() {
                         <p className="mt-2 text-[13px] text-muted/60 italic border-l border-surface/20 pl-3">
                           &ldquo;{activity.note}&rdquo;
                         </p>
-                      )}
-                      {activity.type === "commit" && (
-                        <MetricsPanel activityId={activity.id} />
                       )}
                     </div>
 

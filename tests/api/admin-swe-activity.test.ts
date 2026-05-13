@@ -4,13 +4,11 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ getSession: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/db", () => ({ getDb: vi.fn() }));
-vi.mock("@/lib/commit-metrics-cache", () => ({ readCommitMetricsCache: vi.fn().mockResolvedValue(null) }));
 
 import { GET } from "@/app/api/admin/swe-activity/route";
 import { POST as SYNC_POST } from "@/app/api/admin/swe-activity/sync/route";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { readCommitMetricsCache } from "@/lib/commit-metrics-cache";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -52,38 +50,6 @@ describe("POST /api/admin/swe-activity/sync", () => {
 
   it("syncs latest commits from GitHub when authenticated", async () => {
     vi.mocked(getSession).mockResolvedValue({ user: { email: "admin@test.com" } } as any);
-    vi.mocked(readCommitMetricsCache).mockResolvedValue({
-      schemaVersion: 1,
-      generatedAt: "2026-05-11T00:00:00.000Z",
-      sha: "abc1234567890",
-      loc: { additions: 10, deletions: 2, filesChanged: 1 },
-      tokenMetrics: {
-        totalTokens: 100,
-        outputTokens: 40,
-        cachedTokens: 0,
-        reasoningTokens: 0,
-        tokensPerLOC: 12.5,
-        byAgent: {},
-      },
-      conversationScore: {
-        specificity: {
-          total: 80,
-          mode: "implementation_request",
-          components: {
-            taskIntentClarity: 20,
-            contextQuality: 15,
-            constraintsAndAcceptance: 16,
-            actionability: 18,
-            iterativeSteering: 7,
-            communicationHygiene: 4,
-          },
-          confidence: 0.86,
-          explanation: "specific",
-          improvement: "Add acceptance checks.",
-        },
-      },
-      scores: { ocs: 86, scs: 90 },
-    } as any);
 
     const onConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
     const values = vi.fn().mockReturnValue({ onConflictDoUpdate });

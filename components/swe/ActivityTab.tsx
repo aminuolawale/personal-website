@@ -1,44 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { GitCommit, X, ExternalLink } from "lucide-react";
 import { relativeTime } from "@/lib/utils";
 import type { SweActivity } from "@/lib/schema";
-import type { CommitMetrics, SpecificityScore } from "@/lib/coding-agents/types";
-import {
-  OCS_BUCKET_CLASSES,
-  OCS_BUCKET_LABELS,
-  getOcsBucket,
-  formatTokens,
-  getDominantAgent,
-} from "@/lib/activity-score";
-
-type LegacySpecificityComponents = {
-  informationDensity?: number;
-  coherence?: number;
-  languageQuality?: number;
-};
-
-function getTaskControlRows(specificity: SpecificityScore) {
-  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
-  return [
-    ["Intent", components.taskIntentClarity, 25],
-    ["Context", components.contextQuality, 20],
-    ["Acceptance", components.constraintsAndAcceptance, 20],
-    ["Actionability", components.actionability, 20],
-    ["Steering", components.iterativeSteering, 10],
-    ["Hygiene", components.communicationHygiene, 5],
-  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
-}
-
-function getLegacySpecificityRows(specificity: SpecificityScore) {
-  const components = specificity.components as SpecificityScore["components"] & LegacySpecificityComponents;
-  return [
-    ["Info Density", components.informationDensity, 40],
-    ["Coherence", components.coherence, 30],
-    ["Language Quality", components.languageQuality, 30],
-  ].filter(([, value]) => typeof value === "number") as [string, number, number][];
-}
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
   const idx = message.indexOf(repo);
@@ -53,15 +18,7 @@ function HighlightMessage({ message, repo }: { message: string; repo: string }) 
 }
 
 function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () => void }) {
-  const metrics = item.metrics as CommitMetrics | null;
   const commitMetadata = item.commitMetadata;
-  const ocs = metrics?.scores.ocs ?? null;
-  const bucket = ocs !== null ? getOcsBucket(ocs) : null;
-  const specificity = metrics?.conversationScore?.specificity ?? null;
-  const dominantAgent = metrics ? getDominantAgent(metrics.tokenMetrics.byAgent) : "AI";
-  const [conversationExpanded, setConversationExpanded] = useState(false);
-  const conversationRef = useRef<HTMLDivElement>(null);
-  const CONVERSATION_PREVIEW_LEN = 300;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -133,117 +90,6 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
           </div>
         )}
 
-        {/* Human Contribution Rating + zero-sum slider */}
-        {ocs !== null && bucket && (
-          <div className="space-y-2.5">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider ${OCS_BUCKET_CLASSES[bucket]}`}>
-              Human Contribution Rating {ocs}
-              <span className="opacity-60">·</span>
-              {OCS_BUCKET_LABELS[bucket]}
-            </span>
-            <div className="space-y-1.5">
-              <div className="flex h-2 w-full overflow-hidden">
-                <div style={{ width: `${ocs}%` }} className="bg-accent/50" />
-                <div style={{ width: `${100 - ocs}%` }} className="bg-surface/20" />
-              </div>
-              <div className="flex justify-between font-mono text-[10px] text-muted/40">
-                <span>Mohammed <span className="text-accent/60">{ocs}%</span></span>
-                <span>{dominantAgent} <span className="text-muted/30">{100 - ocs}%</span></span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Conversation */}
-        {metrics?.conversation && (
-          <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-[10px] text-muted/25 uppercase tracking-wider">Conversation</p>
-              {metrics.conversation.length > CONVERSATION_PREVIEW_LEN && (
-                <button
-                  onClick={() => setConversationExpanded((v) => !v)}
-                  className="font-mono text-[10px] text-accent/50 hover:text-accent/80 transition-colors"
-                >
-                  {conversationExpanded ? "Collapse" : "Expand"}
-                </button>
-              )}
-            </div>
-            <div ref={conversationRef}>
-              <p className="text-[11px] text-muted/50 leading-relaxed whitespace-pre-wrap font-mono">
-                {conversationExpanded
-                  ? metrics.conversation
-                  : metrics.conversation.slice(0, CONVERSATION_PREVIEW_LEN) + (metrics.conversation.length > CONVERSATION_PREVIEW_LEN ? "…" : "")}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Conversation quality */}
-        {specificity && (
-          <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5 space-y-2.5">
-            <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
-              <span className="text-muted/35">Task Control</span>
-              <span className={`px-1.5 py-0.5 border ${OCS_BUCKET_CLASSES[getOcsBucket(specificity.total)]}`}>
-                {specificity.total}
-              </span>
-            </div>
-            <div className="space-y-1.5 font-mono text-[10px] text-muted/35">
-              {(getTaskControlRows(specificity).length > 0
-                ? getTaskControlRows(specificity)
-                : getLegacySpecificityRows(specificity)
-              ).map(([label, value, max]) => (
-                <div key={label} className="flex justify-between">
-                  <span>{label}</span>
-                  <span>
-                    {value}
-                    <span className="text-muted/20">/{max}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-            {specificity.mode && (
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted/25">
-                {specificity.mode.replace(/_/g, " ")}
-              </p>
-            )}
-            {specificity.explanation && (
-              <p className="text-[11px] text-muted/45 leading-relaxed border-t border-surface/10 pt-2.5">
-                {specificity.explanation}
-              </p>
-            )}
-            {specificity.improvement && (
-              <p className="text-[11px] text-muted/40 leading-relaxed">
-                Improve: {specificity.improvement}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Token usage */}
-        {metrics && (
-          <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2.5">
-            <p className="font-mono text-[10px] text-muted/25 uppercase tracking-wider mb-2">Token Usage</p>
-            <div className="font-mono text-[10px] text-muted/40 space-y-1">
-              <div className="flex justify-between">
-                <span>Total</span>
-                <span className="text-accent/60">{formatTokens(metrics.tokenMetrics.totalTokens)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Input</span>
-                <span>{formatTokens(metrics.tokenMetrics.inputTokens)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Output</span>
-                <span>{formatTokens(metrics.tokenMetrics.outputTokens)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Cached</span>
-                <span>{formatTokens(metrics.tokenMetrics.cachedTokens)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Note */}
         {item.note && (
           <p className="text-[13px] text-muted/50 italic border-l-2 border-accent/10 pl-3 leading-relaxed">
@@ -256,11 +102,7 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
 }
 
 function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void }) {
-  const metrics = item.metrics as CommitMetrics | null;
   const commitMetadata = item.commitMetadata;
-  const ocs = metrics?.scores.ocs ?? null;
-  const bucket = ocs !== null ? getOcsBucket(ocs) : null;
-  const dominantAgent = metrics ? getDominantAgent(metrics.tokenMetrics.byAgent) : "AI";
 
   const inner = (
     <div className="flex gap-4 group cursor-pointer">
@@ -275,61 +117,28 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
         </p>
 
         <div className="mt-3 space-y-2.5">
-            {metrics && ocs !== null && bucket && (
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
-                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 border ${OCS_BUCKET_CLASSES[bucket]}`}>
-                    HCR {ocs}
-                    <span className="opacity-60">·</span>
-                    {OCS_BUCKET_LABELS[bucket]}
-                  </span>
-                </div>
-                <div className="space-y-1 max-w-[220px]">
-                  <div className="flex h-1.5 w-full overflow-hidden">
-                    <div style={{ width: `${ocs}%` }} className="bg-accent/40" />
-                    <div style={{ width: `${100 - ocs}%` }} className="bg-surface/15" />
-                  </div>
-                  <div className="flex justify-between font-mono text-[9px] text-muted/30">
-                    <span>Mohammed {ocs}%</span>
-                    <span>{dominantAgent} {100 - ocs}%</span>
-                  </div>
-                </div>
-              </div>
-            )}
+          {item.note && (
+            <p className="text-[13px] text-muted/50 italic border-l-2 border-accent/10 pl-3 leading-relaxed">
+              {item.note}
+            </p>
+          )}
 
-            {item.note && (
-              <p className="text-[13px] text-muted/50 italic border-l-2 border-accent/10 pl-3 leading-relaxed">
-                {item.note}
-              </p>
-            )}
-
-            {(commitMetadata || metrics) && (
-              <div className="grid gap-2 pt-1 font-mono text-[10px] text-muted/40 sm:grid-cols-2">
-                {commitMetadata && (
-                  <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
-                    <span className="text-accent/70">{commitMetadata.shortSha}</span>
-                    {commitMetadata.authorName ? ` · ${commitMetadata.authorName}` : ""}
-                    {commitMetadata.committedAt
-                      ? ` · ${new Date(commitMetadata.committedAt).toLocaleDateString()}`
-                      : ""}
-                    {commitMetadata.changedFiles ? ` · ${commitMetadata.changedFiles} files` : ""}
-                    {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number"
-                      ? ` · +${commitMetadata.additions}/-${commitMetadata.deletions}`
-                      : ""}
-                  </div>
-                )}
-                {metrics && (
-                  <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
-                    HCR <span className="text-accent/70">{metrics.scores.ocs}</span>
-                    {" · "}
-                    {formatTokens(metrics.tokenMetrics.totalTokens)} tokens
-                    {" · "}
-                    {metrics.loc.filesChanged} files
-                  </div>
-                )}
+          {commitMetadata && (
+            <div className="pt-1 font-mono text-[10px] text-muted/40">
+              <div className="border border-surface/10 bg-surface/[0.015] px-3 py-2">
+                <span className="text-accent/70">{commitMetadata.shortSha}</span>
+                {commitMetadata.authorName ? ` · ${commitMetadata.authorName}` : ""}
+                {commitMetadata.committedAt
+                  ? ` · ${new Date(commitMetadata.committedAt).toLocaleDateString()}`
+                  : ""}
+                {commitMetadata.changedFiles ? ` · ${commitMetadata.changedFiles} files` : ""}
+                {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number"
+                  ? ` · +${commitMetadata.additions}/-${commitMetadata.deletions}`
+                  : ""}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
         <p className="mt-3 font-mono text-[11px] text-muted/35" suppressHydrationWarning>
           {relativeTime(item.timestamp.toString())}
@@ -432,7 +241,6 @@ export default function ActivityTab() {
               </div>
             </div>
           )}
-
         </div>
 
         {filteredItems.length === 0 ? (

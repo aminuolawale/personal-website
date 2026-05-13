@@ -1,5 +1,4 @@
 import { pgTable, serial, text, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
-import type { CommitMetrics } from "./coding-agents/types";
 
 export type GitHubCommitMetadata = {
   sha: string;
@@ -251,18 +250,6 @@ export const comments = pgTable("comments", {
 
 export type Comment = typeof comments.$inferSelect;
 
-// Durable cache for commit metrics computed locally. Production sync can attach
-// these to swe_activity rows without needing local git history or agent sessions.
-export const commitMetricsCache = pgTable("commit_metrics_cache", {
-  sha: text("sha").primaryKey(),
-  metrics: jsonb("metrics").$type<CommitMetrics>().notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export type CommitMetricsCache = typeof commitMetricsCache.$inferSelect;
-export type NewCommitMetricsCache = typeof commitMetricsCache.$inferInsert;
-
 // SWE commit activity — one row per git commit, persisted from the sync pipeline.
 // Allows adding manual notes and computed commit metadata.
 export const sweActivity = pgTable("swe_activity", {
@@ -274,7 +261,6 @@ export const sweActivity = pgTable("swe_activity", {
   timestamp: timestamp("timestamp").notNull(),        // original event time
   url: text("url"),                                   // link to event
   note: text("note").notNull().default(""),           // manual context
-  metrics: jsonb("metrics").$type<CommitMetrics>(),   // computed at commit time via git hook
   commitMetadata: jsonb("commit_metadata").$type<GitHubCommitMetadata>(),
   hidden: boolean("hidden").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),

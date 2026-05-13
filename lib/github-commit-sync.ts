@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { readCommitMetricsCache } from "@/lib/commit-metrics-cache";
 import { sweActivity, type GitHubCommitMetadata, type NewSweActivity } from "@/lib/schema";
 
 type GitHubCommitListItem = {
@@ -124,7 +123,6 @@ export async function syncLatestGithubCommits(options: GitHubCommitSyncOptions =
     const detailUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${item.sha}`;
     const detail = await githubJson<GitHubCommitDetail>(detailUrl);
     const metadata = toMetadata(detail);
-    const cachedMetrics = await readCommitMetricsCache(item.sha, db);
 
     rows.push({
       externalId: `vercel-commit-${item.sha}`,
@@ -134,7 +132,6 @@ export async function syncLatestGithubCommits(options: GitHubCommitSyncOptions =
       timestamp: new Date(metadata.committedAt),
       url: detail.html_url,
       commitMetadata: metadata,
-      ...(cachedMetrics ? { metrics: cachedMetrics } : {}),
     });
   }
 
@@ -148,7 +145,6 @@ export async function syncLatestGithubCommits(options: GitHubCommitSyncOptions =
           timestamp: sql`EXCLUDED.timestamp`,
           url: sql`EXCLUDED.url`,
           commitMetadata: sql`EXCLUDED.commit_metadata`,
-          metrics: sql`COALESCE(${sweActivity.metrics}, EXCLUDED.metrics)`,
           updatedAt: new Date(),
         },
       });
