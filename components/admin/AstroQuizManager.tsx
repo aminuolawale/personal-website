@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { Check, Image as ImageIcon, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { AstroQuiz, AstroQuizOption, AstroQuizQuestion, QuizMarquee } from "@/lib/schema";
+
+const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
 
 type AdminOption = { id?: number; label: string; isCorrect: boolean };
 type AdminQuestion = { id?: number; question: string; marquee: QuizMarquee | null; options: AdminOption[] };
@@ -34,7 +37,7 @@ function createDraft(): DraftQuiz {
     title: "",
     description: "",
     resultHeadline: "Quiz complete",
-    resultSummary: "Review your score below, then revisit the night sky map to keep exploring.",
+    resultSummary: "<p>Review your score below, then revisit the night sky map to keep exploring.</p>",
     imageUrl: "",
     published: false,
     position: 99,
@@ -48,7 +51,7 @@ function fromQuiz(quiz: AdminQuiz): DraftQuiz {
     title: quiz.title,
     description: quiz.description,
     resultHeadline: quiz.resultHeadline ?? "Quiz complete",
-    resultSummary: quiz.resultSummary ?? "Review your score below, then revisit the night sky map to keep exploring.",
+    resultSummary: quiz.resultSummary ?? "<p>Review your score below, then revisit the night sky map to keep exploring.</p>",
     imageUrl: quiz.imageUrl ?? "",
     published: quiz.published,
     position: quiz.position,
@@ -383,15 +386,19 @@ export default function AstroQuizManager() {
               placeholder="Quiz complete"
             />
           </label>
-          <label className="block">
+          <div>
             <span className="font-mono text-[10px] text-muted/40 uppercase tracking-widest">Result summary</span>
-            <textarea
-              value={draft.resultSummary}
-              onChange={(e) => setDraft((current) => ({ ...current, resultSummary: e.target.value }))}
-              className="mt-1 min-h-20 w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
-              placeholder="Review your score below, then revisit the night sky map to keep exploring."
-            />
-          </label>
+            <div className="mt-1 overflow-hidden border border-surface/15">
+              <TiptapEditor
+                content={draft.resultSummary}
+                onChange={(resultSummary) => setDraft((current) => ({ ...current, resultSummary }))}
+                placeholder="Write the completion summary. Use the finder-preview button to embed a preview."
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted/40">
+              Finder previews embedded here will appear on the quiz completion screen.
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-4">

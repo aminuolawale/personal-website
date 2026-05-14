@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as NextAuthReact from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, LogIn, Send } from "lucide-react";
+import RichTextContent from "@/components/RichTextContent";
 import type { AstroQuiz, AstroQuizOption, AstroQuizQuestion } from "@/lib/schema";
 
 type QuizListItem = AstroQuiz & { questionCount: number };
@@ -61,9 +62,9 @@ export default function QuizTab() {
     if (!result || !activeQuiz) return "";
     if (activeQuiz.resultSummary?.trim()) return activeQuiz.resultSummary;
     const percent = result.total > 0 ? result.score / result.total : 0;
-    if (percent === 1) return "Perfect pass. You read the frame with precision.";
-    if (percent >= 0.7) return "Strong pass. Your observing eye is getting sharper.";
-    return "Good attempt. The night sky map is ready for another pass.";
+    if (percent === 1) return "<p>Perfect pass. You read the frame with precision.</p>";
+    if (percent >= 0.7) return "<p>Strong pass. Your observing eye is getting sharper.</p>";
+    return "<p>Good attempt. The night sky map is ready for another pass.</p>";
   }, [activeQuiz, result]);
   const resultHeadline = activeQuiz?.resultHeadline?.trim() || "Quiz complete";
 
@@ -186,7 +187,7 @@ export default function QuizTab() {
                 <div>
                   <h2 className="text-2xl font-semibold leading-tight text-surface">{resultHeadline}</h2>
                   <p className="mt-4 text-5xl font-semibold text-surface">{result.score}/{result.total}</p>
-                  <p className="mt-3 text-sm leading-6 text-muted/60">{resultMessage}</p>
+                  <RichTextContent html={resultMessage} className="mt-3 text-sm leading-6 text-muted/60" />
                 </div>
                 <Link
                   href="/astrophotography?tab=sky"
