@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
 import { X, Calendar, Cpu, Layers, Wrench, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
