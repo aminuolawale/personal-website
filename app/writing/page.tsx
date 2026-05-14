@@ -34,7 +34,7 @@ function WritingContent() {
     .map((tab) => ({ ...tab, label: labels[tab.id] ?? tab.label })),
   [order, labels, visibility]);
 
-  const [activeTabId, setActiveTabId] = usePersistentTab("writing", orderedTabs[0]?.id ?? SECTION_TABS.writing[0].id, TAB_IDS_SET);
+  const [activeTabId, setActiveTabId] = usePersistentTab(orderedTabs[0]?.id ?? SECTION_TABS.writing[0].id, TAB_IDS_SET);
 
   const [reader, setReader] = useState<{
     title: string;

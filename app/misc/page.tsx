@@ -84,7 +84,7 @@ function MiscContent() {
   ), [displayTabs, labels, order, visibility]);
 
   const validTabIds = useMemo(() => new Set(orderedDisplayTabs.map((t) => t.id)), [orderedDisplayTabs]);
-  const [activeTabId, setActiveTabId] = usePersistentTab("misc", orderedDisplayTabs[0]?.id ?? "", validTabIds);
+  const [activeTabId, setActiveTabId] = usePersistentTab(orderedDisplayTabs[0]?.id ?? "", validTabIds);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSelectedSeriesId("all"), 0);
