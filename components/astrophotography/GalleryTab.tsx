@@ -186,7 +186,8 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
   const imageRegions = allRegions.filter((r) => r.imageIndex === currentIdx);
 
   useEffect(() => {
-    setActiveRegionId(null);
+    const firstRegion = allRegions.find((r) => r.imageIndex === currentIdx);
+    setActiveRegionId(firstRegion?.id ?? null);
   }, [currentIdx]);
 
   useEffect(() => {
@@ -441,7 +442,7 @@ export default function GalleryTab() {
             </div>
             {/* Multi-image indicator */}
             {(photo.additionalImages?.length ?? 0) > 0 && (
-              <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex gap-0.5">
                 {Array.from({ length: Math.min((photo.additionalImages?.length ?? 0) + 1, 4) }).map((_, i) => (
                   <span key={i} className="w-1 h-1 rounded-full bg-white/70" />
                 ))}
