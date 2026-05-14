@@ -14,6 +14,15 @@ export function splitTags(tags: string): string[] {
   return tags.split(",").map((tag) => tag.trim()).filter(Boolean);
 }
 
+/** Formats a date as "Jan 1, 2024". */
+export function formatShortDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Returns a human-readable relative time string, e.g. "3d ago", "2mo ago". */
 export function timeAgo(date: string | Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);

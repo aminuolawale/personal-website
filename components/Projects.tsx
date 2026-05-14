@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {m} from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
@@ -8,6 +7,7 @@ import Link from "next/link";
 import { GitHubIcon } from "./icons";
 import SectionHeading from "@/components/SectionHeading";
 import { splitTags } from "@/lib/utils";
+import { useFetchJson } from "@/lib/hooks/use-fetch-json";
 import type { Project } from "@/lib/schema";
 
 const FEATURED_COUNT = 2;
@@ -118,16 +118,9 @@ function GridCard({ project, index }: { project: Project; index: number }) {
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  const { data: projects, isLoading } = useFetchJson<Project[]>("/api/projects", []);
 
-  useEffect(() => {
-    fetch("/api/projects")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: Project[]) => setProjects(Array.isArray(data) ? data : []))
-      .catch(() => setProjects([]));
-  }, []);
-
-  if (projects === null) return null;
+  if (isLoading) return null;
 
   const sorted = [...projects].sort((a, b) => a.position - b.position);
   const featured = sorted.slice(0, FEATURED_COUNT);

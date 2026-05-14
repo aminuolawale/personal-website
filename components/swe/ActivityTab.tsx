@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { GitCommit, X, ExternalLink } from "lucide-react";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, formatShortDate } from "@/lib/utils";
+import { useFetchJson } from "@/lib/hooks/use-fetch-json";
 import type { SweActivity } from "@/lib/schema";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
@@ -76,7 +77,7 @@ function CommitDetailDialog({ item, onClose }: { item: SweActivity; onClose: () 
             <div>
               {commitMetadata.authorName}
               {commitMetadata.committedAt
-                ? ` · ${new Date(commitMetadata.committedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}`
+                ? ` · ${formatShortDate(commitMetadata.committedAt)}`
                 : ""}
             </div>
             {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number" && (
@@ -129,7 +130,7 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
                 <span className="text-accent/70">{commitMetadata.shortSha}</span>
                 {commitMetadata.authorName ? ` · ${commitMetadata.authorName}` : ""}
                 {commitMetadata.committedAt
-                  ? ` · ${new Date(commitMetadata.committedAt).toLocaleDateString()}`
+                  ? ` · ${formatShortDate(commitMetadata.committedAt)}`
                   : ""}
                 {commitMetadata.changedFiles ? ` · ${commitMetadata.changedFiles} files` : ""}
                 {typeof commitMetadata.additions === "number" && typeof commitMetadata.deletions === "number"
@@ -157,23 +158,13 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
 }
 
 export default function ActivityTab() {
-  const [items, setItems] = useState<SweActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: items, isLoading } = useFetchJson<SweActivity[]>(
+    "/api/github-activity",
+    [],
+    { cache: "no-store" }
+  );
   const [selectedRepo, setSelectedRepo] = useState<string>("all");
   const [selectedActivity, setSelectedActivity] = useState<SweActivity | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/github-activity", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   const repos = useMemo(() => {
     const set = new Set<string>();

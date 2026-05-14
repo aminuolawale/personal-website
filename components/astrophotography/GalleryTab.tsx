@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, Calendar, Cpu, Layers, Wrench, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
+import { useFetchJson } from "@/lib/hooks/use-fetch-json";
 import type { GalleryPhoto, ImageRegion } from "@/lib/schema";
 
 function formatCapturedAt(raw: string): string {
@@ -351,21 +352,12 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
 }
 
 export default function GalleryTab() {
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: photos, isLoading } = useFetchJson<GalleryPhoto[]>("/api/gallery", []);
   const [selected, setSelected] = useState<GalleryPhoto | null>(null);
-
-  useEffect(() => {
-    fetch("/api/gallery")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPhotos(Array.isArray(data) ? data : []))
-      .catch(() => setPhotos([]))
-      .finally(() => setLoading(false));
-  }, []);
 
   const handleClose = useCallback(() => setSelected(null), []);
 
-  if (loading) {
+  if (isLoading) {
     return <p className="font-mono text-xs text-muted/30 py-16 text-center">Loading…</p>;
   }
 
