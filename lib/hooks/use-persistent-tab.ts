@@ -5,12 +5,12 @@ import { useState } from "react";
 
 export function usePersistentTab(defaultTab: string, validTabIds: Set<string>) {
   const urlTab = useSearchParams().get("tab");
-  const [userTab, setUserTab] = useState<string | null>(null);
+  const [manualTab, setManualTab] = useState<string | null>(null);
 
   const activeTabId =
     (urlTab && validTabIds.has(urlTab) && urlTab) ||
-    (userTab && validTabIds.has(userTab) && userTab) ||
+    (manualTab && validTabIds.has(manualTab) && manualTab) ||
     defaultTab;
 
-  return [activeTabId, setUserTab] as const;
+  return [activeTabId, setManualTab] as const;
 }

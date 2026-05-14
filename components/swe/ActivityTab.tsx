@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { GitCommit, X, ExternalLink } from "lucide-react";
-import { relativeTime } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import type { SweActivity } from "@/lib/schema";
 
 function HighlightMessage({ message, repo }: { message: string; repo: string }) {
@@ -141,7 +141,7 @@ function ActivityRow({ item, onOpen }: { item: SweActivity; onOpen?: () => void 
         </div>
 
         <p className="mt-3 font-mono text-[11px] text-muted/35" suppressHydrationWarning>
-          {relativeTime(item.timestamp.toString())}
+          {timeAgo(item.timestamp)}
           {" · "}
           <span className="text-accent/50">commit</span>
         </p>
@@ -185,7 +185,7 @@ export default function ActivityTab() {
     return items.filter((item) => selectedRepo === "all" || item.repo === selectedRepo);
   }, [items, selectedRepo]);
 
-  const handleClose = useCallback(() => setSelectedActivity(null), []);
+  const handleClose = () => setSelectedActivity(null);
 
   if (isLoading) {
     return (
