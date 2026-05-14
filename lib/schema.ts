@@ -85,6 +85,18 @@ export const projects = pgTable("projects", {
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
 
+// A labeled region on a specific image within a gallery photo.
+// Coordinates are percentages of image dimensions (0–100).
+export interface ImageRegion {
+  id: string;
+  imageIndex: number; // 0 = primary image, 1+ = additionalImages index
+  label: string;
+  cx: number; // center x, 0–100
+  cy: number; // center y, 0–100
+  rx: number; // x-radius, 0–100
+  ry: number; // y-radius, 0–100
+}
+
 // Astrophotography gallery images with acquisition metadata.
 // equipment, technique, and software are stored as comma-separated gear names
 // (denormalised for simplicity — the gear library is the canonical source).
@@ -94,6 +106,7 @@ export const galleryPhotos = pgTable("gallery_photos", {
   description: text("description").notNull().default(""),
   imageUrl: text("image_url").notNull(),
   additionalImages: jsonb("additional_images").$type<string[]>(),
+  regions: jsonb("regions").$type<ImageRegion[]>(),
   equipment: text("equipment").notNull().default(""),   // comma-separated
   capturedAt: text("captured_at").notNull().default(""),
   technique: text("technique").notNull().default(""),   // comma-separated

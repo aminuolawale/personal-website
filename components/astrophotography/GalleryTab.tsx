@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, Calendar, Cpu, Layers, Wrench, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
-import type { GalleryPhoto } from "@/lib/schema";
+import type { GalleryPhoto, ImageRegion } from "@/lib/schema";
 
 function formatCapturedAt(raw: string): string {
   if (!raw) return "";
@@ -29,20 +29,141 @@ function MetaRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   );
 }
 
+function LabelCarousel({
+  regions,
+  activeRegionId,
+  onToggle,
+}: {
+  regions: ImageRegion[];
+  activeRegionId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+
+  function checkScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", checkScroll); ro.disconnect(); };
+  }, [regions]);
+
+  return (
+    <div className="relative w-full">
+      <div
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto scrollbar-hide px-2 pb-1 w-full"
+      >
+        {regions.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onToggle(r.id)}
+            className={`shrink-0 font-mono text-xs px-3 py-1.5 border transition-all ${
+              activeRegionId === r.id
+                ? "bg-accent/10 border-accent/40 text-accent"
+                : "border-surface/20 text-muted/50 hover:border-accent/30 hover:text-muted/70"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+      {/* Right fade */}
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 w-10 transition-opacity duration-200"
+        style={{
+          background: "linear-gradient(to right, transparent, var(--color-base))",
+          opacity: canScrollRight ? 1 : 0,
+        }}
+      />
+      {/* Left fade */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-10 transition-opacity duration-200"
+        style={{
+          background: "linear-gradient(to left, transparent, var(--color-base))",
+          opacity: canScrollLeft ? 1 : 0,
+        }}
+      />
+    </div>
+  );
+}
+
+function RegionOverlay({
+  regions,
+  activeRegionId,
+  maskId,
+}: {
+  regions: ImageRegion[];
+  activeRegionId: string | null;
+  maskId: string;
+}) {
+  const activeRegion = regions.find((r) => r.id === activeRegionId) ?? null;
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="absolute inset-0 w-full h-full pointer-events-none"
+    >
+
+      {/* Spotlight when a region is active */}
+      {activeRegion && (
+        <>
+          {/* Thin border on the active ellipse */}
+          <ellipse
+            cx={activeRegion.cx}
+            cy={activeRegion.cy}
+            rx={activeRegion.rx}
+            ry={activeRegion.ry}
+            fill="none"
+            stroke="rgba(255,255,255,0.6)"
+            strokeWidth="0.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void }) {
   const images = [photo.imageUrl, ...(photo.additionalImages ?? [])];
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  const allRegions = photo.regions ?? [];
+  const imageRegions = allRegions.filter((r) => r.imageIndex === currentIdx);
+  const maskId = `spotlight-${photo.id}`;
+
+  useEffect(() => {
+    setActiveRegionId(null);
+  }, [currentIdx]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (activeRegionId) { setActiveRegionId(null); return; }
+        onClose();
+      }
       if (e.key === "ArrowLeft") setCurrentIdx((i) => Math.max(0, i - 1));
       if (e.key === "ArrowRight") setCurrentIdx((i) => Math.min(images.length - 1, i + 1));
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose, images.length]);
+  }, [onClose, images.length, activeRegionId]);
 
   function handleImageClick() {
     const el = imgRef.current;
@@ -52,6 +173,25 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
     } else {
       el.requestFullscreen?.();
     }
+  }
+
+  function toggleRegion(id: string) {
+    setActiveRegionId((prev) => (prev === id ? null : id));
+  }
+
+  const touchStartX = useRef<number | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    touchStartX.current = null;
+    if (Math.abs(delta) < 50) return;
+    if (delta > 0) setCurrentIdx((i) => Math.min(images.length - 1, i + 1));
+    else setCurrentIdx((i) => Math.max(0, i - 1));
   }
 
   return (
@@ -77,17 +217,31 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
         transition={{ duration: 0.2 }}
       >
         {/* Image area */}
-        <div className="lg:flex-1 bg-base flex flex-col items-center justify-center overflow-hidden gap-3 p-2">
-          {/* Image + fullscreen trigger */}
+        <div
+          className="lg:flex-1 bg-base flex flex-col items-center justify-center overflow-hidden gap-3 p-2"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Image + overlay */}
           <div className="relative group flex items-center justify-center w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={imgRef}
-              src={images[currentIdx]}
-              alt={photo.name}
-              className="max-w-full max-h-[55vh] lg:max-h-[80vh] w-auto object-contain cursor-zoom-in"
-              onClick={handleImageClick}
-            />
+            {/* Wrapper auto-sizes to image so SVG overlay aligns exactly */}
+            <div className="relative inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                ref={imgRef}
+                src={images[currentIdx]}
+                alt={photo.name}
+                className="max-w-full max-h-[55vh] lg:max-h-[80vh] w-auto object-contain cursor-zoom-in block"
+                onClick={handleImageClick}
+              />
+              {imageRegions.length > 0 && (
+                <RegionOverlay
+                  regions={imageRegions}
+                  activeRegionId={activeRegionId}
+                  maskId={maskId}
+                />
+              )}
+            </div>
             <button
               onClick={handleImageClick}
               className="absolute top-2 right-2 p-1.5 bg-base/60 text-muted/50 hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
@@ -134,17 +288,24 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
 
         {/* Details sidebar */}
         <div className="lg:w-80 xl:w-96 bg-base border-t lg:border-t-0 lg:border-l border-surface/20 flex flex-col overflow-y-auto shrink-0">
-          <div className="flex items-start justify-between p-5 border-b border-surface/10">
-            <div>
+          <div className="p-5 border-b border-surface/10 space-y-3">
+            <div className="flex items-start justify-between">
               <h2 className="text-surface font-bold text-lg leading-tight">{photo.name}</h2>
+              <button
+                onClick={onClose}
+                className="text-muted/40 hover:text-accent transition-colors ml-4 shrink-0 mt-0.5"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="text-muted/40 hover:text-accent transition-colors ml-4 shrink-0 mt-0.5"
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
+            {imageRegions.length > 0 && (
+              <LabelCarousel
+                regions={imageRegions}
+                activeRegionId={activeRegionId}
+                onToggle={toggleRegion}
+              />
+            )}
           </div>
 
           <div className="p-5 space-y-5 flex-1">

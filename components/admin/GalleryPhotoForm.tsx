@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Upload, X, LayoutTemplate, Plus } from "lucide-react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
-import type { GalleryPhoto, AstroGear } from "@/lib/schema";
+import RegionEditor from "@/components/admin/RegionEditor";
+import type { GalleryPhoto, AstroGear, ImageRegion } from "@/lib/schema";
 
 const INPUT =
   "w-full bg-surface/[0.04] border border-surface/15 px-3 py-2 text-sm text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/50";
@@ -86,6 +87,8 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const [description, setDescription] = useState(photo?.description ?? "");
   const [imageUrl, setImageUrl] = useState(photo?.imageUrl ?? "");
   const [additionalImages, setAdditionalImages] = useState<string[]>(photo?.additionalImages ?? []);
+  const [regions, setRegions] = useState<ImageRegion[]>(photo?.regions ?? []);
+  const [labelImageIndex, setLabelImageIndex] = useState(0);
   const additionalFileInputRef = useRef<HTMLInputElement>(null);
   const [additionalUploading, setAdditionalUploading] = useState(false);
   const [capturedAt, setCapturedAt] = useState(photo?.capturedAt ?? "");
@@ -114,7 +117,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const { clearDirty } = useUnsavedChangesGuard([
     name, description, imageUrl, capturedAt, published,
     JSON.stringify(selectedEquipment), JSON.stringify(selectedSoftware), JSON.stringify(selectedTechnique),
-    JSON.stringify(additionalImages),
+    JSON.stringify(additionalImages), JSON.stringify(regions),
   ]);
 
   useEffect(() => {
@@ -179,6 +182,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
       description: description.trim(),
       imageUrl: imageUrl.trim(),
       additionalImages: additionalImages.length > 0 ? additionalImages : null,
+      regions: regions.length > 0 ? regions : null,
       equipment: selectedEquipment.join(", "),
       capturedAt: capturedAt.trim(),
       technique: selectedTechnique.join(", "),
@@ -391,6 +395,37 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
             onChange={handleAdditionalFileChange}
           />
         </div>
+
+        {/* Region labels */}
+        {imageUrl && (
+          <div className="space-y-3">
+            <label className={LABEL}>Region Labels</label>
+            {additionalImages.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
+                {[imageUrl, ...additionalImages].map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setLabelImageIndex(i)}
+                    className={`font-mono text-xs px-3 py-1.5 border transition-all ${
+                      labelImageIndex === i
+                        ? "bg-accent text-base border-accent"
+                        : "border-surface/20 text-muted/50 hover:border-accent/40"
+                    }`}
+                  >
+                    {i === 0 ? "Primary" : `Image ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+            )}
+            <RegionEditor
+              imageUrl={[imageUrl, ...additionalImages][labelImageIndex] ?? imageUrl}
+              imageIndex={labelImageIndex}
+              regions={regions}
+              onChange={setRegions}
+            />
+          </div>
+        )}
 
         {/* Name */}
         <div>
