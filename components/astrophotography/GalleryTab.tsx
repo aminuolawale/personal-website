@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
-import { X, Calendar, Cpu, Layers, Wrench, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { X, Calendar, Cpu, Layers, Wrench, ChevronLeft, ChevronRight, Maximize2, Link } from "lucide-react";
 import { m, AnimatePresence } from "framer-motion";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useFetchJson } from "@/lib/hooks/use-fetch-json";
 import type { GalleryPhoto, ImageRegion } from "@/lib/schema";
 
@@ -171,7 +172,15 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
   const images = [photo.imageUrl, ...(photo.additionalImages ?? [])];
   const [currentIdx, setCurrentIdx] = useState(0);
   const [activeRegionId, setActiveRegionId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const allRegions = photo.regions ?? [];
   const imageRegions = allRegions.filter((r) => r.imageIndex === currentIdx);
@@ -318,13 +327,24 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
           <div className="p-5 border-b border-surface/10 space-y-3">
             <div className="flex items-start justify-between">
               <h2 className="text-surface font-bold text-lg leading-tight">{photo.name}</h2>
-              <button
-                onClick={onClose}
-                className="text-muted/40 hover:text-accent transition-colors ml-4 shrink-0 mt-0.5"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2 ml-4 shrink-0 mt-0.5">
+                <button
+                  onClick={handleShare}
+                  className="text-muted/40 hover:text-accent transition-colors"
+                  aria-label="Copy link"
+                >
+                  {copied
+                    ? <span className="font-mono text-[10px] text-accent">Copied</span>
+                    : <Link size={15} />}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="text-muted/40 hover:text-accent transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             {imageRegions.length > 0 && (
               <LabelCarousel
@@ -364,9 +384,25 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
 
 export default function GalleryTab() {
   const { data: photos, isLoading } = useFetchJson<GalleryPhoto[]>("/api/gallery", []);
-  const [selected, setSelected] = useState<GalleryPhoto | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const handleClose = useCallback(() => setSelected(null), []);
+  const selectedId = searchParams.get("photo");
+  const selected = photos.find((p) => String(p.id) === selectedId) ?? null;
+
+  const openPhoto = useCallback((photo: GalleryPhoto) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("photo", String(photo.id));
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const handleClose = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("photo");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   if (isLoading) {
     return <p className="font-mono text-xs text-muted/30 py-16 text-center">Loading…</p>;
@@ -387,7 +423,7 @@ export default function GalleryTab() {
           <m.button
             key={photo.id}
             className="w-full block group relative overflow-hidden cursor-pointer focus:outline-none aspect-square"
-            onClick={() => setSelected(photo)}
+            onClick={() => openPhoto(photo)}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05, duration: 0.4 }}
