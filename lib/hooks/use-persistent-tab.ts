@@ -1,16 +1,21 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 export function usePersistentTab(defaultTab: string, validTabIds: Set<string>) {
-  const urlTab = useSearchParams().get("tab");
-  const [manualTab, setManualTab] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const activeTabId =
-    (urlTab && validTabIds.has(urlTab) && urlTab) ||
-    (manualTab && validTabIds.has(manualTab) && manualTab) ||
-    defaultTab;
+  const urlTab = searchParams.get("tab");
+  const activeTabId = (urlTab && validTabIds.has(urlTab) && urlTab) || defaultTab;
 
-  return [activeTabId, setManualTab] as const;
+  const setActiveTabId = useCallback((tabId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tabId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  return [activeTabId, setActiveTabId] as const;
 }
