@@ -1,51 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
-/**
- * Manages the active tab state for a section.
- * Behavior:
- * 1. If a 'tab' URL parameter exists and is valid, it takes precedence.
- * 2. Otherwise, the defaultTab (first in order) is always used on load.
- */
 export function usePersistentTab(defaultTab: string, validTabIds: Set<string>) {
-  const searchParams = useSearchParams();
-  const urlTab = searchParams.get("tab");
+  const urlTab = useSearchParams().get("tab");
+  const [userTab, setUserTab] = useState<string | null>(null);
 
-  const [activeTabId, setActiveTabId] = useState<string>(() => {
-    if (urlTab && validTabIds.has(urlTab)) {
-      return urlTab;
-    }
-    return defaultTab;
-  });
+  const activeTabId =
+    (urlTab && validTabIds.has(urlTab) && urlTab) ||
+    (userTab && validTabIds.has(userTab) && userTab) ||
+    defaultTab;
 
-  // When the admin-configured order loads and changes defaultTab, follow it —
-  // unless the URL explicitly specifies a tab.
-  useEffect(() => {
-    if (!urlTab && defaultTab) {
-      setActiveTabId(defaultTab);
-    }
-  }, [defaultTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep state in sync with URL changes (e.g. back/forward navigation)
-  useEffect(() => {
-    if (urlTab && validTabIds.has(urlTab) && urlTab !== activeTabId) {
-      setActiveTabId(urlTab);
-    }
-  }, [urlTab, validTabIds, activeTabId]);
-
-  // When validTabIds is first populated (async tabs like misc), reset to defaultTab
-  // if the current activeTabId is not yet a valid tab.
-  useEffect(() => {
-    if (validTabIds.size > 0 && !validTabIds.has(activeTabId)) {
-      setActiveTabId(defaultTab);
-    }
-  }, [validTabIds, activeTabId, defaultTab]);
-
-  const setActiveTab = useCallback((id: string) => {
-    setActiveTabId(id);
-  }, []);
-
-  return [activeTabId, setActiveTab] as const;
+  return [activeTabId, setUserTab] as const;
 }

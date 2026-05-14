@@ -43,10 +43,6 @@ function WritingContent() {
     href?: string;
   } | null>(null);
 
-  const activeVisibleTab = orderedTabs.some((tab) => tab.id === activeTabId)
-    ? activeTabId
-    : orderedTabs[0]?.id ?? "book-reviews";
-
   function selectWritingTab(tabId: string) {
     setActiveTabId(tabId);
     resetPage();
@@ -68,11 +64,11 @@ function WritingContent() {
 
       <section className="py-8 sm:py-14 px-5 sm:px-8 lg:px-16 max-w-6xl mx-auto">
         {orderedTabs.length > 0 && (
-          <TabBar tabs={orderedTabs} activeId={activeVisibleTab} onChange={selectWritingTab} />
+          <TabBar tabs={orderedTabs} activeId={activeTabId} onChange={selectWritingTab} />
         )}
 
         <div className="pt-8 sm:pt-12">
-          {activeVisibleTab === "book-reviews" && (
+          {activeTabId === "book-reviews" && (
             <>
               {isLoading ? (
                 <p className="font-mono text-xs text-muted/30">Loading...</p>
@@ -114,7 +110,7 @@ function WritingContent() {
             </>
           )}
 
-          {activeVisibleTab === "reading-notes" && <ReadingNotesTab />}
+          {activeTabId === "reading-notes" && <ReadingNotesTab />}
         </div>
       </section>
 

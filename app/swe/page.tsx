@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { m, AnimatePresence } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import TabBar, { type TabConfig } from "@/components/TabBar";
 import ArticlesTab from "@/components/swe/ArticlesTab";
@@ -94,17 +93,7 @@ function SweContent() {
       </PageHeader>
 
       <section className="py-10 sm:py-16 px-6 sm:px-16 max-w-6xl mx-auto">
-        <AnimatePresence mode="wait">
-          <m.div
-            key={activeTab.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab.renderContent(articles, isLoading, { page, totalPages, setPage })}
-          </m.div>
-        </AnimatePresence>
+        {activeTab.renderContent(articles, isLoading, { page, totalPages, setPage })}
       </section>
     </main>
   );
