@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { GitCommit, X, ExternalLink } from "lucide-react";
 import { timeAgo, formatShortDate } from "@/lib/utils";
 import { useFetchJson } from "@/lib/hooks/use-fetch-json";
