@@ -146,7 +146,7 @@ function RegionOverlay({
             rx={activeRegion.rx}
             ry={activeRegion.ry}
             fill="none"
-            stroke="rgba(255,255,255,0.6)"
+            stroke="rgba(220,38,38,0.8)"
             strokeWidth="0.5"
             vectorEffect="non-scaling-stroke"
           />
