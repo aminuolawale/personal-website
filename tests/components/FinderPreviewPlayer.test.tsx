@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import FinderPreviewPlayer, { finderStepDrift, finderStepRotationDeg, FRAME_ANIMATION_MS } from "@/components/astrophotography/FinderPreviewPlayer";
+import FinderPreviewPlayer, {
+  finderProgressPercent,
+  finderStepDrift,
+  finderStepDurationMs,
+  finderStepRotationDeg,
+  FRAME_ANIMATION_MS,
+} from "@/components/astrophotography/FinderPreviewPlayer";
 
 const preview = {
   id: 7,
@@ -59,5 +65,14 @@ describe("FinderPreviewPlayer", () => {
     expect(FRAME_ANIMATION_MS).toBeGreaterThanOrEqual(1000);
     expect(finderStepRotationDeg({ alt: 45, az: 135 })).toBeCloseTo(-24.3);
     expect(finderStepDrift({ alt: 45, az: 135 }).x).toBeLessThan(0);
+  });
+
+  it("uses linear progress values over the full step interval", () => {
+    expect(finderStepDurationMs(4)).toBe(FRAME_ANIMATION_MS + 4000);
+    expect(finderStepDurationMs(0)).toBe(FRAME_ANIMATION_MS + 1000);
+    expect(finderProgressPercent(0, 4)).toBe(25);
+    expect(finderProgressPercent(1, 4)).toBe(50);
+    expect(finderProgressPercent(3, 4)).toBe(100);
+    expect(finderProgressPercent(0, 0)).toBe(0);
   });
 });

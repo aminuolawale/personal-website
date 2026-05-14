@@ -58,6 +58,15 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
+export function finderStepDurationMs(stepDelaySeconds = 4) {
+  return FRAME_ANIMATION_MS + Math.max(1, stepDelaySeconds) * 1000;
+}
+
+export function finderProgressPercent(step: number, totalSteps: number) {
+  if (totalSteps <= 0) return 0;
+  return Math.min(100, Math.max(0, ((step + 1) / totalSteps) * 100));
+}
+
 function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
@@ -101,6 +110,7 @@ function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number
 export default function FinderPreviewPlayer({ preview: initialPreview, previewId, compact = false }: FinderPreviewPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const progressRafRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(MIN_ZOOM);
@@ -118,6 +128,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const [zoomLevel, setZoomLevel] = useState(MIN_ZOOM);
   const [activeStep, setActiveStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
   const [loopOverride, setLoopOverride] = useState<boolean | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
@@ -142,8 +153,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const safeActiveStep = steps.length === 0 ? 0 : Math.min(activeStep, steps.length - 1);
   const currentStep = steps[safeActiveStep] ?? null;
   const currentTarget = currentStep ? getSkyTargetById(currentStep.targetId) : null;
-  const progressPercent = steps.length > 0 ? ((safeActiveStep + 1) / steps.length) * 100 : 0;
   const loop = loopOverride ?? preview?.loop ?? false;
+  const stepDurationMs = finderStepDurationMs(preview?.stepDelaySeconds);
   const highlightedConstellations = useMemo(() => {
     return currentTarget?.type === "constellation" ? [currentTarget.name] : [];
   }, [currentTarget]);
@@ -304,12 +315,44 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         setPlaying(false);
         return step;
       });
-    }, FRAME_ANIMATION_MS + Math.max(1, preview?.stepDelaySeconds ?? 4) * 1000);
+    }, stepDurationMs);
 
     return () => {
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     };
-  }, [activeStep, loop, playing, preview?.stepDelaySeconds, steps.length]);
+  }, [activeStep, loop, playing, stepDurationMs, steps.length]);
+
+  useEffect(() => {
+    cancelAnimationFrame(progressRafRef.current);
+
+    if (steps.length === 0) {
+      progressRafRef.current = requestAnimationFrame(() => setProgressPercent(0));
+      return () => cancelAnimationFrame(progressRafRef.current);
+    }
+
+    const from = finderProgressPercent(safeActiveStep, steps.length);
+    const to = safeActiveStep + 1 < steps.length
+      ? finderProgressPercent(safeActiveStep + 1, steps.length)
+      : 100;
+
+    if (!playing) {
+      progressRafRef.current = requestAnimationFrame(() => setProgressPercent(from));
+      return () => cancelAnimationFrame(progressRafRef.current);
+    }
+
+    const startTick = performance.now();
+
+    const animateProgress = (tick: number) => {
+      const progress = Math.min(1, (tick - startTick) / stepDurationMs);
+      setProgressPercent(lerp(from, to, progress));
+      if (progress < 1) {
+        progressRafRef.current = requestAnimationFrame(animateProgress);
+      }
+    };
+
+    progressRafRef.current = requestAnimationFrame(animateProgress);
+    return () => cancelAnimationFrame(progressRafRef.current);
+  }, [playing, safeActiveStep, stepDurationMs, steps.length]);
 
   useEffect(() => {
     function animate(tick: number) {
@@ -511,10 +554,10 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
               role="progressbar"
               aria-label="Finder preview progress"
               aria-valuemin={0}
-              aria-valuemax={steps.length}
-              aria-valuenow={safeActiveStep + 1}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progressPercent)}
             >
-              <div className="h-full bg-accent transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+              <div className="h-full bg-accent" style={{ width: `${progressPercent}%` }} />
             </div>
             <h3 className="mt-1 text-surface font-semibold text-lg leading-tight">{preview.name}</h3>
             {preview.description && <p className="mt-2 text-sm text-muted/55 leading-relaxed">{preview.description}</p>}
