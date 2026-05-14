@@ -287,29 +287,32 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
           <label className={LABEL}>Photo *</label>
 
           {imageUrl ? (
-            <div className="relative group">
+            <div className="flex items-center gap-3 border border-surface/10 bg-surface/[0.02] p-2">
               <img
                 src={imageUrl}
                 alt="Preview"
-                className="w-full max-h-80 object-cover border border-surface/10"
+                className="w-16 h-16 object-cover shrink-0"
               />
-              <div className="absolute inset-0 bg-base/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-mono text-[10px] text-muted/35 truncate">{imageUrl.split("/").pop()}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center gap-2 font-mono text-xs text-base bg-accent px-4 py-2 hover:opacity-90 disabled:opacity-40"
+                  className="flex items-center gap-1.5 font-mono text-xs text-muted/50 border border-surface/15 px-2.5 py-1 hover:border-accent/40 hover:text-accent transition-all disabled:opacity-40"
                 >
-                  <Upload size={13} />
+                  <Upload size={11} />
                   {uploading ? "Uploading…" : "Replace"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setImageUrl("")}
-                  className="flex items-center gap-2 font-mono text-xs text-surface border border-surface/30 px-4 py-2 hover:border-red-400/60 hover:text-red-400"
+                  className="p-1 text-muted/30 hover:text-red-400 transition-colors"
+                  aria-label="Remove"
                 >
                   <X size={13} />
-                  Remove
                 </button>
               </div>
             </div>
@@ -351,13 +354,13 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
         <div className="space-y-3">
           <label className={LABEL}>Additional Images</label>
           {additionalImages.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-2">
               {additionalImages.map((url, i) => (
-                <div key={i} className="relative group">
+                <div key={i} className="relative group shrink-0">
                   <img
                     src={url}
                     alt={`Additional ${i + 1}`}
-                    className="w-full aspect-square object-cover border border-surface/10"
+                    className="w-16 h-16 object-cover border border-surface/10"
                   />
                   <button
                     type="button"

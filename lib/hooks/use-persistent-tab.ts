@@ -20,6 +20,14 @@ export function usePersistentTab(defaultTab: string, validTabIds: Set<string>) {
     return defaultTab;
   });
 
+  // When the admin-configured order loads and changes defaultTab, follow it —
+  // unless the URL explicitly specifies a tab.
+  useEffect(() => {
+    if (!urlTab && defaultTab) {
+      setActiveTabId(defaultTab);
+    }
+  }, [defaultTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Keep state in sync with URL changes (e.g. back/forward navigation)
   useEffect(() => {
     if (urlTab && validTabIds.has(urlTab) && urlTab !== activeTabId) {
