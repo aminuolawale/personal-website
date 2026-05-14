@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import FinderPreviewPlayer from "@/components/astrophotography/FinderPreviewPlayer";
+import FinderPreviewPlayer, { finderStepDrift, finderStepRotationDeg, FRAME_ANIMATION_MS } from "@/components/astrophotography/FinderPreviewPlayer";
 
 const preview = {
   id: 7,
@@ -53,5 +53,11 @@ describe("FinderPreviewPlayer", () => {
 
     expect(screen.getByRole("button", { name: /find orion/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /find hercules/i })).not.toBeInTheDocument();
+  });
+
+  it("uses a nonzero pan-rotate transition duration and target-based rotation", () => {
+    expect(FRAME_ANIMATION_MS).toBeGreaterThanOrEqual(1000);
+    expect(finderStepRotationDeg({ alt: 45, az: 135 })).toBeCloseTo(-24.3);
+    expect(finderStepDrift({ alt: 45, az: 135 }).x).toBeLessThan(0);
   });
 });

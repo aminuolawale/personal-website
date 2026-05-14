@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Maximize2, Minimize2, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import { compute, midnightTonight, type Computed, type SkyPos } from "@/lib/sky-engine";
 import { clampPan, draw } from "@/lib/sky-draw";
-import { getSkyRadius, skyPointToPan } from "@/lib/sky-projection";
+import { getSkyRadius } from "@/lib/sky-projection";
 import { getSkyTargetById, resolveComputedTargetPosition } from "@/lib/sky-targets";
 import type { FinderPreviewStep } from "@/lib/finder-previews";
 
@@ -35,9 +35,10 @@ const LOCATIONS = [
 const MIN_ZOOM = 0.65;
 const MAX_ZOOM = 8;
 const TARGET_ZOOM = 2.2;
-const FRAME_ANIMATION_MS = 800;
+export const FRAME_ANIMATION_MS = 1100;
+const ROTATION_BIAS = 0.18;
 
-type Camera = { x: number; y: number; zoom: number };
+type Camera = { x: number; y: number; zoom: number; rotationDeg: number };
 
 type CameraTransition = {
   from: Camera;
@@ -61,8 +62,34 @@ function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
-function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number, zoom: number, focusOffsetY = 0) {
-  const pan = skyPointToPan(pos.alt, pos.az, skyRadius, zoom, focusOffsetY);
+export function finderStepRotationDeg(pos: SkyPos) {
+  return -pos.az * ROTATION_BIAS;
+}
+
+export function finderStepDrift(pos: SkyPos) {
+  const rotationDeg = finderStepRotationDeg(pos);
+  const rotationRad = rotationDeg * Math.PI / 180;
+  return {
+    x: Math.sin(rotationRad) * 14,
+    y: (1 - Math.cos(rotationRad)) * -10,
+  };
+}
+
+function normalizeAngleDelta(from: number, to: number) {
+  return ((to - from + 540) % 360) - 180;
+}
+
+function lerpAngle(from: number, to: number, t: number) {
+  return from + normalizeAngleDelta(from, to) * t;
+}
+
+function targetPan(pos: SkyPos, width: number, height: number, skyRadius: number, zoom: number, rotationDeg = 0, focusOffsetY = 0) {
+  const radialDistance = (1 - pos.alt / 90) * skyRadius;
+  const azimuthRad = (pos.az + rotationDeg) * Math.PI / 180;
+  const pan = {
+    x: -(radialDistance * Math.sin(azimuthRad)) * zoom,
+    y: (radialDistance * Math.cos(azimuthRad)) * zoom + focusOffsetY,
+  };
   return clampPan(
     zoom,
     pan.x,
@@ -77,13 +104,14 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const timerRef = useRef<number | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(MIN_ZOOM);
+  const rotationRef = useRef(0);
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
   const touchDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null);
   const cameraTransitionRef = useRef<CameraTransition | null>(null);
   const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0, dpr: 1, ready: false });
-  const reducedMotionRef = useRef(false);
   const touchDeviceRef = useRef(false);
   const safeActiveStepRef = useRef(0);
+  const hasFramedInitialStepRef = useRef(false);
   const [fetchedPreview, setFetchedPreview] = useState<FinderPreview | null>(null);
   const [locationIdx, setLocationIdx] = useState(1);
   const [computed, setComputed] = useState<Computed>(() => compute(midnightTonight(), LOCATIONS[1].lat, LOCATIONS[1].lon));
@@ -124,7 +152,6 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [safeActiveStep]);
 
   useEffect(() => {
-    reducedMotionRef.current = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     touchDeviceRef.current = window.matchMedia?.("(pointer: coarse)").matches ?? navigator.maxTouchPoints > 0;
   }, []);
 
@@ -175,9 +202,9 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [isFullscreen]);
 
   const frameStep = useCallback((index: number, requestedZoom?: number, immediate = false) => {
-    if (!computed || !steps[index]) return;
+    if (!computed || !steps[index]) return false;
     const pos = resolveComputedTargetPosition(computed, steps[index].targetId);
-    if (!pos || !canvasSizeRef.current.ready) return;
+    if (!pos || !canvasSizeRef.current.ready) return false;
 
     const { width, height } = canvasSizeRef.current;
     const skyRadius = getSkyRadius(width, height, isFullscreen);
@@ -185,28 +212,25 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, requestedZoom ?? stepZoom));
     setZoomLevel(zoom);
     const focusOffsetY = isFullscreen && width < 640 ? -height * 0.18 : 0;
-    const nextPan = targetPan(pos, width, height, skyRadius, zoom, focusOffsetY);
+    const drift = finderStepDrift(pos);
+    const nextPanBase = targetPan(pos, width, height, skyRadius, zoom, 0, focusOffsetY);
+    const nextPan = clampPan(zoom, nextPanBase.x + drift.x, nextPanBase.y + drift.y, skyRadius);
 
     if (immediate) {
       zoomRef.current = zoom;
       panRef.current = nextPan;
+      rotationRef.current = 0;
       cameraTransitionRef.current = null;
-      return;
-    }
-
-    if (reducedMotionRef.current) {
-      zoomRef.current = zoom;
-      panRef.current = nextPan;
-      cameraTransitionRef.current = null;
-      return;
+      return true;
     }
 
     cameraTransitionRef.current = {
-      from: { x: panRef.current.x, y: panRef.current.y, zoom: zoomRef.current },
-      to: { x: nextPan.x, y: nextPan.y, zoom },
+      from: { x: panRef.current.x, y: panRef.current.y, zoom: zoomRef.current, rotationDeg: rotationRef.current },
+      to: { x: nextPan.x, y: nextPan.y, zoom, rotationDeg: 0 },
       startTick: 0,
       durationMs: FRAME_ANIMATION_MS,
     };
+    return true;
   }, [computed, isFullscreen, steps]);
 
   function applyZoom(nextZoom: number) {
@@ -226,13 +250,13 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   }, [steps.length]);
 
   useEffect(() => {
-    frameStep(safeActiveStep);
-  }, [frameStep, safeActiveStep]);
+    hasFramedInitialStepRef.current = false;
+  }, [preview?.id]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => frameStep(safeActiveStep, undefined, true), 0);
-    return () => window.clearTimeout(timer);
-  }, [computed, frameStep, safeActiveStep]);
+    const framed = frameStep(safeActiveStep, undefined, !hasFramedInitialStepRef.current);
+    if (framed) hasFramedInitialStepRef.current = true;
+  }, [frameStep, safeActiveStep]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -253,7 +277,8 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
       }
 
       canvasSizeRef.current = { width: nextWidth, height: nextHeight, dpr, ready: true };
-      frameStep(safeActiveStepRef.current, undefined, !wasReady);
+      const framed = frameStep(safeActiveStepRef.current, undefined, !wasReady || !hasFramedInitialStepRef.current);
+      if (framed) hasFramedInitialStepRef.current = true;
     }
 
     const rect = canvasNode.getBoundingClientRect();
@@ -296,6 +321,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         const t = Math.min(1, (tick - transition.startTick) / transition.durationMs);
         const eased = easeInOut(t);
         zoomRef.current = lerp(transition.from.zoom, transition.to.zoom, eased);
+        rotationRef.current = lerpAngle(transition.from.rotationDeg, transition.to.rotationDeg, eased);
         panRef.current = {
           x: lerp(transition.from.x, transition.to.x, eased),
           y: lerp(transition.from.y, transition.to.y, eased),
@@ -303,6 +329,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         if (t >= 1) {
           zoomRef.current = transition.to.zoom;
           panRef.current = { x: transition.to.x, y: transition.to.y };
+          rotationRef.current = transition.to.rotationDeg;
           setZoomLevel(transition.to.zoom);
           cameraTransitionRef.current = null;
         }
@@ -320,7 +347,9 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
         null,
         isFullscreen,
         highlightedConstellations,
-        { quality: isMoving && touchDeviceRef.current ? "low" : "high" }
+        {
+          quality: isMoving && touchDeviceRef.current ? "low" : "high",
+        }
       );
       rafRef.current = requestAnimationFrame(animate);
     }

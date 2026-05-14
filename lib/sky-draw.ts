@@ -34,6 +34,7 @@ export type SkyDrawQuality = "high" | "low";
 
 export type SkyDrawOptions = {
   quality?: SkyDrawQuality;
+  rotationDeg?: number;
 };
 
 export function clampPan(zoom: number, panX: number, panY: number, skyRadius: number) {
@@ -53,12 +54,13 @@ function drawSkyObjects(
   selectedConstellation: string | null,
   highlightedConstellations: readonly string[],
   quality: SkyDrawQuality,
+  rotationDeg: number,
 ) {
   const lowQuality = quality === "low";
 
   function projectToCanvas(alt: number, az: number): [number, number] {
     const radialDistance = (1 - alt / 90) * skyRadius;
-    const azimuthRad = az * DEG_TO_RAD;
+    const azimuthRad = (az + rotationDeg) * DEG_TO_RAD;
     return [
       centerX + radialDistance * Math.sin(azimuthRad) * zoom + panX,
       centerY - radialDistance * Math.cos(azimuthRad) * zoom + panY,
@@ -209,12 +211,13 @@ function drawPolarisMarker(
   zoom: number, panX: number, panY: number,
   centerX: number, centerY: number, skyRadius: number,
   darkMode: boolean,
+  rotationDeg: number,
 ) {
   const polaris = comp.stars.find((star) => star.name === "Polaris");
   if (!polaris) return;
 
   const radialDistance  = (1 - polaris.alt / 90) * skyRadius;
-  const azimuthRad      = polaris.az * DEG_TO_RAD;
+  const azimuthRad      = (polaris.az + rotationDeg) * DEG_TO_RAD;
   const polarisX        = centerX + radialDistance * Math.sin(azimuthRad) * zoom + panX;
   const polarisY        = centerY - radialDistance * Math.cos(azimuthRad) * zoom + panY;
   const scaledStarRadius = polaris.r * Math.min(1 + (zoom - 1) * 0.3, 2);
@@ -246,6 +249,7 @@ export function draw(
   options: SkyDrawOptions = {},
 ) {
   const quality = options.quality ?? "high";
+  const rotationDeg = options.rotationDeg ?? 0;
   const lowQuality = quality === "low";
   const devicePixelRatio = window.devicePixelRatio || 1;
   const canvasWidth  = canvas.width  / devicePixelRatio;
@@ -295,8 +299,8 @@ export function draw(
     }
   }
 
-  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation, highlightedConstellations, quality);
-  if (!lowQuality) drawPolarisMarker(ctx, comp, zoom, panX, panY, centerX, centerY, skyRadius, darkMode);
+  drawSkyObjects(ctx, comp, tick, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, selectedConstellation, highlightedConstellations, quality, rotationDeg);
+  if (!lowQuality) drawPolarisMarker(ctx, comp, zoom, panX, panY, centerX, centerY, skyRadius, darkMode, rotationDeg);
   if (!fullBleed) ctx.restore();
 
   ctx.beginPath(); ctx.arc(centerX, centerY, skyRadius, 0, Math.PI * 2);
@@ -314,7 +318,7 @@ export function draw(
     ctx.fillText("W", cardinalLabelPadding, centerY);
   } else {
     for (const [label, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as [string, number][]) {
-      const azimuthRad = az * DEG_TO_RAD;
+      const azimuthRad = (az + rotationDeg) * DEG_TO_RAD;
       ctx.fillText(label, centerX + (skyRadius + 14) * Math.sin(azimuthRad), centerY - (skyRadius + 14) * Math.cos(azimuthRad));
     }
   }
