@@ -37,6 +37,8 @@ export const PATCH = withAuth(async (req: NextRequest, { params }: Params) => {
     .set({
       title: quizInput.title,
       description: quizInput.description ?? "",
+      resultHeadline: quizInput.resultHeadline ?? "",
+      resultSummary: quizInput.resultSummary ?? "",
       imageUrl: quizInput.imageUrl,
       sessionId: quizInput.sessionId,
       published: quizInput.published ?? false,

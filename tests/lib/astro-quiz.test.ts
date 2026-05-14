@@ -22,6 +22,8 @@ describe("astro quiz helpers", () => {
     const result = normalizeQuizInput({
       title: "  Sky quiz  ",
       description: " Identify targets ",
+      resultHeadline: "  Nice work  ",
+      resultSummary: " You finished the quiz. ",
       imageUrl: "",
       published: true,
       questions: [{
@@ -36,6 +38,8 @@ describe("astro quiz helpers", () => {
 
     expect(result.error).toBeUndefined();
     expect(result.value?.title).toBe("Sky quiz");
+    expect(result.value?.resultHeadline).toBe("Nice work");
+    expect(result.value?.resultSummary).toBe("You finished the quiz.");
     expect(result.value?.imageUrl).toBeNull();
     expect(result.value?.questions[0].question).toBe("What target is this?");
   });

@@ -58,12 +58,14 @@ export default function QuizTab() {
   const progress = activeQuiz?.questions.length ? Math.round((answeredCount / activeQuiz.questions.length) * 100) : 0;
 
   const resultMessage = useMemo(() => {
-    if (!result) return "";
+    if (!result || !activeQuiz) return "";
+    if (activeQuiz.resultSummary?.trim()) return activeQuiz.resultSummary;
     const percent = result.total > 0 ? result.score / result.total : 0;
     if (percent === 1) return "Perfect pass. You read the frame with precision.";
     if (percent >= 0.7) return "Strong pass. Your observing eye is getting sharper.";
     return "Good attempt. The night sky map is ready for another pass.";
-  }, [result]);
+  }, [activeQuiz, result]);
+  const resultHeadline = activeQuiz?.resultHeadline?.trim() || "Quiz complete";
 
   function chooseOption(questionId: number, optionId: number) {
     setAnswers((current) => ({ ...current, [String(questionId)]: optionId }));
@@ -180,9 +182,10 @@ export default function QuizTab() {
           <div className="border border-surface/10 bg-surface/[0.02] p-5">
             {result ? (
               <div className="space-y-5">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-accent">Result sent</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-accent">Result</p>
                 <div>
-                  <p className="text-5xl font-semibold text-surface">{result.score}/{result.total}</p>
+                  <h2 className="text-2xl font-semibold leading-tight text-surface">{resultHeadline}</h2>
+                  <p className="mt-4 text-5xl font-semibold text-surface">{result.score}/{result.total}</p>
                   <p className="mt-3 text-sm leading-6 text-muted/60">{resultMessage}</p>
                 </div>
                 <Link

@@ -12,6 +12,8 @@ type DraftQuiz = {
   id?: number;
   title: string;
   description: string;
+  resultHeadline: string;
+  resultSummary: string;
   imageUrl: string;
   published: boolean;
   position: number;
@@ -31,6 +33,8 @@ function createDraft(): DraftQuiz {
   return {
     title: "",
     description: "",
+    resultHeadline: "Quiz complete",
+    resultSummary: "Review your score below, then revisit the night sky map to keep exploring.",
     imageUrl: "",
     published: false,
     position: 99,
@@ -43,6 +47,8 @@ function fromQuiz(quiz: AdminQuiz): DraftQuiz {
     id: quiz.id,
     title: quiz.title,
     description: quiz.description,
+    resultHeadline: quiz.resultHeadline ?? "Quiz complete",
+    resultSummary: quiz.resultSummary ?? "Review your score below, then revisit the night sky map to keep exploring.",
     imageUrl: quiz.imageUrl ?? "",
     published: quiz.published,
     position: quiz.position,
@@ -106,6 +112,8 @@ export default function AstroQuizManager() {
   const payload = useMemo(() => ({
     title: draft.title,
     description: draft.description,
+    resultHeadline: draft.resultHeadline,
+    resultSummary: draft.resultSummary,
     imageUrl: draft.imageUrl || null,
     published: draft.published,
     position: draft.position,
@@ -364,6 +372,27 @@ export default function AstroQuizManager() {
             className="mt-1 min-h-20 w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
           />
         </label>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="font-mono text-[10px] text-muted/40 uppercase tracking-widest">Result headline</span>
+            <input
+              value={draft.resultHeadline}
+              onChange={(e) => setDraft((current) => ({ ...current, resultHeadline: e.target.value }))}
+              className="mt-1 w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
+              placeholder="Quiz complete"
+            />
+          </label>
+          <label className="block">
+            <span className="font-mono text-[10px] text-muted/40 uppercase tracking-widest">Result summary</span>
+            <textarea
+              value={draft.resultSummary}
+              onChange={(e) => setDraft((current) => ({ ...current, resultSummary: e.target.value }))}
+              className="mt-1 min-h-20 w-full bg-transparent border border-surface/15 px-3 py-2 text-sm text-surface focus:outline-none focus:border-accent/50"
+              placeholder="Review your score below, then revisit the night sky map to keep exploring."
+            />
+          </label>
+        </div>
 
         <div className="flex flex-wrap gap-4">
           <label className="inline-flex items-center gap-2 text-sm text-muted/70">

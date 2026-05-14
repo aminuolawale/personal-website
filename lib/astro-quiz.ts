@@ -14,6 +14,8 @@ export type QuizQuestionInput = {
 export type QuizInput = {
   title: string;
   description?: string;
+  resultHeadline?: string;
+  resultSummary?: string;
   imageUrl?: string | null;
   sessionId?: number | null;
   published?: boolean;
@@ -91,6 +93,8 @@ export function normalizeQuizInput(input: unknown): { value?: QuizInput; error?:
     value: {
       title,
       description: String(data.description ?? "").trim(),
+      resultHeadline: String(data.resultHeadline ?? "").trim(),
+      resultSummary: String(data.resultSummary ?? "").trim(),
       imageUrl: String(data.imageUrl ?? "").trim() || null,
       sessionId: Number.isInteger(data.sessionId) ? data.sessionId ?? null : null,
       published: Boolean(data.published),

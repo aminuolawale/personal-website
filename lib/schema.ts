@@ -178,6 +178,8 @@ export const astroQuizzes = pgTable("astro_quizzes", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
+  resultHeadline: text("result_headline").notNull().default("Quiz complete"),
+  resultSummary: text("result_summary").notNull().default("Review your score below, then revisit the night sky map to keep exploring."),
   imageUrl: text("image_url"),
   sessionId: integer("session_id"),
   published: boolean("published").notNull().default(false),
