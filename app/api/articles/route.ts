@@ -4,7 +4,7 @@ import { articles } from "@/lib/schema";
 import { eq, and, desc, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
-import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { unauthorized, withDb, PUBLIC_CACHE } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
 import { createUpdate } from "@/lib/updates";
 import { logTelemetryEvent } from "@/lib/observability/server";
@@ -19,8 +19,7 @@ export async function GET(req: NextRequest) {
 
   if (adminMode && !(await getSession())) return unauthorized();
 
-  try {
-    const db = getDb();
+  return withDb(async (db) => {
     const conditions = [];
     if (type) conditions.push(eq(articles.type, type));
     if (!adminMode) conditions.push(eq(articles.published, true));
@@ -57,10 +56,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.json(paginatedResponse(rows, meta.page, pageSize, meta.totalItems));
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
-  } catch (err) {
-    console.error(err);
-    return serverError();
-  }
+  });
 }
 
 

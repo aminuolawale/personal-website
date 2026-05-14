@@ -30,6 +30,10 @@ export function useArticles(
 
   useEffect(() => {
     let cancelled = false;
+    // setTimeout(0) defers the fetch by one tick so React commits the current
+    // render before the loading state changes. This prevents a flicker when
+    // deps (page, type) change and the old content would otherwise disappear
+    // immediately before the new data arrives.
     const timer = window.setTimeout(() => {
       setIsLoading(true);
       const params = new URLSearchParams({ type, page: String(page) });

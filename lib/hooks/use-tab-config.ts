@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchCachedJson } from "@/lib/client-cache";
+import { tabOrder, tabLabels, tabVisibility, tabConfigKeys } from "@/lib/config-keys";
 
 export interface TabConfigResult {
   order: string[];
@@ -30,19 +31,15 @@ export function useTabConfig(
       return;
     }
 
-    const keys = [
-      `tab-order-${section}`,
-      `tab-labels-${section}`,
-      `tab-visibility-${section}`,
-    ].join(",");
+    const keys = tabConfigKeys(section).join(",");
 
     let cancelled = false;
     fetchCachedJson<{ values: Record<string, unknown> }>(`/api/config?keys=${keys}`, { values: {} })
       .then(({ values }: { values: Record<string, unknown> }) => {
         if (cancelled) return;
-        const savedOrder = values[`tab-order-${section}`];
-        const savedLabels = values[`tab-labels-${section}`];
-        const savedVisibility = values[`tab-visibility-${section}`];
+        const savedOrder = values[tabOrder(section)];
+        const savedLabels = values[tabLabels(section)];
+        const savedVisibility = values[tabVisibility(section)];
 
         const savedIds = Array.isArray(savedOrder) ? (savedOrder as string[]) : [];
         const knownIds = new Set(defaults.order);

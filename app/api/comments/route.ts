@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db";
 import { comments, articles } from "@/lib/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { getSession, getReaderSession } from "@/lib/auth";
-import { unauthorized, badRequest, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { unauthorized, badRequest, withDb, serverError, PUBLIC_CACHE } from "@/lib/api";
 
 // GET ?articleId=123 — public: approved comments for one article.
 // GET ?admin=true   — admin: all comments with article info for moderation.
@@ -15,8 +15,7 @@ export async function GET(req: NextRequest) {
   if (adminMode && !(await getSession())) return unauthorized();
   if (!adminMode && !articleId) return badRequest("articleId required");
 
-  try {
-    const db = getDb();
+  return withDb(async (db) => {
     const conditions = [];
     if (articleId) conditions.push(eq(comments.articleId, Number(articleId)));
     if (!adminMode) conditions.push(eq(comments.approved, true));
@@ -44,9 +43,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.json(rows);
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
-  } catch {
-    return serverError();
-  }
+  });
 }
 
 // POST { articleId, content } — submit a comment (requires sign-in; awaits admin approval).

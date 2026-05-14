@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ArrowUp, ArrowDown, Save, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { tabOrder, tabLabels, tabVisibility, tabConfigKeys } from "@/lib/config-keys";
 
 interface TabDef {
   id: string;
@@ -26,17 +27,13 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const keys = [
-      `tab-order-${section}`,
-      `tab-labels-${section}`,
-      `tab-visibility-${section}`,
-    ].join(",");
+    const keys = tabConfigKeys(section).join(",");
     fetch(`/api/config?keys=${keys}`)
       .then((r) => (r.ok ? r.json() : { values: {} }))
       .then(({ values }: { values: Record<string, unknown> }) => {
-        const savedOrder = values[`tab-order-${section}`];
-        const savedLabels = values[`tab-labels-${section}`];
-        const savedVis = values[`tab-visibility-${section}`];
+        const savedOrder = values[tabOrder(section)];
+        const savedLabels = values[tabLabels(section)];
+        const savedVis = values[tabVisibility(section)];
         if (Array.isArray(savedOrder)) {
           const knownIds = new Set(defaultTabs.map((tab) => tab.id));
           const orderedKnownIds = (savedOrder as string[]).filter((id) => knownIds.has(id));
@@ -83,17 +80,17 @@ export default function TabOrderEditor({ section, defaultTabs }: TabOrderEditorP
         fetch("/api/config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: `tab-order-${section}`, value: order }),
+          body: JSON.stringify({ key: tabOrder(section), value: order }),
         }),
         fetch("/api/config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: `tab-labels-${section}`, value: labels }),
+          body: JSON.stringify({ key: tabLabels(section), value: labels }),
         }),
         fetch("/api/config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: `tab-visibility-${section}`, value: visibility }),
+          body: JSON.stringify({ key: tabVisibility(section), value: visibility }),
         }),
       ]);
       setSaved(true);

@@ -3,14 +3,13 @@ import { getDb } from "@/lib/db";
 import { siteUpdates } from "@/lib/schema";
 import { eq, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { unauthorized, badRequest, serverError, PUBLIC_CACHE } from "@/lib/api";
+import { unauthorized, badRequest, withDb, PUBLIC_CACHE } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
 
 export async function GET(req: NextRequest) {
   const adminMode = new URL(req.url).searchParams.get("admin") === "true";
   if (adminMode && !(await getSession())) return unauthorized();
-  try {
-    const db = getDb();
+  return withDb(async (db) => {
     const rows = await db
       .select()
       .from(siteUpdates)
@@ -20,9 +19,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.json(rows);
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
     return res;
-  } catch {
-    return serverError();
-  }
+  });
 }
 
 export const POST = withAuth(async (req: NextRequest) => {
