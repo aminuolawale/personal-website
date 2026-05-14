@@ -22,6 +22,11 @@ export function quizShareUrl(quizId: number, origin: string) {
   return url.toString();
 }
 
+export function quizStoryDisplayUrl(shareUrl: string) {
+  const url = new URL(shareUrl);
+  return `${url.host}/astro?quiz=${url.searchParams.get("quiz") ?? ""}`;
+}
+
 function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines: number) {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -116,7 +121,7 @@ export async function createQuizStoryFile(quiz: ShareableQuiz, shareUrl: string)
   ctx.strokeRect(90, Math.max(1650, afterDescription + 70), 900, 140);
   ctx.fillStyle = "#e2e8f0";
   ctx.font = "600 32px ui-monospace, SFMono-Regular, Menlo, monospace";
-  wrapCanvasText(ctx, shareUrl, 125, Math.max(1732, afterDescription + 152), 830, 40, 2);
+  wrapCanvasText(ctx, quizStoryDisplayUrl(shareUrl), 125, Math.max(1732, afterDescription + 152), 830, 40, 1);
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
   if (!blob) throw new Error("Could not export story image");
