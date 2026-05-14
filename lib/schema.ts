@@ -175,7 +175,7 @@ export const finderPreviews = pgTable("finder_previews", {
   description: text("description").notNull().default(""),
   targetId: text("target_id").notNull(),
   stepDelaySeconds: integer("step_delay_seconds").notNull().default(4),
-  loop: boolean("loop").notNull().default(false),
+  loop: boolean("loop").notNull().default(true),
   steps: text("steps").notNull().default("[]"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

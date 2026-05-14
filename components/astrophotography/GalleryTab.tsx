@@ -122,11 +122,9 @@ function LabelCarousel({
 function RegionOverlay({
   regions,
   activeRegionId,
-  maskId,
 }: {
   regions: ImageRegion[];
   activeRegionId: string | null;
-  maskId: string;
 }) {
   const activeRegion = regions.find((r) => r.id === activeRegionId) ?? null;
 
@@ -165,7 +163,6 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
 
   const allRegions = photo.regions ?? [];
   const imageRegions = allRegions.filter((r) => r.imageIndex === currentIdx);
-  const maskId = `spotlight-${photo.id}`;
 
   useEffect(() => {
     setActiveRegionId(null);
@@ -257,7 +254,6 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
                 <RegionOverlay
                   regions={imageRegions}
                   activeRegionId={activeRegionId}
-                  maskId={maskId}
                 />
               )}
             </div>
