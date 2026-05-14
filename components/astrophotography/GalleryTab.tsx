@@ -40,6 +40,7 @@ function LabelCarousel({
   onToggle: (id: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
 
@@ -60,6 +61,15 @@ function LabelCarousel({
     return () => { el.removeEventListener("scroll", checkScroll); ro.disconnect(); };
   }, [regions]);
 
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !activeRegionId) return;
+    const btn = buttonRefs.current[activeRegionId];
+    if (!btn) return;
+    const offset = btn.offsetLeft - container.clientWidth / 2 + btn.offsetWidth / 2;
+    container.scrollTo({ left: offset, behavior: "smooth" });
+  }, [activeRegionId]);
+
   return (
     <>
       {/* Mobile: horizontal scrolling carousel */}
@@ -71,6 +81,7 @@ function LabelCarousel({
           {regions.map((r) => (
             <button
               key={r.id}
+              ref={(el) => { buttonRefs.current[r.id] = el; }}
               type="button"
               onClick={() => onToggle(r.id)}
               className={`shrink-0 font-mono text-xs px-3 py-1.5 border transition-all ${
