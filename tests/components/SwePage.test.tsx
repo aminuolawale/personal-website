@@ -27,7 +27,7 @@ vi.mock("@/components/swe/ActivityTab", () => ({ default: () => null }));
 vi.mock("@/lib/hooks/use-articles", () => ({ useArticles: () => ({ articles: [], isLoading: false, totalPages: 1 }) }));
 vi.mock("@/lib/hooks/use-url-page", () => ({ useUrlPage: () => ({ page: 1, setPage: vi.fn(), resetPage: vi.fn() }) }));
 vi.mock("@/lib/hooks/use-tab-config", () => ({ useTabConfig: () => ({ order: [], labels: {}, visibility: {} }) }));
-vi.mock("@/lib/hooks/use-persistent-tab", () => ({ usePersistentTab: () => ["", vi.fn()] }));
+vi.mock("@/lib/hooks/use-persistent-tab", () => ({ usePersistentTab: (_default: string) => [_default, vi.fn()] }));
 vi.mock("@/lib/hooks/use-site-content", () => ({ useSiteContent: () => ({ sweTitle: "", sweDescription: "" }) }));
 vi.mock("@/lib/hooks/use-section-visibility", () => ({ useSectionVisibility: () => ({}) }));
 vi.mock("@/lib/section-visibility", () => ({ getVisibleSectionNumber: () => null }));

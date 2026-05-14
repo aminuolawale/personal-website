@@ -67,7 +67,7 @@ function SweContent() {
     .map((t) => ({ ...t, label: labels[t.id] ?? t.label })),
   [order, labels, visibility]);
 
-  const [activeTabId, setActiveTabId] = usePersistentTab("swe", orderedTabs[0]?.id ?? SWE_TABS[0].id, TAB_IDS_SET);
+  const [activeTabId, setActiveTabId] = usePersistentTab(orderedTabs[0]?.id ?? SWE_TABS[0].id, TAB_IDS_SET);
   const { page, setPage, resetPage } = useUrlPage();
   const { articles, isLoading, totalPages } = useArticles("swe", { page, pageSize: 10 });
   const { sweTitle, sweDescription } = useSiteContent();
