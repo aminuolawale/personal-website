@@ -142,6 +142,7 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
   const safeActiveStep = steps.length === 0 ? 0 : Math.min(activeStep, steps.length - 1);
   const currentStep = steps[safeActiveStep] ?? null;
   const currentTarget = currentStep ? getSkyTargetById(currentStep.targetId) : null;
+  const progressPercent = steps.length > 0 ? ((safeActiveStep + 1) / steps.length) * 100 : 0;
   const loop = loopOverride ?? preview?.loop ?? false;
   const highlightedConstellations = useMemo(() => {
     return currentTarget?.type === "constellation" ? [currentTarget.name] : [];
@@ -505,6 +506,16 @@ export default function FinderPreviewPlayer({ preview: initialPreview, previewId
             <p className="font-mono text-[10px] uppercase tracking-widest text-accent/70">
               {safeActiveStep + 1}/{Math.max(steps.length, 1)}
             </p>
+            <div
+              className="mt-2 h-1 overflow-hidden rounded-full bg-surface/10"
+              role="progressbar"
+              aria-label="Finder preview progress"
+              aria-valuemin={0}
+              aria-valuemax={steps.length}
+              aria-valuenow={safeActiveStep + 1}
+            >
+              <div className="h-full bg-accent transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+            </div>
             <h3 className="mt-1 text-surface font-semibold text-lg leading-tight">{preview.name}</h3>
             {preview.description && <p className="mt-2 text-sm text-muted/55 leading-relaxed">{preview.description}</p>}
           </div>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as NextAuthReact from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, LogIn, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, LogIn, Send, Share2 } from "lucide-react";
 import RichTextContent from "@/components/RichTextContent";
 import type { AstroQuiz, AstroQuizOption, AstroQuizQuestion } from "@/lib/schema";
 
@@ -25,14 +25,17 @@ export default function QuizTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
     fetch("/api/astro-quizzes")
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         const rows = Array.isArray(data) ? data : [];
+        const requestedQuizId = Number(new URLSearchParams(window.location.search).get("quiz"));
+        const selectedQuiz = rows.find((quiz) => quiz.id === requestedQuizId);
         setQuizzes(rows);
-        setActiveQuizId(rows[0]?.id ?? null);
+        setActiveQuizId(selectedQuiz?.id ?? rows[0]?.id ?? null);
       })
       .catch(() => setQuizzes([]))
       .finally(() => setLoading(false));
@@ -70,6 +73,34 @@ export default function QuizTab() {
 
   function chooseOption(questionId: number, optionId: number) {
     setAnswers((current) => ({ ...current, [String(questionId)]: optionId }));
+  }
+
+  async function shareQuiz(quiz: Pick<QuizListItem, "id" | "title">) {
+    const url = new URL(window.location.href);
+    url.pathname = "/astrophotography";
+    url.searchParams.set("tab", "quiz");
+    url.searchParams.set("quiz", String(quiz.id));
+    url.hash = "";
+
+    const shareData = {
+      title: quiz.title,
+      text: `Try this astrophotography quiz: ${quiz.title}`,
+      url: url.toString(),
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        setShareStatus("Quiz link copied.");
+        window.setTimeout(() => setShareStatus(""), 2500);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setShareStatus("Could not share quiz.");
+      window.setTimeout(() => setShareStatus(""), 2500);
+    }
   }
 
   async function submitQuiz(force = false) {
@@ -131,22 +162,37 @@ export default function QuizTab() {
       {quizzes.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {quizzes.map((quiz) => (
-            <button
-              key={quiz.id}
-              type="button"
-              onClick={() => setActiveQuizId(quiz.id)}
-              className={`border px-3 py-2 text-left text-sm transition-colors ${
+            <div key={quiz.id} className={`flex overflow-hidden border transition-colors ${
+              activeQuizId === quiz.id
+                ? "border-accent/50 bg-accent/10"
+                : "border-surface/10 hover:border-accent/35"
+            }`}>
+              <button
+                type="button"
+                onClick={() => setActiveQuizId(quiz.id)}
+                className={`px-3 py-2 text-left text-sm transition-colors ${
                 activeQuizId === quiz.id
-                  ? "border-accent/50 bg-accent/10 text-surface"
-                  : "border-surface/10 text-muted/55 hover:border-accent/35 hover:text-accent"
-              }`}
-            >
-              <span className="block font-medium">{quiz.title}</span>
-              <span className="font-mono text-[10px] text-muted/35">{quiz.questionCount} questions</span>
-            </button>
+                  ? "text-surface"
+                  : "text-muted/55 hover:text-accent"
+                }`}
+              >
+                <span className="block font-medium">{quiz.title}</span>
+                <span className="font-mono text-[10px] text-muted/35">{quiz.questionCount} questions</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => shareQuiz(quiz)}
+                className="border-l border-surface/10 px-2 text-muted/40 transition-colors hover:text-accent"
+                aria-label={`Share ${quiz.title}`}
+              >
+                <Share2 size={14} />
+              </button>
+            </div>
           ))}
         </div>
       )}
+
+      {shareStatus && <p className="font-mono text-xs text-accent">{shareStatus}</p>}
 
       {error && <p className="border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
 
@@ -195,6 +241,14 @@ export default function QuizTab() {
                 >
                   Open night sky map
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => activeQuiz && shareQuiz(activeQuiz)}
+                  className="ml-2 inline-flex items-center gap-2 border border-surface/15 px-4 py-2 font-mono text-xs text-muted/60 transition-colors hover:border-accent/35 hover:text-accent"
+                >
+                  <Share2 size={14} />
+                  Share quiz
+                </button>
               </div>
             ) : (
               <>
