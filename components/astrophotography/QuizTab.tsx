@@ -221,7 +221,7 @@ export default function QuizTab() {
 
     try {
       const file = await createQuizStoryFile(quiz, url);
-      await copyQuizLink(url);
+      const linkCopied = await navigator.clipboard.writeText(url).then(() => true).catch(() => false);
       const shareData = {
         title: quiz.title,
         text: `Try this astrophotography quiz: ${quiz.title}\n${url}`,
@@ -230,9 +230,9 @@ export default function QuizTab() {
 
       if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
         await navigator.share(shareData);
-        setShareStatus("Story card ready. Quiz link copied for your story sticker.");
+        setShareStatus(linkCopied ? "Story card ready. Quiz link copied for your story sticker." : "Story card ready. Add the quiz link as your story sticker.");
       } else {
-        setShareStatus("Quiz link copied. Share the story card from a mobile browser to add it to Instagram Stories.");
+        setShareStatus(linkCopied ? "Quiz link copied. Share the story card from a mobile browser to add it to Instagram Stories." : "Share this from a mobile browser to add it to Instagram Stories.");
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -357,6 +357,34 @@ export default function QuizTab() {
       {shareStatus && <p className="font-mono text-xs text-accent">{shareStatus}</p>}
 
       {error && <p className="border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
+
+      {activeQuiz && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-surface/10 bg-surface/[0.02] px-4 py-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-accent/70">Current quiz</p>
+            <p className="mt-1 text-sm font-medium text-surface">{activeQuiz.title}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => shareQuiz(activeQuiz)}
+              className="inline-flex items-center gap-2 border border-surface/15 px-3 py-2 font-mono text-xs text-muted/60 transition-colors hover:border-accent/35 hover:text-accent"
+            >
+              <Share2 size={14} />
+              Share
+            </button>
+            <button
+              type="button"
+              onClick={() => shareQuizToInstagramStory(activeQuiz)}
+              disabled={sharingStoryQuizId === activeQuiz.id}
+              className="inline-flex items-center gap-2 border border-surface/15 px-3 py-2 font-mono text-xs text-muted/60 transition-colors hover:border-accent/35 hover:text-accent disabled:opacity-40"
+            >
+              <Camera size={14} />
+              {sharingStoryQuizId === activeQuiz.id ? "Preparing..." : "Instagram story"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {activeQuiz && currentQuestion && (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
