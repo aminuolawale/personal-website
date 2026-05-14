@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as NextAuthReact from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, LogIn, Send, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Camera, LogIn, Send, Share2 } from "lucide-react";
 import RichTextContent from "@/components/RichTextContent";
 import type { AstroQuiz, AstroQuizOption, AstroQuizQuestion } from "@/lib/schema";
 
@@ -12,6 +12,116 @@ type PublicOption = Omit<AstroQuizOption, "isCorrect">;
 type PublicQuestion = Omit<AstroQuizQuestion, "createdAt" | "updatedAt"> & { options: PublicOption[] };
 type PublicQuiz = AstroQuiz & { questions: PublicQuestion[] };
 type SubmitResult = { score: number; total: number; answered: number; complete: boolean };
+
+type ShareableQuiz = Pick<QuizListItem, "id" | "title"> & Partial<Pick<QuizListItem, "description" | "imageUrl" | "questionCount">>;
+
+export function quizShareUrl(quizId: number, origin: string) {
+  const url = new URL("/astrophotography", origin);
+  url.searchParams.set("tab", "quiz");
+  url.searchParams.set("quiz", String(quizId));
+  return url.toString();
+}
+
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines: number) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth || !line) {
+      line = next;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+    if (lines.length === maxLines) break;
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+
+  lines.forEach((value, index) => {
+    const suffix = index === maxLines - 1 && words.join(" ").length > lines.join(" ").length ? "..." : "";
+    ctx.fillText(`${value}${suffix}`, x, y + index * lineHeight);
+  });
+  return y + lines.length * lineHeight;
+}
+
+async function loadStoryImage(src: string) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+export async function createQuizStoryFile(quiz: ShareableQuiz, shareUrl: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not create story image");
+
+  const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
+  gradient.addColorStop(0, "#07111f");
+  gradient.addColorStop(0.48, "#0f172a");
+  gradient.addColorStop(1, "#111827");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1080, 1920);
+
+  ctx.fillStyle = "rgba(56,189,248,0.10)";
+  for (let i = 0; i < 80; i += 1) {
+    const x = (i * 137) % 1080;
+    const y = (i * 311) % 1920;
+    const size = i % 5 === 0 ? 3 : 2;
+    ctx.fillRect(x, y, size, size);
+  }
+
+  if (quiz.imageUrl) {
+    const image = await loadStoryImage(quiz.imageUrl);
+    if (image) {
+      const frameX = 90;
+      const frameY = 250;
+      const frameW = 900;
+      const frameH = 675;
+      const scale = Math.min(frameW / image.width, frameH / image.height);
+      const drawW = image.width * scale;
+      const drawH = image.height * scale;
+      ctx.fillStyle = "rgba(15,23,42,0.82)";
+      ctx.fillRect(frameX, frameY, frameW, frameH);
+      ctx.strokeStyle = "rgba(56,189,248,0.55)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(frameX, frameY, frameW, frameH);
+      ctx.drawImage(image, frameX + (frameW - drawW) / 2, frameY + (frameH - drawH) / 2, drawW, drawH);
+    }
+  }
+
+  ctx.fillStyle = "#38bdf8";
+  ctx.font = "700 34px ui-monospace, SFMono-Regular, Menlo, monospace";
+  ctx.fillText("ASTROPHOTOGRAPHY QUIZ", 90, 1085);
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "700 78px Inter, system-ui, sans-serif";
+  wrapCanvasText(ctx, quiz.title, 90, 1190, 900, 92, 4);
+
+  const description = quiz.description?.trim() || `${quiz.questionCount ?? "Multiple"} questions from the night sky.`;
+  ctx.fillStyle = "rgba(226,232,240,0.76)";
+  ctx.font = "400 38px Inter, system-ui, sans-serif";
+  const afterDescription = wrapCanvasText(ctx, description, 90, 1535, 900, 54, 3);
+
+  ctx.fillStyle = "rgba(56,189,248,0.14)";
+  ctx.fillRect(90, Math.max(1650, afterDescription + 70), 900, 140);
+  ctx.strokeStyle = "rgba(56,189,248,0.45)";
+  ctx.strokeRect(90, Math.max(1650, afterDescription + 70), 900, 140);
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "600 32px ui-monospace, SFMono-Regular, Menlo, monospace";
+  wrapCanvasText(ctx, shareUrl, 125, Math.max(1732, afterDescription + 152), 830, 40, 2);
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
+  if (!blob) throw new Error("Could not export story image");
+  return new File([blob], `astro-quiz-${quiz.id}-story.png`, { type: "image/png" });
+}
 
 export default function QuizTab() {
   const { status } = NextAuthReact.useSession();
@@ -24,6 +134,7 @@ export default function QuizTab() {
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [sharingStoryQuizId, setSharingStoryQuizId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
 
@@ -75,31 +186,60 @@ export default function QuizTab() {
     setAnswers((current) => ({ ...current, [String(questionId)]: optionId }));
   }
 
-  async function shareQuiz(quiz: Pick<QuizListItem, "id" | "title">) {
-    const url = new URL(window.location.href);
-    url.pathname = "/astrophotography";
-    url.searchParams.set("tab", "quiz");
-    url.searchParams.set("quiz", String(quiz.id));
-    url.hash = "";
+  async function copyQuizLink(url: string) {
+    await navigator.clipboard.writeText(url);
+    setShareStatus("Quiz link copied.");
+    window.setTimeout(() => setShareStatus(""), 2500);
+  }
+
+  async function shareQuiz(quiz: ShareableQuiz) {
+    const url = quizShareUrl(quiz.id, window.location.origin);
 
     const shareData = {
       title: quiz.title,
       text: `Try this astrophotography quiz: ${quiz.title}`,
-      url: url.toString(),
+      url,
     };
 
     try {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(shareData.url);
-        setShareStatus("Quiz link copied.");
-        window.setTimeout(() => setShareStatus(""), 2500);
+        await copyQuizLink(shareData.url);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setShareStatus("Could not share quiz.");
       window.setTimeout(() => setShareStatus(""), 2500);
+    }
+  }
+
+  async function shareQuizToInstagramStory(quiz: ShareableQuiz) {
+    const url = quizShareUrl(quiz.id, window.location.origin);
+    setSharingStoryQuizId(quiz.id);
+    setShareStatus("Preparing story card...");
+
+    try {
+      const file = await createQuizStoryFile(quiz, url);
+      await copyQuizLink(url);
+      const shareData = {
+        title: quiz.title,
+        text: `Try this astrophotography quiz: ${quiz.title}\n${url}`,
+        files: [file],
+      };
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+        await navigator.share(shareData);
+        setShareStatus("Story card ready. Quiz link copied for your story sticker.");
+      } else {
+        setShareStatus("Quiz link copied. Share the story card from a mobile browser to add it to Instagram Stories.");
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setShareStatus("Could not prepare Instagram story.");
+    } finally {
+      setSharingStoryQuizId(null);
+      window.setTimeout(() => setShareStatus(""), 3500);
     }
   }
 
@@ -200,6 +340,15 @@ export default function QuizTab() {
               >
                 <Share2 size={14} />
               </button>
+              <button
+                type="button"
+                onClick={() => shareQuizToInstagramStory(quiz)}
+                disabled={sharingStoryQuizId === quiz.id}
+                className="border-l border-surface/10 px-2 text-muted/40 transition-colors hover:text-accent disabled:opacity-40"
+                aria-label={`Add ${quiz.title} to Instagram story`}
+              >
+                <Camera size={14} />
+              </button>
             </div>
           ))}
         </div>
@@ -261,6 +410,15 @@ export default function QuizTab() {
                 >
                   <Share2 size={14} />
                   Share quiz
+                </button>
+                <button
+                  type="button"
+                  onClick={() => activeQuiz && shareQuizToInstagramStory(activeQuiz)}
+                  disabled={sharingStoryQuizId === activeQuiz.id}
+                  className="inline-flex items-center gap-2 border border-surface/15 px-4 py-2 font-mono text-xs text-muted/60 transition-colors hover:border-accent/35 hover:text-accent disabled:opacity-40"
+                >
+                  <Camera size={14} />
+                  {sharingStoryQuizId === activeQuiz.id ? "Preparing..." : "Instagram story"}
                 </button>
               </div>
             ) : (
