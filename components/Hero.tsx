@@ -1,7 +1,7 @@
 "use client";
 
 import {m} from "framer-motion";
-import { Mail, ExternalLink } from "lucide-react";
+import { Mail } from "lucide-react";
 import { GitHubIcon, LinkedInIcon, TwitterIcon } from "./icons";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
 
@@ -74,12 +74,6 @@ export default function Hero() {
             className="font-mono text-sm text-accent border border-accent px-8 py-4 hover:bg-accent/10 hover:shadow-[0_0_24px_rgba(56,189,248,0.18)] transition-all duration-300"
           >
             Explore My Work
-          </a>
-          <a
-            href="mailto:aminuolawalekan@gmail.com"
-            className="font-mono text-sm text-muted/70 hover:text-accent transition-colors py-4 flex items-center gap-2"
-          >
-            Get In Touch <ExternalLink size={14} />
           </a>
         </div>
       </div>

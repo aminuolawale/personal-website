@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { galleryPhotos } from "@/lib/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { unauthorized, serverError, PUBLIC_CACHE } from "@/lib/api";
 import { withAuth } from "@/lib/with-auth";
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       .select()
       .from(galleryPhotos)
       .where(adminMode ? undefined : eq(galleryPhotos.published, true))
-      .orderBy(asc(galleryPhotos.createdAt));
+      .orderBy(desc(galleryPhotos.createdAt));
 
     const res = NextResponse.json(rows);
     if (!adminMode) res.headers.set("Cache-Control", PUBLIC_CACHE);
