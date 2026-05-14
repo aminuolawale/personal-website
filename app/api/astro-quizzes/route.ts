@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
-import { PUBLIC_CACHE, serverError } from "@/lib/api";
+import { serverError } from "@/lib/api";
 import { getDb } from "@/lib/db";
 import { astroQuizQuestions, astroQuizzes } from "@/lib/schema";
 
@@ -27,7 +27,7 @@ export async function GET() {
         questionCount: counts.get(quiz.id) ?? 0,
       }))
     );
-    res.headers.set("Cache-Control", PUBLIC_CACHE);
+    res.headers.set("Cache-Control", "no-store");
     return res;
   } catch (err) {
     console.error(err);

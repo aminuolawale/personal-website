@@ -28,7 +28,7 @@ export default function QuizTab() {
   const [shareStatus, setShareStatus] = useState("");
 
   useEffect(() => {
-    fetch("/api/astro-quizzes")
+    fetch(`/api/astro-quizzes?t=${Date.now()}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         const rows = Array.isArray(data) ? data : [];
@@ -43,7 +43,7 @@ export default function QuizTab() {
 
   useEffect(() => {
     if (!activeQuizId || status !== "authenticated") return;
-    fetch(`/api/astro-quizzes/${activeQuizId}`)
+    fetch(`/api/astro-quizzes/${activeQuizId}?t=${Date.now()}`, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Could not load quiz"))))
       .then((data) => {
         setActiveQuiz(data);
@@ -124,6 +124,19 @@ export default function QuizTab() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? "Could not submit quiz");
+      if (res.status === 409) {
+        setAnswers({});
+        setResult(null);
+        fetch(`/api/astro-quizzes/${activeQuiz.id}?t=${Date.now()}`, { cache: "no-store" })
+          .then((nextRes) => (nextRes.ok ? nextRes.json() : null))
+          .then((data) => {
+            if (data) {
+              setActiveQuiz(data);
+              setCurrentIndex(0);
+            }
+          })
+          .catch(() => undefined);
+      }
       return;
     }
     setResult(await res.json());

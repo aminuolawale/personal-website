@@ -9,6 +9,12 @@ import { astroQuizAttempts, astroQuizOptions, astroQuizQuestions, astroQuizzes }
 
 type Params = { params: Promise<{ id: string }> };
 
+const staleQuizResponse = () =>
+  NextResponse.json(
+    { error: "This quiz changed while you were taking it. Reload the quiz and try again." },
+    { status: 409 }
+  );
+
 export async function POST(req: NextRequest, { params }: Params) {
   const reader = await getReaderSession();
   if (!reader) return unauthorized();
@@ -54,9 +60,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     for (const [questionIdText, optionId] of Object.entries(answers)) {
       const questionId = Number(questionIdText);
-      if (!questionIds.has(questionId)) return badRequest("Answer does not belong to this quiz");
+      if (!questionIds.has(questionId)) return staleQuizResponse();
       if (!allowedOptionsByQuestion.get(questionId)?.has(optionId)) {
-        return badRequest("Answer option does not belong to this quiz");
+        return staleQuizResponse();
       }
     }
 

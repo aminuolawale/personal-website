@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
-import { badRequest, notFound, PUBLIC_CACHE, serverError } from "@/lib/api";
+import { badRequest, notFound, serverError } from "@/lib/api";
 import { sanitizeQuestion } from "@/lib/astro-quiz";
 import { getDb } from "@/lib/db";
 import { astroQuizOptions, astroQuizQuestions, astroQuizzes } from "@/lib/schema";
@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       ...quiz,
       questions: questions.map((question) => sanitizeQuestion(question, optionsByQuestion.get(question.id) ?? [])),
     });
-    res.headers.set("Cache-Control", PUBLIC_CACHE);
+    res.headers.set("Cache-Control", "no-store");
     return res;
   } catch (err) {
     console.error(err);

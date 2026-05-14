@@ -89,12 +89,14 @@ describe("POST /api/astro-quizzes/[id]/attempts", () => {
     });
   });
 
-  it("rejects answers that do not belong to the quiz", async () => {
+  it("returns a stale quiz response when answers do not belong to the latest quiz version", async () => {
     vi.mocked(getReaderSession).mockResolvedValue({ email: "reader@test.com", name: null, image: null });
     mockQuizDb();
 
     const res = await POST(makeRequest({ answers: { "10": 999 } }), { params: params("1") });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Answer option does not belong to this quiz" });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: "This quiz changed while you were taking it. Reload the quiz and try again.",
+    });
   });
 });
