@@ -6,6 +6,16 @@ import Google from "next-auth/providers/google"
 // Credentials are read from AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET env vars.
 export const { handlers, auth } = NextAuth({
   providers: [Google],
+  events: {
+    async signIn({ user }) {
+      try {
+        const { ensureReaderProfile } = await import("@/lib/reader-profiles");
+        await ensureReaderProfile(user);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+  },
   pages: {
     // Both sign-in and error states send the user to /admin (the login page)
     // rather than NextAuth's default /auth/signin page.

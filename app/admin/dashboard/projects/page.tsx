@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { GitHubIcon } from "@/components/icons";
 import type { Project } from "@/lib/schema";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import AdminResourceDropdown from "@/components/admin/AdminResourceDropdown";
 
 export default function ProjectsDashboard() {
   const router = useRouter();
@@ -26,7 +27,10 @@ export default function ProjectsDashboard() {
     }
   }, [router]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this project?")) return;
@@ -41,13 +45,13 @@ export default function ProjectsDashboard() {
       <AdminPageHeader
         title="Projects"
         actions={
-          <Link
-            href="/admin/dashboard/projects/new"
-            className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
-          >
-            <Plus size={13} />
-            New Project
-          </Link>
+          <AdminResourceDropdown
+            actions={[{
+              href: "/admin/dashboard/projects/new",
+              label: "Project",
+              description: "Create a SWE project entry.",
+            }]}
+          />
         }
       />
 
@@ -57,12 +61,16 @@ export default function ProjectsDashboard() {
         ) : projectList.length === 0 ? (
           <div className="text-center py-24 border border-surface/10">
             <p className="font-mono text-sm text-muted/30">No projects yet.</p>
-            <Link
-              href="/admin/dashboard/projects/new"
-              className="inline-flex items-center gap-2 mt-4 font-mono text-xs text-accent hover:underline"
-            >
-              <Plus size={12} /> Add your first project
-            </Link>
+            <div className="mt-4 inline-flex">
+              <AdminResourceDropdown
+                label="Create first"
+                actions={[{
+                  href: "/admin/dashboard/projects/new",
+                  label: "Project",
+                  description: "Create a SWE project entry.",
+                }]}
+              />
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-surface/[0.06]">

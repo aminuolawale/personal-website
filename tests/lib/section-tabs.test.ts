@@ -10,6 +10,7 @@ describe("SECTION_TABS", () => {
       "gallery",
       "gear",
       "sky",
+      "quiz",
     ]);
     expect(SECTION_TABS.writing.map((tab) => tab.id)).toEqual(["book-reviews", "reading-notes"]);
     expect(Object.values(SECTION_TABS).flat().every((tab) => tab.id && tab.label)).toBe(true);

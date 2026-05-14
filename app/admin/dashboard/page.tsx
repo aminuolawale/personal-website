@@ -4,9 +4,10 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Plus, Pencil, Trash2, LogOut, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, LogOut, Eye, EyeOff } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import Pagination from "@/components/Pagination";
+import AdminResourceDropdown, { type AdminResourceAction } from "@/components/admin/AdminResourceDropdown";
 import { useUrlPage } from "@/lib/hooks/use-url-page";
 import type { PaginatedResponse } from "@/lib/pagination";
 import type { Article } from "@/lib/schema";
@@ -26,6 +27,82 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 type Section = "writing" | "swe" | "astrophotography" | "misc";
+
+const RESOURCE_ACTIONS: Record<Section, AdminResourceAction[]> = {
+  writing: [
+    {
+      href: "/admin/dashboard/new?type=writing",
+      label: "Book Review",
+      description: "Create a writing article for the book reviews tab.",
+    },
+    {
+      href: "/admin/dashboard/reading-notes",
+      label: "Reading Note",
+      description: "Create books, categories, and reading notes.",
+    },
+  ],
+  swe: [
+    {
+      href: "/admin/dashboard/new?type=swe",
+      label: "Engineering Article",
+      description: "Create a SWE article.",
+    },
+    {
+      href: "/admin/dashboard/projects/new",
+      label: "Project",
+      description: "Create a SWE project entry.",
+    },
+    {
+      href: "/admin/dashboard/swe-activity",
+      label: "Activity Item",
+      description: "Create or sync engineering activity.",
+    },
+  ],
+  astrophotography: [
+    {
+      href: "/admin/dashboard/new?type=astrophotography",
+      label: "Astro Article",
+      description: "Create an astrophotography article.",
+    },
+    {
+      href: "/admin/dashboard/gallery/new",
+      label: "Gallery Photo",
+      description: "Create a gallery image with acquisition metadata.",
+    },
+    {
+      href: "/admin/dashboard/astro-gear",
+      label: "Gear Item",
+      description: "Create equipment, software, techniques, and gear images.",
+    },
+    {
+      href: "/admin/dashboard/astro-sessions",
+      label: "Observing Session",
+      description: "Schedule a night sky session.",
+    },
+    {
+      href: "/admin/dashboard/finder-previews",
+      label: "Finder Preview",
+      description: "Create a guided star-hopping preview.",
+    },
+    {
+      href: "/admin/dashboard/astro-quizzes",
+      label: "Quiz",
+      description: "Create image-based multiple choice quizzes.",
+    },
+  ],
+  misc: [
+    {
+      href: "/admin/dashboard/new?type=misc",
+      label: "Misc Article",
+      description: "Create a miscellaneous article.",
+    },
+    {
+      href: "/admin/dashboard/misc",
+      label: "Misc Tab or Series",
+      description: "Create and organize misc tabs and series.",
+    },
+  ],
+};
 
 function AdminDashboardContent() {
   const router = useRouter();
@@ -159,13 +236,6 @@ function AdminDashboardContent() {
                 >
                   All Projects
                 </Link>
-                <Link
-                  href="/admin/dashboard/projects/new"
-                  className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
-                >
-                  <Plus size={13} />
-                  New Project
-                </Link>
               </>
             )}
             {section === "astrophotography" && (
@@ -183,24 +253,22 @@ function AdminDashboardContent() {
                   All Photos
                 </Link>
                 <Link
-                  href="/admin/dashboard/gallery/new"
-                  className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
-                >
-                  <Plus size={13} />
-                  New Photo
-                </Link>
-                <Link
                   href="/admin/dashboard/astro-sessions"
-                  className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
+                  className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
                 >
-                  <Plus size={13} />
-                  New Session
+                  Sessions
                 </Link>
                 <Link
                   href="/admin/dashboard/finder-previews"
                   className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
                 >
                   Finder Previews
+                </Link>
+                <Link
+                  href="/admin/dashboard/astro-quizzes"
+                  className="font-mono text-xs text-muted/40 hover:text-accent transition-colors border border-surface/10 px-2.5 py-2 hover:border-accent/30"
+                >
+                  Quizzes
                 </Link>
               </>
             )}
@@ -220,13 +288,7 @@ function AdminDashboardContent() {
                 Misc Structure
               </Link>
             )}
-            <Link
-              href={`/admin/dashboard/new?type=${section}`}
-              className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-1.5 hover:bg-accent/10 transition-all"
-            >
-              <Plus size={13} />
-              {section === "writing" ? "New Book Review" : "New Article"}
-            </Link>
+            <AdminResourceDropdown label="Create" actions={RESOURCE_ACTIONS[section]} />
           </div>
         </div>
 
@@ -240,12 +302,9 @@ function AdminDashboardContent() {
         ) : articles.length === 0 ? (
           <div className="text-center py-24 border border-surface/10">
             <p className="font-mono text-sm text-muted/30">No articles yet.</p>
-            <Link
-              href={`/admin/dashboard/new?type=${section}`}
-              className="inline-flex items-center gap-2 mt-4 font-mono text-xs text-accent hover:underline"
-            >
-              <Plus size={12} /> Create your first {section === "writing" ? "book review" : "article"}
-            </Link>
+            <div className="mt-4 inline-flex">
+              <AdminResourceDropdown label="Create first" actions={RESOURCE_ACTIONS[section]} />
+            </div>
           </div>
         ) : (
           <>

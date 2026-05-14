@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { GalleryPhoto } from "@/lib/schema";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import AdminResourceDropdown from "@/components/admin/AdminResourceDropdown";
 
 export default function GalleryDashboard() {
   const router = useRouter();
@@ -25,7 +26,10 @@ export default function GalleryDashboard() {
     }
   }, [router]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function handleDelete(id: number) {
     if (!confirm("Delete this photo?")) return;
@@ -40,13 +44,13 @@ export default function GalleryDashboard() {
       <AdminPageHeader
         title="Gallery"
         actions={
-          <Link
-            href="/admin/dashboard/gallery/new"
-            className="flex items-center gap-2 font-mono text-xs text-accent border border-accent px-4 py-2 hover:bg-accent/10 transition-all"
-          >
-            <Plus size={13} />
-            Add Photo
-          </Link>
+          <AdminResourceDropdown
+            actions={[{
+              href: "/admin/dashboard/gallery/new",
+              label: "Gallery Photo",
+              description: "Create a gallery image with acquisition metadata.",
+            }]}
+          />
         }
       />
 
@@ -56,17 +60,22 @@ export default function GalleryDashboard() {
         ) : photos.length === 0 ? (
           <div className="text-center py-24 border border-surface/10">
             <p className="font-mono text-sm text-muted/30">No photos yet.</p>
-            <Link
-              href="/admin/dashboard/gallery/new"
-              className="inline-flex items-center gap-2 mt-4 font-mono text-xs text-accent hover:underline"
-            >
-              <Plus size={12} /> Upload your first photo
-            </Link>
+            <div className="mt-4 inline-flex">
+              <AdminResourceDropdown
+                label="Create first"
+                actions={[{
+                  href: "/admin/dashboard/gallery/new",
+                  label: "Gallery Photo",
+                  description: "Create a gallery image with acquisition metadata.",
+                }]}
+              />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {photos.map((p) => (
               <div key={p.id} className="group relative border border-surface/10 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={p.imageUrl}
                   alt={p.name}

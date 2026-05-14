@@ -24,9 +24,11 @@ export default function ClientShell({ children }: { children: React.ReactNode })
     );
   }
   return (
-    <LazyMotion features={domAnimation} strict>
-      <WebVitalsReporter />
-      <PageShell>{children}</PageShell>
-    </LazyMotion>
+    <SessionProvider>
+      <LazyMotion features={domAnimation} strict>
+        <WebVitalsReporter />
+        <PageShell>{children}</PageShell>
+      </LazyMotion>
+    </SessionProvider>
   );
 }

@@ -16,6 +16,9 @@ const GearTab = dynamic(() => import("@/components/astrophotography/GearTab"), {
   loading: () => <p className="font-mono text-xs text-muted/30">Loading gear…</p>,
 });
 const NightSkyMap = dynamic(() => import("@/components/astrophotography/NightSkyMap"), { ssr: false });
+const QuizTab = dynamic(() => import("@/components/astrophotography/QuizTab"), {
+  loading: () => <p className="font-mono text-xs text-muted/30">Loading quiz…</p>,
+});
 import { useArticles } from "@/lib/hooks/use-articles";
 import { useUrlPage } from "@/lib/hooks/use-url-page";
 import { useSiteContent } from "@/lib/hooks/use-site-content";
@@ -54,6 +57,10 @@ const ASTRO_TABS: AstroTab[] = [
   {
     ...SECTION_TABS.astrophotography[4],
     renderContent: () => <NightSkyMap />,
+  },
+  {
+    ...SECTION_TABS.astrophotography[5],
+    renderContent: () => <QuizTab />,
   },
 ];
 

@@ -15,6 +15,7 @@ export const SECTION_TABS: Record<SectionTabId, TabConfig[]> = {
     { id: "gallery", label: "Gallery" },
     { id: "gear", label: "Gear" },
     { id: "sky", label: "Night Sky" },
+    { id: "quiz", label: "Quiz" },
   ],
   writing: [
     { id: "book-reviews", label: "Book reviews" },

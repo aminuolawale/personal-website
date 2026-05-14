@@ -167,6 +167,78 @@ export const astroSessions = pgTable("astro_sessions", {
 export type AstroSession = typeof astroSessions.$inferSelect;
 export type NewAstroSession = typeof astroSessions.$inferInsert;
 
+export interface QuizMarquee {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const astroQuizzes = pgTable("astro_quizzes", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  imageUrl: text("image_url"),
+  sessionId: integer("session_id"),
+  published: boolean("published").notNull().default(false),
+  position: integer("position").notNull().default(99),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type AstroQuiz = typeof astroQuizzes.$inferSelect;
+export type NewAstroQuiz = typeof astroQuizzes.$inferInsert;
+
+export const astroQuizQuestions = pgTable("astro_quiz_questions", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").notNull(),
+  question: text("question").notNull(),
+  marquee: jsonb("marquee").$type<QuizMarquee | null>(),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type AstroQuizQuestion = typeof astroQuizQuestions.$inferSelect;
+export type NewAstroQuizQuestion = typeof astroQuizQuestions.$inferInsert;
+
+export const astroQuizOptions = pgTable("astro_quiz_options", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull(),
+  label: text("label").notNull(),
+  isCorrect: boolean("is_correct").notNull().default(false),
+  position: integer("position").notNull().default(0),
+});
+
+export type AstroQuizOption = typeof astroQuizOptions.$inferSelect;
+export type NewAstroQuizOption = typeof astroQuizOptions.$inferInsert;
+
+export const astroQuizAttempts = pgTable("astro_quiz_attempts", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").notNull(),
+  readerEmail: text("reader_email").notNull(),
+  readerName: text("reader_name"),
+  score: integer("score").notNull(),
+  totalQuestions: integer("total_questions").notNull(),
+  completed: boolean("completed").notNull().default(true),
+  answers: jsonb("answers").$type<Record<string, number>>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type AstroQuizAttempt = typeof astroQuizAttempts.$inferSelect;
+export type NewAstroQuizAttempt = typeof astroQuizAttempts.$inferInsert;
+
+export const readerProfiles = pgTable("reader_profiles", {
+  email: text("email").primaryKey(),
+  name: text("name"),
+  image: text("image"),
+  firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+});
+
+export type ReaderProfile = typeof readerProfiles.$inferSelect;
+export type NewReaderProfile = typeof readerProfiles.$inferInsert;
+
 // Saved finder-mode previews for guided star-hopping on the sky map. Steps are
 // stored as JSON: [{ targetId: string, description: string }].
 export const finderPreviews = pgTable("finder_previews", {
