@@ -23,7 +23,7 @@ const ReadingNotesTab = dynamic(() => import("@/components/writing/ReadingNotesT
 const TAB_IDS_SET = new Set(SECTION_TABS.writing.map((t) => t.id));
 
 function WritingContent() {
-  const { page, setPage, resetPage } = useUrlPage();
+  const { page, setPage } = useUrlPage();
   const { articles, isLoading, totalPages } = useArticles("writing", { page, pageSize: 10 });
   const { writingTitle, writingDescription } = useSiteContent();
   const { order, labels, visibility } = useTabConfig("writing", SECTION_TABS.writing);
@@ -45,7 +45,6 @@ function WritingContent() {
 
   function selectWritingTab(tabId: string) {
     setActiveTabId(tabId);
-    resetPage();
     trackEvent({
       name: "public.writing_tab.changed",
       section: "writing",

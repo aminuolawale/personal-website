@@ -33,7 +33,10 @@ function MiscContent() {
   const { miscTitle, miscDescription } = useSiteContent();
   const [tabs, setTabs] = useState<MiscTab[]>([]);
   const [seriesList, setSeriesList] = useState<MiscSeries[]>([]);
-  const [selectedSeriesId, setSelectedSeriesId] = useState<number | "all">("all");
+  const [seriesSelection, setSeriesSelection] = useState<{ tabId: string; seriesId: number | "all" }>({
+    tabId: "",
+    seriesId: "all",
+  });
   const [reader, setReader] = useState<{ title: string; meta?: string; html: string } | null>(null);
 
   useEffect(() => {
@@ -84,10 +87,7 @@ function MiscContent() {
 
   const validTabIds = useMemo(() => new Set(orderedDisplayTabs.map((t) => t.id)), [orderedDisplayTabs]);
   const [activeTabId, setActiveTabId] = usePersistentTab(orderedDisplayTabs[0]?.id ?? "", validTabIds);
-
-  useEffect(() => {
-    setSelectedSeriesId("all");
-  }, [activeTabId]);
+  const selectedSeriesId = seriesSelection.tabId === activeTabId ? seriesSelection.seriesId : "all";
 
   const activeTab = orderedDisplayTabs.find((tab) => tab.id === activeTabId) ?? orderedDisplayTabs[0];
   const activeArticles = useMemo(() => {
@@ -117,7 +117,6 @@ function MiscContent() {
 
   function selectTab(tabId: string) {
     setActiveTabId(tabId);
-    resetPage();
     trackEvent({
       name: "public.misc_tab.changed",
       section: "misc",
@@ -127,7 +126,7 @@ function MiscContent() {
   }
 
   function selectSeries(seriesId: number | "all") {
-    setSelectedSeriesId(seriesId);
+    setSeriesSelection({ tabId: activeTabId, seriesId });
     resetPage();
     trackEvent({
       name: "public.misc_series.changed",

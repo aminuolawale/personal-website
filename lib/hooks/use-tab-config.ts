@@ -20,11 +20,7 @@ export function useTabConfig(
     visibility: Object.fromEntries(tabs.map((t) => [t.id, true])),
   }), [tabs]);
 
-  const [config, setConfig] = useState<TabConfigResult>({
-    order: defaults.order,
-    labels: defaults.labels,
-    visibility: defaults.visibility,
-  });
+  const [savedValues, setSavedValues] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -37,29 +33,41 @@ export function useTabConfig(
     fetchCachedJson<{ values: Record<string, unknown> }>(`/api/config?keys=${keys}`, { values: {} })
       .then(({ values }: { values: Record<string, unknown> }) => {
         if (cancelled) return;
-        const savedOrder = values[tabOrder(section)];
-        const savedLabels = values[tabLabels(section)];
-        const savedVisibility = values[tabVisibility(section)];
-
-        const savedIds = Array.isArray(savedOrder) ? (savedOrder as string[]) : [];
-        const knownIds = new Set(defaults.order);
-        const orderedKnownIds = savedIds.filter((id) => knownIds.has(id));
-        const missingIds = defaults.order.filter((id) => !orderedKnownIds.includes(id));
-        const order = [...orderedKnownIds, ...missingIds];
-
-        const labels =
-          savedLabels && typeof savedLabels === "object" && !Array.isArray(savedLabels)
-            ? { ...defaults.labels, ...(savedLabels as Record<string, string>) }
-            : defaults.labels;
-
-        const visibility =
-          savedVisibility && typeof savedVisibility === "object" && !Array.isArray(savedVisibility)
-            ? { ...defaults.visibility, ...(savedVisibility as Record<string, boolean>) }
-            : defaults.visibility;
-        setConfig({ order, labels, visibility });
+        setSavedValues(values);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSavedValues({});
       });
     return () => { cancelled = true; };
-  }, [defaults, section, tabs.length]);
+  }, [section, tabs.length]);
 
-  return tabs.length === 0 ? { order: [], labels: {}, visibility: {} } : config;
+  return useMemo(() => {
+    if (tabs.length === 0) {
+      return { order: [], labels: {}, visibility: {} };
+    }
+
+    const values = savedValues ?? {};
+    const savedOrder = values[tabOrder(section)];
+    const savedLabels = values[tabLabels(section)];
+    const savedVisibility = values[tabVisibility(section)];
+
+    const savedIds = Array.isArray(savedOrder) ? (savedOrder as string[]) : [];
+    const knownIds = new Set(defaults.order);
+    const orderedKnownIds = savedIds.filter((id) => knownIds.has(id));
+    const missingIds = defaults.order.filter((id) => !orderedKnownIds.includes(id));
+    const order = [...orderedKnownIds, ...missingIds];
+
+    const labels =
+      savedLabels && typeof savedLabels === "object" && !Array.isArray(savedLabels)
+        ? { ...defaults.labels, ...(savedLabels as Record<string, string>) }
+        : defaults.labels;
+
+    const visibility =
+      savedVisibility && typeof savedVisibility === "object" && !Array.isArray(savedVisibility)
+        ? { ...defaults.visibility, ...(savedVisibility as Record<string, boolean>) }
+        : defaults.visibility;
+
+    return { order, labels, visibility };
+  }, [defaults, savedValues, section, tabs.length]);
 }

@@ -73,7 +73,7 @@ function AstrophotographyContent() {
   [order, labels, visibility]);
 
   const [activeTabId, setActiveTabId] = usePersistentTab(orderedTabs[0]?.id ?? ASTRO_TABS[0].id, TAB_IDS_SET);
-  const { page, setPage, resetPage } = useUrlPage();
+  const { page, setPage } = useUrlPage();
   const { articles, isLoading, totalPages } = useArticles("astrophotography", { page, pageSize: 9 });
   const { astroTitle, astroDescription } = useSiteContent();
 
@@ -81,7 +81,6 @@ function AstrophotographyContent() {
 
   function selectTab(tabId: string) {
     setActiveTabId(tabId);
-    resetPage();
   }
 
   return (

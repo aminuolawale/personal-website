@@ -14,6 +14,7 @@ export function usePersistentTab(defaultTab: string, validTabIds: Set<string>) {
   const setActiveTabId = useCallback((tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tabId);
+    params.delete("page"); // reset pagination in the same navigation to avoid a race
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [pathname, router, searchParams]);
 

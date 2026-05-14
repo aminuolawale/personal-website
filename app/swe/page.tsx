@@ -67,7 +67,7 @@ function SweContent() {
   [order, labels, visibility]);
 
   const [activeTabId, setActiveTabId] = usePersistentTab(orderedTabs[0]?.id ?? SWE_TABS[0].id, TAB_IDS_SET);
-  const { page, setPage, resetPage } = useUrlPage();
+  const { page, setPage } = useUrlPage();
   const { articles, isLoading, totalPages } = useArticles("swe", { page, pageSize: 10 });
   const { sweTitle, sweDescription } = useSiteContent();
 
@@ -75,7 +75,6 @@ function SweContent() {
 
   function selectTab(tabId: string) {
     setActiveTabId(tabId);
-    resetPage();
   }
 
   return (

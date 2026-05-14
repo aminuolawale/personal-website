@@ -33,6 +33,22 @@ describe("useTabConfig", () => {
     expect(result.current.visibility).toEqual({ articles: true, projects: true, about: true });
   });
 
+  it("returns new defaults immediately when tabs load after mount", () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+    const { result, rerender } = renderHook(
+      ({ tabs }) => useTabConfig("misc", tabs),
+      { initialProps: { tabs: [] as typeof DEFAULT_TABS } }
+    );
+
+    expect(result.current.order).toEqual([]);
+
+    rerender({ tabs: DEFAULT_TABS });
+
+    expect(result.current.order).toEqual(DEFAULT_ORDER);
+    expect(result.current.labels).toEqual({ articles: "Articles", projects: "Projects", about: "About Me" });
+    expect(result.current.visibility).toEqual({ articles: true, projects: true, about: true });
+  });
+
   it("applies a valid saved order from the API", async () => {
     const reordered = ["about", "articles", "projects"];
     mockValues({ "tab-order-swe": reordered });
