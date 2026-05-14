@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useUnsavedChangesGuard } from "@/lib/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Upload, X, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, Save, Upload, X, LayoutTemplate, Plus } from "lucide-react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import type { GalleryPhoto, AstroGear } from "@/lib/schema";
@@ -85,6 +85,9 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const [name, setName] = useState(photo?.name ?? "");
   const [description, setDescription] = useState(photo?.description ?? "");
   const [imageUrl, setImageUrl] = useState(photo?.imageUrl ?? "");
+  const [additionalImages, setAdditionalImages] = useState<string[]>(photo?.additionalImages ?? []);
+  const additionalFileInputRef = useRef<HTMLInputElement>(null);
+  const [additionalUploading, setAdditionalUploading] = useState(false);
   const [capturedAt, setCapturedAt] = useState(photo?.capturedAt ?? "");
   const [published, setPublished] = useState(photo?.published ?? true);
 
@@ -111,6 +114,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
   const { clearDirty } = useUnsavedChangesGuard([
     name, description, imageUrl, capturedAt, published,
     JSON.stringify(selectedEquipment), JSON.stringify(selectedSoftware), JSON.stringify(selectedTechnique),
+    JSON.stringify(additionalImages),
   ]);
 
   useEffect(() => {
@@ -146,6 +150,25 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
     }
   }
 
+  async function handleAdditionalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAdditionalUploading(true);
+    setError("");
+    try {
+      const blob = await upload(`gallery/${Date.now()}-${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/gallery/upload",
+      });
+      setAdditionalImages((prev) => [...prev, blob.url]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setAdditionalUploading(false);
+      if (additionalFileInputRef.current) additionalFileInputRef.current.value = "";
+    }
+  }
+
   async function handleSave() {
     if (!name.trim()) { setError("Name is required."); return; }
     if (!imageUrl.trim()) { setError("An image is required."); return; }
@@ -155,6 +178,7 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
       name: name.trim(),
       description: description.trim(),
       imageUrl: imageUrl.trim(),
+      additionalImages: additionalImages.length > 0 ? additionalImages : null,
       equipment: selectedEquipment.join(", "),
       capturedAt: capturedAt.trim(),
       technique: selectedTechnique.join(", "),
@@ -321,6 +345,48 @@ export default function GalleryPhotoForm({ photo }: { photo?: GalleryPhoto }) {
               className="flex-1 bg-surface/[0.04] border border-surface/10 px-3 py-1.5 text-xs text-surface placeholder:text-muted/20 focus:outline-none focus:border-accent/40"
             />
           </div>
+        </div>
+
+        {/* Additional images */}
+        <div className="space-y-3">
+          <label className={LABEL}>Additional Images</label>
+          {additionalImages.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {additionalImages.map((url, i) => (
+                <div key={i} className="relative group">
+                  <img
+                    src={url}
+                    alt={`Additional ${i + 1}`}
+                    className="w-full aspect-square object-cover border border-surface/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAdditionalImages((prev) => prev.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 p-0.5 bg-base/80 text-muted/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove image"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => additionalFileInputRef.current?.click()}
+            disabled={additionalUploading}
+            className="flex items-center gap-2 font-mono text-xs text-muted/50 border border-dashed border-surface/20 px-4 py-2.5 hover:border-accent/40 hover:text-accent transition-all disabled:opacity-40"
+          >
+            <Plus size={13} />
+            {additionalUploading ? "Uploading…" : "Add another image"}
+          </button>
+          <input
+            ref={additionalFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/tiff"
+            className="hidden"
+            onChange={handleAdditionalFileChange}
+          />
         </div>
 
         {/* Name */}

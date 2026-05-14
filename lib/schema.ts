@@ -93,6 +93,7 @@ export const galleryPhotos = pgTable("gallery_photos", {
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
   imageUrl: text("image_url").notNull(),
+  additionalImages: jsonb("additional_images").$type<string[]>(),
   equipment: text("equipment").notNull().default(""),   // comma-separated
   capturedAt: text("captured_at").notNull().default(""),
   technique: text("technique").notNull().default(""),   // comma-separated
