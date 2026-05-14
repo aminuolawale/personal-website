@@ -60,17 +60,52 @@ function LabelCarousel({
   }, [regions]);
 
   return (
-    <div className="relative w-full">
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide px-2 pb-1 w-full"
-      >
+    <>
+      {/* Mobile: horizontal scrolling carousel */}
+      <div className="relative w-full lg:hidden">
+        <div
+          ref={scrollRef}
+          className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 w-full"
+        >
+          {regions.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onToggle(r.id)}
+              className={`shrink-0 font-mono text-xs px-3 py-1.5 border transition-all ${
+                activeRegionId === r.id
+                  ? "bg-accent/10 border-accent/40 text-accent"
+                  : "border-surface/20 text-muted/50 hover:border-accent/30 hover:text-muted/70"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 transition-opacity duration-200"
+          style={{
+            background: "linear-gradient(to right, transparent, var(--color-base))",
+            opacity: canScrollRight ? 1 : 0,
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 w-10 transition-opacity duration-200"
+          style={{
+            background: "linear-gradient(to left, transparent, var(--color-base))",
+            opacity: canScrollLeft ? 1 : 0,
+          }}
+        />
+      </div>
+
+      {/* Desktop: vertical list */}
+      <div className="hidden lg:flex flex-col gap-1.5">
         {regions.map((r) => (
           <button
             key={r.id}
             type="button"
             onClick={() => onToggle(r.id)}
-            className={`shrink-0 font-mono text-xs px-3 py-1.5 border transition-all ${
+            className={`font-mono text-xs px-3 py-1.5 border text-left transition-all ${
               activeRegionId === r.id
                 ? "bg-accent/10 border-accent/40 text-accent"
                 : "border-surface/20 text-muted/50 hover:border-accent/30 hover:text-muted/70"
@@ -80,23 +115,7 @@ function LabelCarousel({
           </button>
         ))}
       </div>
-      {/* Right fade */}
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-10 transition-opacity duration-200"
-        style={{
-          background: "linear-gradient(to right, transparent, var(--color-base))",
-          opacity: canScrollRight ? 1 : 0,
-        }}
-      />
-      {/* Left fade */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-10 transition-opacity duration-200"
-        style={{
-          background: "linear-gradient(to left, transparent, var(--color-base))",
-          opacity: canScrollLeft ? 1 : 0,
-        }}
-      />
-    </div>
+    </>
   );
 }
 
