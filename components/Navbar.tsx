@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useSectionVisibility } from "@/lib/hooks/use-section-visibility";
@@ -121,41 +120,35 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile drawer */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <m.div
-            className="lg:hidden border-t border-surface/10 bg-base/95 backdrop-blur-md overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ul className="px-6 py-5 flex flex-col gap-4">
-              {navItems.map((item) => {
-                return (
-                  <li key={item.label}>
-                    <Link
-                      href={item.href}
-                      className={`font-mono text-sm transition-colors block ${
-                        pathname === item.href ? "text-accent" : "text-surface hover:text-accent"
-                      }`}
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      <span className="text-accent/60 text-xs mr-2">
-                        {getVisibleSectionNumber(item.section, visibility)}.
-                      </span>
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-              <li className="pt-2 border-t border-surface/10">
-                <AuthButton inline />
+      <div
+        className={`lg:hidden border-t border-surface/10 bg-base/95 backdrop-blur-md overflow-hidden transition-[max-height,opacity] duration-200 ${
+          mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <ul className="px-6 py-5 flex flex-col gap-4">
+          {navItems.map((item) => {
+            return (
+              <li key={item.label}>
+                <Link
+                  href={item.href}
+                  className={`font-mono text-sm transition-colors block ${
+                    pathname === item.href ? "text-accent" : "text-surface hover:text-accent"
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <span className="text-accent/60 text-xs mr-2">
+                    {getVisibleSectionNumber(item.section, visibility)}.
+                  </span>
+                  {item.label}
+                </Link>
               </li>
-            </ul>
-          </m.div>
-        )}
-      </AnimatePresence>
+            );
+          })}
+          <li className="pt-2 border-t border-surface/10">
+            <AuthButton inline />
+          </li>
+        </ul>
+      </div>
     </header>
   );
 }

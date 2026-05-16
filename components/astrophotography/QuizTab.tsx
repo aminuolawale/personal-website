@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as NextAuthReact from "next-auth/react";
+import NextImage from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Camera, LogIn, Send, Share2 } from "lucide-react";
 import RichTextContent from "@/components/RichTextContent";
@@ -128,7 +129,7 @@ export async function createQuizStoryFile(quiz: ShareableQuiz, shareUrl: string)
   return new File([blob], `astro-quiz-${quiz.id}-story.png`, { type: "image/png" });
 }
 
-export default function QuizTab() {
+function QuizTabContent() {
   const { status } = NextAuthReact.useSession();
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const [activeQuiz, setActiveQuiz] = useState<PublicQuiz | null>(null);
@@ -396,8 +397,13 @@ export default function QuizTab() {
           <div className="space-y-4">
             {activeQuiz.imageUrl ? (
               <div className="relative aspect-[4/3] overflow-hidden border border-surface/10 bg-surface/[0.03]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={activeQuiz.imageUrl} alt="" className="h-full w-full object-contain" />
+                <NextImage
+                  src={activeQuiz.imageUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-contain"
+                />
                 {currentQuestion.marquee && (
                   <div
                     className="absolute border-2 border-accent shadow-[0_0_24px_rgba(56,189,248,0.45)]"
@@ -573,5 +579,13 @@ export default function QuizTab() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function QuizTab() {
+  return (
+    <NextAuthReact.SessionProvider>
+      <QuizTabContent />
+    </NextAuthReact.SessionProvider>
   );
 }

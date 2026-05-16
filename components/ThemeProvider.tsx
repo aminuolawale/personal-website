@@ -10,6 +10,8 @@ import {
 
 type Theme = "dark" | "light";
 
+const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
@@ -68,6 +70,15 @@ function applyFontToDOM(font: FontChoice | null) {
   el.textContent = `:root{--font-space-grotesk:"${f.sans}",sans-serif;--font-space-mono:"${f.mono}",monospace}`;
 }
 
+function isConfigCacheFresh() {
+  const updatedAt = Number(localStorage.getItem("theme-config-updated-at") ?? 0);
+  return updatedAt > 0 && Date.now() - updatedAt < CONFIG_CACHE_TTL_MS;
+}
+
+function markConfigCacheFresh() {
+  localStorage.setItem("theme-config-updated-at", String(Date.now()));
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [palette, setPalette] = useState<ColorPalette>(DEFAULT_PALETTE);
@@ -101,16 +112,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     });
 
+    if (isConfigCacheFresh()) {
+      return () => { cancelled = true; };
+    }
+
     fetch("/api/config?keys=color-palette,font-choice")
       .then((res) => (res.ok ? res.json() : { values: {} }))
       .then(({ values }) => {
         if (cancelled || !values) return;
+        let appliedConfig = false;
 
         if (values["color-palette"]) {
           const nextPalette = values["color-palette"] as ColorPalette;
           setPalette(nextPalette);
           applyPaletteToDOM(nextPalette);
           localStorage.setItem("color-palette", JSON.stringify(nextPalette));
+          appliedConfig = true;
         }
 
         if (values["font-choice"]) {
@@ -118,7 +135,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           setFont(nextFont);
           applyFontToDOM(nextFont);
           localStorage.setItem("font-choice", JSON.stringify(nextFont));
+          appliedConfig = true;
         }
+
+        if (appliedConfig) markConfigCacheFresh();
       })
       .catch(() => {});
 
@@ -139,8 +159,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setPalette(p ?? DEFAULT_PALETTE);
     if (p) {
       localStorage.setItem("color-palette", JSON.stringify(p));
+      markConfigCacheFresh();
     } else {
       localStorage.removeItem("color-palette");
+      localStorage.removeItem("theme-config-updated-at");
     }
     applyPaletteToDOM(p);
   }, []);
@@ -149,8 +171,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setFont(f ?? DEFAULT_FONT);
     if (f && f.sans !== DEFAULT_FONT.sans) {
       localStorage.setItem("font-choice", JSON.stringify(f));
+      markConfigCacheFresh();
     } else {
       localStorage.removeItem("font-choice");
+      localStorage.removeItem("theme-config-updated-at");
     }
     applyFontToDOM(f);
   }, []);

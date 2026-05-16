@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { projects } from "@/lib/schema";
 import { eq, asc } from "drizzle-orm";
+import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, ArrowLeft } from "lucide-react";
 import { GitHubIcon } from "@/components/icons";
@@ -63,9 +64,12 @@ export default async function AllProjectsPage() {
                 className="group bg-surface/[0.025] border border-surface/10 p-6 flex flex-col hover:bg-surface/[0.05] hover:border-accent/25 hover:-translate-y-1 transition-all duration-300"
               >
                 {p.imageUrl && (
-                  <img
+                  <Image
                     src={p.imageUrl}
                     alt={p.title}
+                    width={640}
+                    height={360}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="w-full h-36 object-cover mb-4 border border-surface/10"
                   />
                 )}
