@@ -30,9 +30,9 @@ export const DEFAULT_PALETTE: ColorPalette = {
 
 export const COLOR_PALETTE_PRESETS: ColorPalettePreset[] = [
   {
-    id: "slate-blue",
-    label: "Slate Blue",
-    description: "Neutral, high contrast, and calm for long reading sessions.",
+    id: "site-default",
+    label: "Site Default",
+    description: "The original site palette used by default before any admin customization.",
     palette: DEFAULT_PALETTE,
   },
   {
