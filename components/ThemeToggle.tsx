@@ -2,55 +2,76 @@
 
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
+import { COLOR_PALETTE_PRESETS, type PaletteTheme } from "@/lib/theme-config";
 
 type ThemeToggleMode = "icon" | "segmented" | "responsive";
+type ThemeMode = "dark" | "light";
+
+function isSameTheme(a: PaletteTheme, b: PaletteTheme) {
+  return a.base === b.base && a.accent === b.accent && a.surface === b.surface && a.muted === b.muted;
+}
 
 function IconToggle({ className }: { className?: string }) {
-  const { theme, toggle } = useTheme();
+  const { theme, setTheme, palette, updatePalette } = useTheme();
+
+  function cycleCurrentMode() {
+    const mode = theme;
+    const currentIndex = COLOR_PALETTE_PRESETS.findIndex((preset) => isSameTheme(preset.palette[mode], palette[mode]));
+    const nextPreset = COLOR_PALETTE_PRESETS[(currentIndex + 1) % COLOR_PALETTE_PRESETS.length];
+    updatePalette({ ...palette, [mode]: nextPreset.palette[mode] });
+    setTheme(mode);
+  }
 
   return (
     <button
       type="button"
-      onClick={toggle}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      onClick={cycleCurrentMode}
+      aria-label={`Cycle ${theme} theme`}
+      title={`Cycle ${theme} theme`}
       className={`grid h-8 w-8 place-items-center text-muted/50 hover:text-accent transition-colors duration-200 ${className ?? ""}`}
     >
-      {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+      {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
     </button>
   );
 }
 
 function SegmentedToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, palette, updatePalette } = useTheme();
   const options = [
-    { value: "dark" as const, label: "Dark", icon: Moon },
-    { value: "light" as const, label: "Light", icon: Sun },
+    { value: "dark" as const, icon: Moon },
+    { value: "light" as const, icon: Sun },
   ];
+
+  function cycleMode(value: ThemeMode) {
+    const currentIndex = COLOR_PALETTE_PRESETS.findIndex((preset) => isSameTheme(preset.palette[value], palette[value]));
+    const nextPreset = COLOR_PALETTE_PRESETS[(currentIndex + 1) % COLOR_PALETTE_PRESETS.length];
+    updatePalette({ ...palette, [value]: nextPreset.palette[value] });
+    setTheme(value);
+  }
 
   return (
     <div
       className={`inline-grid grid-cols-2 items-center border border-surface/10 bg-surface/[0.03] p-0.5 ${className ?? ""}`}
-      role="radiogroup"
-      aria-label="Theme"
+      aria-label="Theme selector"
     >
-      {options.map(({ value, label, icon: Icon }) => {
+      {options.map(({ value, icon: Icon }) => {
         const active = theme === value;
 
         return (
           <button
             key={value}
             type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => setTheme(value)}
-            className={`flex h-8 min-w-20 items-center justify-center gap-1.5 px-3 font-mono text-[11px] transition-colors ${
+            aria-pressed={active}
+            aria-label={`Cycle ${value} theme`}
+            title={`Cycle ${value} theme`}
+            onClick={() => cycleMode(value)}
+            className={`grid h-8 w-8 place-items-center transition-colors sm:w-10 ${
               active
                 ? "bg-accent text-base"
                 : "text-muted/50 hover:text-accent"
             }`}
           >
-            <Icon size={13} />
-            <span>{label}</span>
+            <Icon size={14} />
           </button>
         );
       })}
@@ -68,12 +89,7 @@ export default function ThemeToggle({
   if (mode === "segmented") return <SegmentedToggle className={className} />;
 
   if (mode === "responsive") {
-    return (
-      <>
-        <SegmentedToggle className={`hidden sm:inline-grid ${className ?? ""}`} />
-        <IconToggle className={`sm:hidden ${className ?? ""}`} />
-      </>
-    );
+    return <SegmentedToggle className={className} />;
   }
 
   return <IconToggle className={className} />;
