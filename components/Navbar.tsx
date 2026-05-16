@@ -104,12 +104,12 @@ export default function Navbar() {
         {/* Auth + theme — desktop */}
         <div className="hidden lg:flex items-center gap-3">
           <AuthButton />
-          <ThemeToggle />
+          <ThemeToggle mode="responsive" />
         </div>
 
         {/* Mobile: theme toggle + hamburger */}
         <div className="lg:hidden flex items-center gap-1">
-          <ThemeToggle />
+          <ThemeToggle mode="responsive" />
           <button
             className="text-accent p-1"
             onClick={() => setMobileOpen((v) => !v)}

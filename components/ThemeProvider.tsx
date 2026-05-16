@@ -12,6 +12,7 @@ type Theme = "dark" | "light";
 
 interface ThemeContextValue {
   theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggle: () => void;
   palette: ColorPalette;
   updatePalette: (p: ColorPalette | null) => void;
@@ -21,6 +22,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
+  setTheme: () => {},
   toggle: () => {},
   palette: DEFAULT_PALETTE,
   updatePalette: () => {},
@@ -72,25 +74,65 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [font, setFont] = useState<FontChoice>(DEFAULT_FONT);
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as Theme | null;
-    if (storedTheme === "light") setTheme("light");
+    let cancelled = false;
 
-    try {
-      const raw = localStorage.getItem("color-palette");
-      if (raw) setPalette(JSON.parse(raw));
-    } catch {}
+    queueMicrotask(() => {
+      if (cancelled) return;
 
-    try {
-      const raw = localStorage.getItem("font-choice");
-      if (raw) setFont(JSON.parse(raw));
-    } catch {}
+      const storedTheme = localStorage.getItem("theme") === "light" ? "light" : "dark";
+      setTheme(storedTheme);
+
+      try {
+        const raw = localStorage.getItem("color-palette");
+        if (raw) {
+          const parsed = JSON.parse(raw) as ColorPalette;
+          setPalette(parsed);
+          applyPaletteToDOM(parsed);
+        }
+      } catch {}
+
+      try {
+        const raw = localStorage.getItem("font-choice");
+        if (raw) {
+          const parsed = JSON.parse(raw) as FontChoice;
+          setFont(parsed);
+          applyFontToDOM(parsed);
+        }
+      } catch {}
+    });
+
+    fetch("/api/config?keys=color-palette,font-choice")
+      .then((res) => (res.ok ? res.json() : { values: {} }))
+      .then(({ values }) => {
+        if (cancelled || !values) return;
+
+        if (values["color-palette"]) {
+          const nextPalette = values["color-palette"] as ColorPalette;
+          setPalette(nextPalette);
+          applyPaletteToDOM(nextPalette);
+          localStorage.setItem("color-palette", JSON.stringify(nextPalette));
+        }
+
+        if (values["font-choice"]) {
+          const nextFont = values["font-choice"] as FontChoice;
+          setFont(nextFont);
+          applyFontToDOM(nextFont);
+          localStorage.setItem("font-choice", JSON.stringify(nextFont));
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
   }, []);
 
-  function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
+  const selectTheme = useCallback((next: Theme) => {
     setTheme(next);
     localStorage.setItem("theme", next);
     document.documentElement.setAttribute("data-theme", next);
+  }, []);
+
+  function toggle() {
+    selectTheme(theme === "dark" ? "light" : "dark");
   }
 
   const updatePalette = useCallback((p: ColorPalette | null) => {
@@ -114,7 +156,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle, palette, updatePalette, font, updateFont }}>
+    <ThemeContext.Provider value={{ theme, setTheme: selectTheme, toggle, palette, updatePalette, font, updateFont }}>
       {children}
     </ThemeContext.Provider>
   );
