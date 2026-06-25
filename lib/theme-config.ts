@@ -24,7 +24,7 @@ export interface FontChoice {
 }
 
 export const DEFAULT_PALETTE: ColorPalette = {
-  dark:  { base: "#0f172a", accent: "#38bdf8", surface: "#f8fafc", muted: "#cbd5e1" },
+  dark:  { base: "#060c1a", accent: "#38bdf8", surface: "#f8fafc", muted: "#cbd5e1" },
   light: { base: "#f8fafc", accent: "#2563eb", surface: "#0f172a", muted: "#334155" },
 };
 
